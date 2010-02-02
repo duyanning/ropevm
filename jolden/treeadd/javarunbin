@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+
+java TreeAdd -l 20 -m
+

@@ -1,0 +1,8 @@
+#!/usr/bin/env sh
+
+if [ ! -d bin ] ; then
+	mkdir bin
+fi
+
+javac -cp . -d bin BH.java
+

@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+
+minivm -cp bin Voronoi -n 20000 -m
+

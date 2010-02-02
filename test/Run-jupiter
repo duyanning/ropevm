@@ -1,0 +1,4 @@
+#! /bin/bash
+JUPITER=$1
+shift
+../$JUPITER $@ 2> /dev/null

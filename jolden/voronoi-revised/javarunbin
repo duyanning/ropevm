@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+
+java -cp bin Voronoi -n 20000 -m
+

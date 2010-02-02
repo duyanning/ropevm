@@ -1,0 +1,5 @@
+#!/usr/bin/env sh
+
+#java -cp bin MST -v 1024 -m
+java -cp bin MST -v 10 -m
+

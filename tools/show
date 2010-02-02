@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+
+javap -c -private `basename $1 .class`
+

@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+
+java -cp bin BiSort -s 250000 -m
+

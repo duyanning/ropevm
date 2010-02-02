@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+javac Veiovis.java
+java Veiovis > Veiovis.sun
+../debug/minivm Veiovis > Veiovis.minivm
+#/usr/local/jamvm/bin/jamvm Veiovis > Veiovis.jamvm
+#../../origin-minivm/debug/minivm Veiovis > Veiovis.origin-minivm
+meld Veiovis.sun Veiovis.minivm
+#meld Veiovis.jamvm Veiovis.minivm
+#meld Veiovis.origin-minivm Veiovis.minivm
+

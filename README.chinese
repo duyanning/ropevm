@@ -1,0 +1,5 @@
+安装classpath 0.93 (为编译这个需安装jikes)
+安装jamvm 1.51
+
+自己安装的这些都须安装在/usr/local下
+

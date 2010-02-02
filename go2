@@ -1,0 +1,10 @@
+#!/usr/bin/env sh
+
+if [ $# -gt 0 ] ; then
+	valgrind --leak-check=yes debug/minivm $1 2> a.txt
+else
+	make -f MakeHello.mk
+	valgrind --leak-check=yes debug/minivm Hello 2> a.txt
+#	valgrind --leak-check=yes debug/minivm Hello 2>&1 >a.txt
+fi
+

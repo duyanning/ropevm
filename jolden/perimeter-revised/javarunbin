@@ -1,0 +1,5 @@
+#!/usr/bin/env sh
+
+java -cp bin Perimeter -l 16 -m
+
+
