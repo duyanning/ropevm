@@ -1,0 +1,25 @@
+*** Test: constructor
+ReflectionTest
+java/lang/Object
+In nullary constructor
+isInstance
+Equal
+assignable
+not assignable
+32
+java/lang/String
+EmptyBench
+private ReflectionTest()
+In nullary constructor
+No arguments
+*** Test: constructor2
+In string constructor(It worked)
+It worked
+*** Test: field
+In string constructor(Field test #1)
+foo
+java/lang/String
+Field test #1
+Field test #2
+Field test #2
+Ok: NoSuchFieldException

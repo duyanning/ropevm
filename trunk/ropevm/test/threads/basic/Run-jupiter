@@ -1,0 +1,5 @@
+#! /bin/bash
+PARAMETERS="10"
+JUPITER=$1
+shift
+../../../$JUPITER $@ $PARAMETERS 2> /dev/null

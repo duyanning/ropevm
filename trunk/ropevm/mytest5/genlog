@@ -1,0 +1,11 @@
+#!/usr/bin/env sh
+
+go > b.txt  2>&1
+
+x=0
+while [ $x -lt 7 ]
+do
+	grep -n "#$x" b.txt > b$x.txt
+	x=`echo "$x + 1" | bc`
+done
+

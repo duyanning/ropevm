@@ -1,0 +1,54 @@
+******************
+* Current Thread *
+******************
+Thread currentThread: Thread[Thread-0,5,main]
+Thread currentThread: Thread.currentThread()==this?true
+Main currentThread: Thread[main,5,main]
+*************
+* Test Name *
+*************
+Thread getName: Thread-1
+Thread setName: thread1
+Thread getName: Thread-2
+Thread setName: thread2
+Main getName: main
+************
+* Priority *
+************
+***************
+* getPriority *
+***************
+Priority_Thread getPriority: 5
+*****************************
+* getPriority + setPriority *
+*****************************
+Priority_Thread getPriority: 1
+Priority_Thread getPriority: 5
+Priority_Thread getPriority: 10
+**********************
+* setPriority stress *
+**********************
+Priority_Thread getPriority: 1
+**************************
+* setPriority after dead *
+**************************
+Priority_Thread getPriority: 10
+Priority_Thread getPriority: 5
+Priority_Thread getPriority: 1
+**************************
+* setPriority after join *
+**************************
+Priority_Thread getPriority: 10
+Priority_Thread getPriority: 1
+Priority_Thread getPriority: 5
+Main Priority: 5
+*********
+* Alive *
+*********
+Thread alive
+**********
+* Daemon *
+**********
+Daemon_Thread is daemon
+IllegalThreadStateException caught
+Thread daemon alive

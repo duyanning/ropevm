@@ -1,0 +1,5 @@
+#!/usr/bin/env sh
+
+#java -cp bin TreeAdd -l 20 -m
+#java -cp bin TreeAdd -l 3 -m
+java -cp bin TreeAdd -l 5 -m

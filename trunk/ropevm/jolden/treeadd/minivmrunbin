@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+
+minivm TreeAdd -l 20 -m
+

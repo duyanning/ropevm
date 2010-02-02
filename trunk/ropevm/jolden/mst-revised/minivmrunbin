@@ -1,0 +1,5 @@
+#!/usr/bin/env sh
+
+#minivm -cp bin MST -v 1024 -m
+minivm -cp bin MST -v 10 -m
+

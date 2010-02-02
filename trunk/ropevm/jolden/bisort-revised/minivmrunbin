@@ -1,0 +1,5 @@
+#!/usr/bin/env sh
+
+#minivm -cp bin BiSort -s 250000 -m
+minivm -cp bin BiSort -s 8 -m
+

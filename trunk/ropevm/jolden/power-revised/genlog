@@ -1,0 +1,24 @@
+#!/usr/bin/env sh
+
+export log=1
+minivmrunbin > b.txt  2>&1
+
+x=0
+while [ $x -lt 10 ]
+do
+	grep -n "#$x" b.txt > b$x.txt
+	x=`echo "$x + 1" | bc`
+done
+
+#egrep '#5 use spec|#5 spec msg|#5 comt spec|#5 veri spec|#5 reset spec' b.txt > specsnapshot.txt
+#egrep '#5 use spec|#5 spec msg|#5 reset spec' specsnapshot.txt > spec.txt
+#egrep '#5 comt spec|#5 veri spec|#5 reset spec' specsnapshot.txt > commit.txt
+
+#egrep -n '#5 use spec|#5 shot spec|#5 reset spec' b5.txt > b5useshot.txt
+#egrep -n '#5 veri spec|#5 comt spec' b5.txt > b5verispec.txt
+
+#egrep -n 'create rvpframe' b.txt > creatervp.txt
+#egrep -n 'free rvpframe' b.txt > freervp.txt
+#egrep -n 'create rvpframe|free rvpframe' b.txt > createfreervp.txt
+#egrep -n 'xxx999' b.txt > xxx999.txt
+

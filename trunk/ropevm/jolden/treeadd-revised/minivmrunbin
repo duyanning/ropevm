@@ -1,0 +1,9 @@
+#!/usr/bin/env sh
+
+#minivm -cp bin TreeAdd -l 20 -m
+#minivm -cp bin TreeAdd -l 2 -m
+#minivm -cp bin TreeAdd -l 3 -m
+minivm -cp bin TreeAdd -l 5 -m
+#minivm -cp bin TreeAdd -l 6 -m
+#minivm -cp bin TreeAdd -l 10 -m
+
