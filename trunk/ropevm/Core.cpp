@@ -41,6 +41,7 @@ Core::set_owner(Object* object)
     object->set_core(this);
     object->set_is_owner(true);
     m_owner = object;
+    objects_count++;
 }
 
 void
@@ -48,6 +49,7 @@ Core::add_subsidiary(Object* object)
 {
     object->set_core(this);
     object->set_is_owner(false);
+    objects_count++;
 }
 
 void
@@ -65,6 +67,9 @@ Core::is_halt()
 void
 Core::step()
 {
+    // stat
+    m_count_step++;
+
     try {
         m_mode->step();
     }
@@ -87,6 +92,13 @@ Core::step()
     }
     catch (DeepBreak& e) {
     }
+}
+
+void
+Core::idle()
+{
+    // stat
+    m_count_idle++;
 }
 
 void
@@ -146,6 +158,22 @@ Core::init()
 
     m_quit_step_loop = false;
     m_result = 0;
+
+    objects_count = 0;
+
+    // stat
+    m_count_spec_msgs_sent = 0;
+    m_count_spec_msgs_used = 0;
+    m_count_verify_all = 0;
+    m_count_verify_ok = 0;
+    m_count_verify_fail = 0;
+    m_count_verify_empty = 0;
+    m_count_rvp = 0;
+    m_count_certain_instr = 0;
+    m_count_spec_instr = 0;
+    m_count_rvp_instr = 0;
+    m_count_step = 0;
+    m_count_idle = 0;
 }
 
 void
@@ -352,6 +380,9 @@ Core::enter_certain_mode()
 void
 Core::enter_rvp_mode()
 {
+    // stat
+    m_count_rvp++;
+
     MINILOG0("#" << id() << " enter RVP mode");
 
 //     m_rvp_mode.pc = m_speculative_mode.pc;
@@ -399,6 +430,10 @@ void
 Core::add_speculative_task(Message* message)
 {
     //assert(false);
+
+    // stat
+    m_count_spec_msgs_sent++;
+
     m_speculative_tasks.push_back(message);
 
     //{{{ just for debug
@@ -437,6 +472,10 @@ Core::handle_verification_failure(Message* message)
 void
 Core::add_message_to_be_verified(Message* message)
 {
+    // stat
+    m_count_spec_msgs_used++;
+
+
     //{{{ just for debug
     // Snapshot* latest_snapshot;
     // message->snapshot = latest_snapshot;
@@ -752,3 +791,22 @@ Core::mark_frame_certain()
         f = f->prev;
     }
 }
+
+void
+Core::report_stat(ostream& os)
+{
+    os << '#' << m_id << '\t' << "spec msg sent" << '\t' << m_count_spec_msgs_sent << '\n';
+    os << '#' << m_id << '\t' << "spec msg used" << '\t' << m_count_spec_msgs_used << '\n';
+    os << '#' << m_id << '\t' << "verify all" << '\t' << m_count_verify_all << '\n';
+    os << '#' << m_id << '\t' << "verify ok" << '\t' << m_count_verify_ok << '\n';
+    os << '#' << m_id << '\t' << "verify fail" << '\t' << m_count_verify_fail << '\n';
+    os << '#' << m_id << '\t' << "verify empty" << '\t' << m_count_verify_empty << '\n';
+    os << '#' << m_id << '\t' << "object count" << '\t' << objects_count << '\n';
+    os << '#' << m_id << '\t' << "rvp count" << '\t' << m_count_rvp << '\n';
+    os << '#' << m_id << '\t' << "certain instr count" << '\t' << m_count_certain_instr << '\n';
+    os << '#' << m_id << '\t' << "spec instr count" << '\t' << m_count_spec_instr << '\n';
+    os << '#' << m_id << '\t' << "rvp instr count" << '\t' << m_count_rvp_instr << '\n';
+    os << '#' << m_id << '\t' << "step count" << '\t' << m_count_step << '\n';
+    os << '#' << m_id << '\t' << "idle count" << '\t' << m_count_idle << '\n';
+}
+

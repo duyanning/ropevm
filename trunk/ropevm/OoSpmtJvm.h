@@ -7,7 +7,7 @@ class Object;
 
 class OoSpmtJvm
 {
- public:
+public:
     //    ~OoSpmtJvm();
     Core* alloc_core();
     Core* alloc_core_for_object(Object* object);
@@ -15,17 +15,22 @@ class OoSpmtJvm
     static OoSpmtJvm* instance();
     static bool do_spec;
 
- protected:
+protected:
     OoSpmtJvm();
     int get_next_core_id() { return m_next_core_id++; }
 
- private:
+private:
 	std::vector<Core*> m_cores;
     Core* m_currentCore;
     pthread_mutex_t m_lock;
 
     static OoSpmtJvm* m_instance;
     static int m_next_core_id;
+
+    // stat
+public:
+    long long m_count_control_transfer;
+    void report_stat(std::ostream& os);
 };
 
 #endif

@@ -70,7 +70,22 @@ Mode::exec_an_instr()
         && is_certain_mode()
         && is_app_obj(mb->classobj)
         ) {
+        m_core->m_count_certain_instr++;
         Statistic::instance()->probe_instr_exec(*pc);
+    }
+
+    if (debug_scaffold::java_main_arrived
+        && is_speculative_mode()
+        && is_app_obj(mb->classobj)
+        ) {
+        m_core->m_count_spec_instr++;
+    }
+
+    if (debug_scaffold::java_main_arrived
+        && is_rvp_mode()
+        && is_app_obj(mb->classobj)
+        ) {
+        m_core->m_count_rvp_instr++;
     }
     //}}} statistic
 

@@ -8,7 +8,7 @@ public:
     Statistic();
 
     void probe_instr_exec(int opcode);
-    void report();
+    void report_stat(std::ostream& os);
 
     static Statistic* instance();
 private:

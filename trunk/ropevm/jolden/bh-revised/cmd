@@ -1,0 +1,11 @@
+APP=BH
+
+#PARMS='-b 4096 -m'
+#PARMS='-b 1 -m'
+#PARMS='-b 2 -m'
+PARMS='-b 3 -m'
+#PARMS='-b 4 -m'
+#PARMS='-b 5 -m'
+#PARMS='-b 6 -m'
+#PARMS='-b 7 -m'
+
