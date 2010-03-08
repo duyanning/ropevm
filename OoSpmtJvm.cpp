@@ -1,6 +1,7 @@
 #include "std.h"
 #include "OoSpmtJvm.h"
 #include "Helper.h"
+#include "Statistic.h"
 
 using namespace std;
 
@@ -20,6 +21,9 @@ OoSpmtJvm::instance()
 OoSpmtJvm::OoSpmtJvm()
 {
     pthread_mutex_init(&m_lock, 0);
+
+    // stat
+    m_count_control_transfer = 0;
 }
 
 // OoSpmtJvm::~OoSpmtJvm()
@@ -73,4 +77,20 @@ bool OoSpmtJvm::do_spec;
 void initialiseJvm(InitArgs *args)
 {
     OoSpmtJvm::do_spec = args->do_spec;
+}
+
+void
+OoSpmtJvm::report_stat(std::ostream& os)
+{
+    Statistic::instance()->report_stat(os);
+
+    os << "JVM" << '\t' << "core count" << '\t' << m_cores.size()-4 << '\n';
+    os << "JVM" << '\t' << "control transfer" << '\t' << m_count_control_transfer << '\n';
+
+    for (vector<Core*>::iterator i = m_cores.begin(); i != m_cores.end(); ++i) {
+        Core* core = *i;
+        if (1 <= core->id() && core->id() <= 4)
+            continue;
+        core->report_stat(os);
+    }
 }

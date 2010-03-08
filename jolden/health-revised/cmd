@@ -1,9 +1,8 @@
 APP=Health
-PARMS='-l 3 -t 16 -s 1 -m'
 
 #PARMS='-l 1 -t 7 -s 1 -m'
 #PARMS='-l 1 -t 16 -s 1 -m'
-#PARMS='-l 2 -t 16 -s 1 -m'
+PARMS='-l 2 -t 16 -s 1 -m'
 #PARMS='-l 3 -t 16 -s 1 -m'
 #PARMS='-l 5 -t 500 -s 1 -m'
 

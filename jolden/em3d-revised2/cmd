@@ -1,0 +1,12 @@
+APP=Em3d
+
+#PARMS='-n 2000 -d 100 -m'
+#PARMS='-n 20 -d 2 -m'
+#PARMS='-n 1 -d 1 -m'
+#PARMS='-n 2 -d 1 -m'
+#PARMS='-n 2 -d 2 -m'
+#PARMS='-n 3 -d 1 -m'
+#PARMS='-n 7 -d 1 -m'
+#PARMS='-n 7 -d 3 -m'
+PARMS='-n 7 -d 7 -m'
+

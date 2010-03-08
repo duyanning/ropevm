@@ -325,7 +325,17 @@ int main(int argc, char *argv[])
 
 
     //{{{ statistic
-    Statistic::instance()->report();
+    Statistic::instance()->report_stat(std::cout);
+
+    const char* fname = 0;
+    if (OoSpmtJvm::do_spec)
+        fname = "stat-report-spec.txt";
+    else
+        fname = "stat-report-nonspec.txt";
+
+    std::ofstream ofs(fname);
+    OoSpmtJvm::instance()->report_stat(ofs);
+    ofs << std::endl;
     //}}} statistic
 
     exitVM(status);

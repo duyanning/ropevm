@@ -1219,7 +1219,10 @@ Thread::go()
         for (vector<Core*>::iterator i = cores.begin(); i != cores.end(); ++i) {
             m_current_core = *i;
 
-            if (m_current_core->is_halt()) continue;
+            if (m_current_core->is_halt()) {
+                m_current_core->idle();
+                continue;
+            }
             //if (m_current_core->is_busy()) continue;
 
             m_current_core->step();

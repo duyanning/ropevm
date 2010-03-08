@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <string>
 #include <iostream>
+#include <fstream>
 #include <tr1/unordered_map>
 #include <tr1/unordered_set>
 

@@ -24,11 +24,11 @@ Statistic::Statistic()
 }
 
 void
-Statistic::report()
+Statistic::report_stat(ostream& os)
 {
-    cout << "\n";
-    cout << "statistic:\n";
-    cout << "(certain mode)instructions: " << m_certain_instr_count << endl;
+    os << "\n";
+    os << "statistic:\n";
+    os << "(certain mode)instructions: " << m_certain_instr_count << endl;
 }
 
 void

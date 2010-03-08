@@ -47,6 +47,7 @@ public:
     bool is_halt();
     void halt();
     void step();
+    void idle();
     void change_to_certain_mode() { change_mode(&m_certain_mode); }
     void change_to_speculative_mode() { change_mode(&m_speculative_mode); }
     void change_mode(Mode* new_mode);
@@ -164,6 +165,23 @@ private:
     // for logging
 private:
     void log_when_leave_certain();
+
+    // for stat
+public:
+    void report_stat(std::ostream& os);
+private:
+    long long m_count_spec_msgs_sent;
+    long long m_count_spec_msgs_used;
+    long long m_count_verify_all;
+    long long m_count_verify_ok;
+    long long m_count_verify_fail;
+    long long m_count_verify_empty;
+    long long m_count_rvp;
+    long long m_count_certain_instr;
+    long long m_count_spec_instr;
+    long long m_count_rvp_instr;
+    long long m_count_step;
+    long long m_count_idle;
 };
 
 inline

@@ -46,6 +46,10 @@ CertainMode::step()
 // transfer certain control/mode from src to dst
 void transfer_certain_control(Core* src, Core* dst, Message* msg)
 {
+    // stat
+    OoSpmtJvm::instance()->m_count_control_transfer++;
+
+
     assert(debug_scaffold::java_main_arrived);
     //{{{ just for debug
     if (src->id() == 6 && dst->id() == 0) {
@@ -728,6 +732,10 @@ CertainMode::after_alloc_object(Object* obj)
 bool
 CertainMode::verify(Message* message)
 {
+    // stat
+    m_core->m_count_verify_all++;
+
+
     assert(m_core->is_correspondence_btw_msgs_and_snapshots_ok());
 
     bool ok = false;
@@ -775,6 +783,9 @@ CertainMode::verify(Message* message)
                     "#" << m_core->id() << " verify " << *message << " EMPTY");
         MINILOG0_IF(debug_scaffold::java_main_arrived,
                     "#" << m_core->id() << " veri spec: EMPTY");
+
+        // stat
+        m_core->m_count_verify_empty++;
     }
 
     return ok;
@@ -785,6 +796,12 @@ CertainMode::verify_and_commit(Message* message, bool self)
 {
     //assert(m_user == m_owner);
     bool success = verify(message);
+
+    // stat
+    if (success)
+        m_core->m_count_verify_ok++;
+    else
+        m_core->m_count_verify_fail++;
 
     bool should_reset_spec_exec = false;
     if (success) {
