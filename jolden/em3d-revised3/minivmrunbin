@@ -1,0 +1,10 @@
+#!/usr/bin/env sh
+
+#minivm -cp bin Em3d -n 2000 -d 100 -m
+#minivm -Xnologger -cp bin Em3d -n 20 -d 2 -m
+#minivm -cp bin Em3d -n 1 -d 1 -m
+#minivm -cp bin Em3d -n 2 -d 1 -m
+#minivm -cp bin Em3d -n 2 -d 2 -m
+#minivm -cp bin Em3d -n 3 -d 1 -m
+minivm -cp bin Em3d -n 7 -d 1 -m
+#minivm -cp bin Em3d -n 7 -d 7 -m
