@@ -244,7 +244,7 @@ CertainMode::do_method_return(int len)
                                                frame->calling_object, sp - len, len,
                                                frame->caller_sp, frame->caller_pc);
                 destroy_frame(frame);
-                m_core->verify_and_commit(msg);
+                m_core->verify_speculation(msg);
             }
             else {
                 return_my_method(frame, sp - len, len);
@@ -526,7 +526,7 @@ CertainMode::do_get_field(Object* target_object, FieldBlock* fb,
         if (m_core->is_owner_or_subsidiary(m_user)) { // i am owner
             if (m_core->has_message_to_be_verified()) {
                 GetMsg* msg = new GetMsg(target_object, fb, addr, size, frame, sp, pc);
-                m_core->verify_and_commit(msg);
+                m_core->verify_speculation(msg);
                 return;
             }
             else {
@@ -583,7 +583,7 @@ CertainMode::do_put_field(Object* target_object, FieldBlock* fb,
         if (m_core->is_owner_or_subsidiary(target_object)) {
             // guest put owner.field or subsidiary.field
             PutMsg* msg = new PutMsg(target_object, fb, addr, sp, size, is_static, 0);
-            m_core->verify_and_commit(msg);
+            m_core->verify_speculation(msg);
         }
         else {
             Core* target_core =
@@ -604,7 +604,7 @@ CertainMode::do_put_field(Object* target_object, FieldBlock* fb,
                 }
 
                 // AckMsg* ack = new AckMsg;
-                // m_core->verify_and_commit(ack);
+                // m_core->verify_speculation(ack);
             }
         }
     }
@@ -634,7 +634,7 @@ CertainMode::do_array_load(Object* array, int index, int type_size)
             if (m_core->has_message_to_be_verified()) {
                 ArrayLoadMsg* msg =
                     new ArrayLoadMsg(array, index, (uint8_t*)addr, type_size, frame, sp, pc);
-                m_core->verify_and_commit(msg);
+                m_core->verify_speculation(msg);
                 return;
             }
             else {
@@ -672,7 +672,7 @@ CertainMode::do_array_store(Object* array, int index, int type_size)
         if (m_core->is_owner_or_subsidiary(target_object)) {
             // guest store owner[i] or subsidiary[i]
             ArrayStoreMsg* msg = new ArrayStoreMsg(array, index, sp, nslots, type_size, 0);
-            m_core->verify_and_commit(msg);
+            m_core->verify_speculation(msg);
         }
         else {
 
@@ -792,7 +792,7 @@ CertainMode::verify(Message* message)
 }
 
 void
-CertainMode::verify_and_commit(Message* message, bool self)
+CertainMode::verify_speculation(Message* message, bool self)
 {
     //assert(m_user == m_owner);
     bool success = verify(message);
@@ -803,137 +803,142 @@ CertainMode::verify_and_commit(Message* message, bool self)
     else
         m_core->m_count_verify_fail++;
 
-    bool should_reset_spec_exec = false;
     if (success) {
-
-        if (m_core->m_snapshots_to_be_committed.empty()) {
-            m_core->sync_certain_with_speculative();
-
-            if (frame) {
-                //assert(m_core->is_owner_or_subsidiary(frame->get_object()));
-                assert(is_sp_ok(sp, frame));
-                assert(is_pc_ok(pc, frame->mb));
-            }
-
-            MINILOG(commit_logger,
-                     "#" << m_core->id()
-                    << " commit to latest, ver(" << m_core->m_cache.version() << ")");
-            //{{{ just for debug
-            MINILOG(cache_logger,
-                    "#" << m_core->id() << " ostack base: " << frame->ostack_base);
-            MINILOGPROC(cache_logger, show_cache,
-                        (os, m_core->id(), m_core->m_cache, false));
-            //}}} just for debug
-            m_core->m_cache.commit(m_core->m_cache.version());
-            //{{{ just for debug
-            MINILOG(cache_logger,
-                    "#" << m_core->id() << " ostack base: " << frame->ostack_base);
-            MINILOGPROC(cache_logger, show_cache,
-                        (os, m_core->id(), m_core->m_cache, false));
-            //}}} just for debug
-            // because has commited to latest version, cache should restart from ver 0
-            should_reset_spec_exec = true;
-            //{{{ just for debug
-            if (m_core->m_id == 6 && message->get_type() == Message::ack) {
-                int x = 0;
-                x++;
-            }
-            //}}} just for debug
-            MINILOG0_IF(debug_scaffold::java_main_arrived,
-                        "#" << m_core->id() << " comt spec: latest");
-        }
-        else {
-            Snapshot* snapshot = m_core->m_snapshots_to_be_committed.front();
-            m_core->m_snapshots_to_be_committed.pop_front();
-            m_core->sync_certain_with_snapshot(snapshot);
-
-            if (message->get_type() == Message::ret && frame) {
-                assert(m_core->is_owner_enclosure(frame->get_object()));
-                assert(is_sp_ok(sp, frame));
-                assert(is_pc_ok(pc, frame->mb));
-            }
-
-            MINILOG(commit_logger,
-                    "#" << m_core->id() << " commit to ver(" << snapshot->version << ")");
-
-            MINILOG0_IF(debug_scaffold::java_main_arrived,
-                        "#" << m_core->id() << " comt spec: " << *snapshot->spec_msg);
-
-            //{{{ just for debug
-            MINILOG(cache_logger,
-                    "#" << m_core->id() << " ostack base: " << frame->ostack_base);
-            MINILOGPROC(cache_logger, show_cache,
-                        (os, m_core->id(), m_core->m_cache, false));
-            //}}} just for debug
-            m_core->m_cache.commit(snapshot->version);
-            //{{{ just for debug
-            MINILOG(cache_logger,
-                    "#" << m_core->id() << " ostack base: " << frame->ostack_base);
-            MINILOGPROC(cache_logger, show_cache,
-                        (os, m_core->id(), m_core->m_cache, false));
-            //}}} just for debug
-
-            // if (snapshot->version == m_core->m_cache.prev_version()) {
-            //     //{{{ just for debug
-            //     int x = 0;
-            //     x++;
-            //     //}}} just for debug
-
-            //     //should_reset_spec_exec = true;
-            // }
-
-            delete snapshot;
-        }
-
-        if (message->get_type() != Message::put
-            and message->get_type() != Message::arraystore) {
-            m_core->mark_frame_certain();
-        }
-
-        assert(not m_core->m_messages_to_be_verified.empty());
-        Message* spec_msg = m_core->m_messages_to_be_verified.front();
-        m_core->m_messages_to_be_verified.pop_front();
-        delete spec_msg;
-
-        //if (should_reset_spec_exec) {
-        if (not m_core->has_message_to_be_verified()) {
-            m_core->discard_uncertain_execution(self);
-        }
-
-        MINILOG(commit_detail_logger,
-                "#" << m_core->id() << " CERT details:");
-        MINILOGPROC(commit_detail_logger, show_triple,
-                    (os, m_core->id(),
-                     frame, sp, pc, m_user,
-                     true));
-
-        if (message->get_type() == Message::put) {
-            PutMsg* msg = static_cast<PutMsg*>(message);
-
-            AckMsg* ack = new AckMsg;
-            transfer_certain_control(m_core, msg->sender, ack);
-        }
-
-        if (message->get_type() == Message::arraystore) {
-            ArrayStoreMsg* msg = static_cast<ArrayStoreMsg*>(message);
-
-            AckMsg* ack = new AckMsg;
-            transfer_certain_control(m_core, msg->sender, ack);
-        }
-
-        delete message;
+        handle_verification_success(message, self);
     }
-    else {                      // fails
-        //throw VerifyFails(message);
-        m_core->discard_uncertain_execution(self);
-        handle_verification_failure(message);
+    else {
+        //m_core->discard_uncertain_execution(self);
+        handle_verification_failure(message, self);
     }
 }
 
 void
-CertainMode::handle_verification_failure(Message* message)
+CertainMode::handle_verification_success(Message* message, bool self)
 {
-    //m_core->discard_uncertain_execution();
+    bool should_reset_spec_exec = false;
+
+    if (m_core->m_snapshots_to_be_committed.empty()) {
+        m_core->sync_certain_with_speculative();
+
+        if (frame) {
+            //assert(m_core->is_owner_or_subsidiary(frame->get_object()));
+            assert(is_sp_ok(sp, frame));
+            assert(is_pc_ok(pc, frame->mb));
+        }
+
+        MINILOG(commit_logger,
+                "#" << m_core->id()
+                << " commit to latest, ver(" << m_core->m_cache.version() << ")");
+        //{{{ just for debug
+        MINILOG(cache_logger,
+                "#" << m_core->id() << " ostack base: " << frame->ostack_base);
+        MINILOGPROC(cache_logger, show_cache,
+                    (os, m_core->id(), m_core->m_cache, false));
+        //}}} just for debug
+        m_core->m_cache.commit(m_core->m_cache.version());
+        //{{{ just for debug
+        MINILOG(cache_logger,
+                "#" << m_core->id() << " ostack base: " << frame->ostack_base);
+        MINILOGPROC(cache_logger, show_cache,
+                    (os, m_core->id(), m_core->m_cache, false));
+        //}}} just for debug
+        // because has commited to latest version, cache should restart from ver 0
+        should_reset_spec_exec = true;
+        //{{{ just for debug
+        if (m_core->m_id == 6 && message->get_type() == Message::ack) {
+            int x = 0;
+            x++;
+        }
+        //}}} just for debug
+        MINILOG0_IF(debug_scaffold::java_main_arrived,
+                    "#" << m_core->id() << " comt spec: latest");
+    }
+    else {
+        Snapshot* snapshot = m_core->m_snapshots_to_be_committed.front();
+        m_core->m_snapshots_to_be_committed.pop_front();
+        m_core->sync_certain_with_snapshot(snapshot);
+
+        if (message->get_type() == Message::ret && frame) {
+            assert(m_core->is_owner_enclosure(frame->get_object()));
+            assert(is_sp_ok(sp, frame));
+            assert(is_pc_ok(pc, frame->mb));
+        }
+
+        MINILOG(commit_logger,
+                "#" << m_core->id() << " commit to ver(" << snapshot->version << ")");
+
+        MINILOG0_IF(debug_scaffold::java_main_arrived,
+                    "#" << m_core->id() << " comt spec: " << *snapshot->spec_msg);
+
+        //{{{ just for debug
+        MINILOG(cache_logger,
+                "#" << m_core->id() << " ostack base: " << frame->ostack_base);
+        MINILOGPROC(cache_logger, show_cache,
+                    (os, m_core->id(), m_core->m_cache, false));
+        //}}} just for debug
+        m_core->m_cache.commit(snapshot->version);
+        //{{{ just for debug
+        MINILOG(cache_logger,
+                "#" << m_core->id() << " ostack base: " << frame->ostack_base);
+        MINILOGPROC(cache_logger, show_cache,
+                    (os, m_core->id(), m_core->m_cache, false));
+        //}}} just for debug
+
+        // if (snapshot->version == m_core->m_cache.prev_version()) {
+        //     //{{{ just for debug
+        //     int x = 0;
+        //     x++;
+        //     //}}} just for debug
+
+        //     //should_reset_spec_exec = true;
+        // }
+
+        delete snapshot;
+    }
+
+    if (message->get_type() != Message::put
+        and message->get_type() != Message::arraystore) {
+        m_core->mark_frame_certain();
+    }
+
+    assert(not m_core->m_messages_to_be_verified.empty());
+    Message* spec_msg = m_core->m_messages_to_be_verified.front();
+    m_core->m_messages_to_be_verified.pop_front();
+    delete spec_msg;
+
+    //if (should_reset_spec_exec) {
+    if (not m_core->has_message_to_be_verified()) {
+        m_core->discard_uncertain_execution(self);
+    }
+
+    MINILOG(commit_detail_logger,
+            "#" << m_core->id() << " CERT details:");
+    MINILOGPROC(commit_detail_logger, show_triple,
+                (os, m_core->id(),
+                 frame, sp, pc, m_user,
+                 true));
+
+    if (message->get_type() == Message::put) {
+        PutMsg* msg = static_cast<PutMsg*>(message);
+
+        AckMsg* ack = new AckMsg;
+        transfer_certain_control(m_core, msg->sender, ack);
+    }
+
+    if (message->get_type() == Message::arraystore) {
+        ArrayStoreMsg* msg = static_cast<ArrayStoreMsg*>(message);
+
+        AckMsg* ack = new AckMsg;
+        transfer_certain_control(m_core, msg->sender, ack);
+    }
+
+    delete message;
+}
+
+void
+CertainMode::handle_verification_failure(Message* message, bool self)
+{
+    m_core->discard_uncertain_execution(self);
 
     if (message->get_type() == Message::call) {
         InvokeMsg* msg = static_cast<InvokeMsg*>(message);

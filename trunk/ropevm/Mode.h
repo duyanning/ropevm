@@ -37,8 +37,8 @@ public:
 
     virtual void destroy_frame(Frame* frame) = 0;
     virtual bool verify(Message* message);
-    virtual void verify_and_commit(Message* message, bool self);
-    virtual void handle_verification_failure(Message* message);
+    virtual void verify_speculation(Message* message, bool self);
+    //virtual void handle_verification_failure(Message* message);
     void set_core(Core* core);
 
     //virtual void on_user_change(Object* old_user, Object* new_user) {}
