@@ -61,6 +61,7 @@ public:
     void send_certain_message(Message* message);
     Message* get_certain_message();
     void add_speculative_task(Message* message);
+    void reload_speculative_tasks();
     void enter_certain_mode();
     void leave_certain_mode(Message* msg);
     void enter_rvp_mode();

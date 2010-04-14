@@ -618,6 +618,29 @@ Core::free_discarded_frames(bool only_snapshot)
 }
 
 void
+Core::reload_speculative_tasks()
+{
+    return;
+    //assert(false);
+
+    std::deque<Message*>::iterator i;
+    for (i = m_messages_to_be_verified.begin(); i != m_messages_to_be_verified.end(); ++i) {
+        Message* msg = *i;
+
+        if (msg->get_type() == Message::call
+            // || msg->get_type() == Message::put
+            // || msg->get_type() == Message::arraystore
+            ) {
+
+            m_speculative_tasks.insert(m_speculative_tasks.begin(), msg);
+        }
+
+    }
+
+    m_messages_to_be_verified.clear();
+}
+
+void
 Core::discard_uncertain_execution(bool self)
 {
     MINILOG0_IF(debug_scaffold::java_main_arrived,

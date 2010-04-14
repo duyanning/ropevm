@@ -741,8 +741,6 @@ CertainMode::verify(Message* message)
     bool ok = false;
     if (not m_core->m_messages_to_be_verified.empty()) {
         Message* spec_msg = m_core->m_messages_to_be_verified.front();
-        //m_core->m_messages_to_be_verified.pop_front();
-
 
         if (*spec_msg == *message) {
             ok = true;
@@ -776,7 +774,8 @@ CertainMode::verify(Message* message)
 
         }
 
-        //delete spec_msg;
+        m_core->m_messages_to_be_verified.pop_front();
+        delete spec_msg;
     }
     else {
         MINILOG0_IF(debug_scaffold::java_main_arrived,
@@ -807,15 +806,16 @@ CertainMode::verify_speculation(Message* message, bool self)
         handle_verification_success(message, self);
     }
     else {
-        //m_core->discard_uncertain_execution(self);
         handle_verification_failure(message, self);
     }
+
+    delete message;
 }
 
 void
 CertainMode::handle_verification_success(Message* message, bool self)
 {
-    bool should_reset_spec_exec = false;
+    //bool should_reset_spec_exec = false;
 
     if (m_core->m_snapshots_to_be_committed.empty()) {
         m_core->sync_certain_with_speculative();
@@ -842,8 +842,10 @@ CertainMode::handle_verification_success(Message* message, bool self)
         MINILOGPROC(cache_logger, show_cache,
                     (os, m_core->id(), m_core->m_cache, false));
         //}}} just for debug
+
         // because has commited to latest version, cache should restart from ver 0
-        should_reset_spec_exec = true;
+        //should_reset_spec_exec = true;
+
         //{{{ just for debug
         if (m_core->m_id == 6 && message->get_type() == Message::ack) {
             int x = 0;
@@ -901,10 +903,6 @@ CertainMode::handle_verification_success(Message* message, bool self)
         m_core->mark_frame_certain();
     }
 
-    assert(not m_core->m_messages_to_be_verified.empty());
-    Message* spec_msg = m_core->m_messages_to_be_verified.front();
-    m_core->m_messages_to_be_verified.pop_front();
-    delete spec_msg;
 
     //if (should_reset_spec_exec) {
     if (not m_core->has_message_to_be_verified()) {
@@ -931,13 +929,12 @@ CertainMode::handle_verification_success(Message* message, bool self)
         AckMsg* ack = new AckMsg;
         transfer_certain_control(m_core, msg->sender, ack);
     }
-
-    delete message;
 }
 
 void
 CertainMode::handle_verification_failure(Message* message, bool self)
 {
+    m_core->reload_speculative_tasks();
     m_core->discard_uncertain_execution(self);
 
     if (message->get_type() == Message::call) {
@@ -1063,8 +1060,6 @@ CertainMode::handle_verification_failure(Message* message, bool self)
     else {
         assert(false);
     }
-
-    delete message;
 }
 
 void
