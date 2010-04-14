@@ -54,7 +54,7 @@ public:
     void record_current_non_certain_mode();
     void restore_original_non_certain_mode();
     Mode* original_uncertain_mode() { return m_old_mode; }
-    void verify_and_commit(Message* message, bool self = true);
+    void verify_speculation(Message* message, bool self = true);
     bool verify(Message* message);
     void init();
     void start();
@@ -70,7 +70,7 @@ public:
     void enter_execution();
     void leave_execution();
 
-    void handle_verification_failure(Message* message);
+    //void handle_verification_failure(Message* message);
 
     int id() { return m_id; }
     void add_message_to_be_verified(Message* message);

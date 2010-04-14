@@ -76,14 +76,14 @@ Core::step()
     catch (VerifyFails& e) {
         assert(false);
         //std::cout << "catch VerifyFails" << std::endl;
-        if (m_speculative_depth == m_certain_depth) {
-            handle_verification_failure(e.get_message());
-        }
-        else {
-            m_speculative_depth--;
-            assert(false);
-            throw;
-        }
+        // if (m_speculative_depth == m_certain_depth) {
+        //     handle_verification_failure(e.get_message());
+        // }
+        // else {
+        //     m_speculative_depth--;
+        //     assert(false);
+        //     throw;
+        // }
     }
     catch (NestedStepLoop& e) {
         MINILOG(step_loop_in_out_logger, "#" << m_id
@@ -132,9 +132,9 @@ Core::verify(Message* message)
 }
 
 void
-Core::verify_and_commit(Message* message, bool self)
+Core::verify_speculation(Message* message, bool self)
 {
-    m_mode->verify_and_commit(message, self);
+    m_mode->verify_speculation(message, self);
 }
 
 void
@@ -463,11 +463,11 @@ Core::leave_execution()
     m_mode->leave_execution();
 }
 
-void
-Core::handle_verification_failure(Message* message)
-{
-    m_mode->handle_verification_failure(message);
-}
+// void
+// Core::handle_verification_failure(Message* message)
+// {
+//     m_mode->handle_verification_failure(message);
+// }
 
 void
 Core::add_message_to_be_verified(Message* message)
@@ -628,6 +628,7 @@ Core::discard_uncertain_execution(bool self)
 
     // for_each(m_speculative_tasks.begin(), m_speculative_tasks.end(), Delete());
     // m_speculative_tasks.clear();
+
     free_discarded_frames(self == true);
 
     for_each(m_snapshots_to_be_committed.begin(), m_snapshots_to_be_committed.end(), Delete());

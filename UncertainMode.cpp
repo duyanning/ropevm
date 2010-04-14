@@ -21,7 +21,7 @@ UncertainMode::process_certain_message(Message* msg)
         ) {
 
         m_core->enter_certain_mode();
-        m_core->verify_and_commit(msg, false);
+        m_core->verify_speculation(msg, false);
         return;
     }
     // else if (msg->get_type() == Message::ack) {

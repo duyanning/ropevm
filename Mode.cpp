@@ -220,11 +220,11 @@ Mode::destroy_frame(Frame* frame)
     delete frame;
 }
 
-void
-Mode::handle_verification_failure(Message* message)
-{
-    assert(false);
-}
+// void
+// Mode::handle_verification_failure(Message* message)
+// {
+//     assert(false);
+// }
 
 bool
 Mode::verify(Message* message)
@@ -233,7 +233,7 @@ Mode::verify(Message* message)
 }
 
 void
-Mode::verify_and_commit(Message* message, bool self)
+Mode::verify_speculation(Message* message, bool self)
 {
     assert(false);
 }

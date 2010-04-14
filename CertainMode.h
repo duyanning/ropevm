@@ -39,9 +39,10 @@ public:
     void get_my_field(Object* obj, FieldBlock* fb, uintptr_t* addr, int size, bool is_static);
     void put_my_field(Object* obj, FieldBlock* fb, uintptr_t* addr, int size, bool is_static);
 
+    virtual void verify_speculation(Message* message, bool self = true);
     virtual bool verify(Message* message);
-    virtual void verify_and_commit(Message* message, bool self = true);
-    virtual void handle_verification_failure(Message* message);
+    void handle_verification_success(Message* message, bool self);
+    void handle_verification_failure(Message* message, bool self);
 
     virtual uint32_t mode_read(uint32_t* addr);
     virtual void mode_write(uint32_t* addr, uint32_t value);
