@@ -620,7 +620,7 @@ Core::free_discarded_frames(bool only_snapshot)
 void
 Core::reload_speculative_tasks()
 {
-    return;
+    //return;
     //assert(false);
 
     std::deque<Message*>::iterator i;

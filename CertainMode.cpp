@@ -869,8 +869,8 @@ CertainMode::handle_verification_success(Message* message, bool self)
         MINILOG(commit_logger,
                 "#" << m_core->id() << " commit to ver(" << snapshot->version << ")");
 
-        MINILOG0_IF(debug_scaffold::java_main_arrived,
-                    "#" << m_core->id() << " comt spec: " << *snapshot->spec_msg);
+        // MINILOG0_IF(debug_scaffold::java_main_arrived,
+        //             "#" << m_core->id() << " comt spec: " << *snapshot->spec_msg);
 
         //{{{ just for debug
         MINILOG(cache_logger,
