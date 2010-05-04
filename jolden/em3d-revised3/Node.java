@@ -63,7 +63,8 @@ final class Node {
      **/
     Node(int degree)
     {
-        rand = new Random(783);
+        //rand = new Random(783);
+		rand = new Random(hashCode());
 
         value = rand.nextDouble();
         // create empty array for holding toNodes
