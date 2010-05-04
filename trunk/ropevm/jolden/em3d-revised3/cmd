@@ -9,5 +9,5 @@ APP=Em3d
 #PARMS='-n 7 -d 1 -m'
 #PARMS='-n 7 -d 3 -m'
 #PARMS='-n 7 -d 7 -m'
-PARMS='-n 14 -d 1 -m'
-
+#PARMS='-n 14 -d 1 -m'
+PARMS='-n 10 -d 3 -i 100 -m'

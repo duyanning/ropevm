@@ -4,6 +4,7 @@
 
 using namespace std;
 
+//#define EQMORE
 
 int msg_count = 0;              // just for debug
 
@@ -63,12 +64,14 @@ InvokeMsg::equal(Message& msg)
     if (parameters != m.parameters)
         return false;
 
+    //#ifdef EQMORE
     if (caller_frame != m.caller_frame)
         return false;
     if (caller_pc != m.caller_pc)
         return false;
     if (caller_sp != m.caller_sp)
         return false;
+    //#endif
 
     return true;
 }
@@ -110,12 +113,15 @@ ReturnMsg::equal(Message& msg)
     ReturnMsg& m = static_cast<ReturnMsg&>(msg);
     if (retval != m.retval)
         return false;
-    if (caller_frame != m.caller_frame)
-        return false;
-    if (caller_pc != m.caller_pc)
-        return false;
-    if (caller_sp != m.caller_sp)
-        return false;
+
+    // eqmore
+    // if (caller_frame != m.caller_frame)
+    //     return false;
+    // if (caller_pc != m.caller_pc)
+    //     return false;
+    // if (caller_sp != m.caller_sp)
+    //     return false;
+
     return true;
 }
 
@@ -167,18 +173,19 @@ bool
 GetMsg::equal(Message& msg)
 {
     GetMsg& m = static_cast<GetMsg&>(msg);
-    if (obj != m.obj)
-        return false;
+    // if (obj != m.obj)
+    //     return false;
     if (val != m.val)
         return false;
     if (fb != m.fb)
         return false;
-    if (caller_frame != m.caller_frame)
-        return false;
-    if (caller_pc != m.caller_pc)
-        return false;
-    if (caller_sp != m.caller_sp)
-        return false;
+    // eqmore
+    // if (caller_frame != m.caller_frame)
+    //     return false;
+    // if (caller_pc != m.caller_pc)
+    //     return false;
+    // if (caller_sp != m.caller_sp)
+    //     return false;
     return true;
 }
 
@@ -312,12 +319,12 @@ ArrayLoadMsg::equal(Message& msg)
         return false;
     if (index != m.index)
         return false;
-    if (caller_frame != m.caller_frame)
-        return false;
-    if (caller_pc != m.caller_pc)
-        return false;
-    if (caller_sp != m.caller_sp)
-        return false;
+    // if (caller_frame != m.caller_frame)
+    //     return false;
+    // if (caller_pc != m.caller_pc)
+    //     return false;
+    // if (caller_sp != m.caller_sp)
+    //     return false;
     return true;
 }
 
