@@ -453,14 +453,18 @@ typedef struct classblock {
     u2 enclosing_class;
     u2 enclosing_method;
     AnnotationData *annotations;
-    int speculative_type;        // 1 - object, 2 - class, 3 - both
+
+    int grouping_policy_self;
+    int grouping_policy_others;
+    int class_grouping_policy_self;
+    int class_grouping_policy_others;
 } ClassBlock;
 
-enum SpeculativeTypeEnum {
-    ST_OBJECT = 1,
-    ST_CLASS,
-    ST_BOTH,
-    ST_UNSPECIFIED = 5
+enum GroupingPolicyEnum {
+    GP_UNSPECIFIED = 0,
+    GP_NEW_GROUP = 1,
+    GP_CURRENT_GROUP = 2,
+    GP_NO_GROUP = 3
 };
 
 #include "frame.h"

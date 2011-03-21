@@ -14,8 +14,8 @@ public:
     virtual void mode_write(uint32_t* addr, uint32_t value);
 
     virtual void before_alloc_object();
-    virtual void after_alloc_object(Object* obj);
-    //virtual void do_new_object(Class* classobj);
+    virtual void after_alloc_object(Object* obj, bool is_cls);
+
     virtual void do_invoke_method(Object* target_object, MethodBlock* new_mb);
     virtual void do_method_return(int len);
     virtual void do_throw_exception();

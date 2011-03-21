@@ -1,0 +1,7 @@
+enum GroupingPolicy {
+	UNSPECIFIED,
+	NEW_GROUP,
+	CURRENT_GROUP,
+	NO_GROUP,
+}
+

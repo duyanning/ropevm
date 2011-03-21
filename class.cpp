@@ -12,6 +12,7 @@
 #include "DebugScaffold.h"
 #include "Core.h"
 #include "OoSpmtJvm.h"
+#include "Group.h"
 
 #define PREPARE(ptr) ptr
 #define SCAVENGE(ptr) FALSE
@@ -126,6 +127,66 @@ static void prepareClass(Class *classobj) {
     }
 }
 
+void process_policies(unsigned char*& ptr, ConstantPool* constant_pool, int& self_policy, int& others_policy)
+{
+    int len = 0;
+    u2 elem_count;
+    READ_U2(elem_count, ptr, len);
+    assert(elem_count >= 0 and elem_count <= 2);
+
+    for (; elem_count != 0; elem_count--) {
+
+        u2 elem_name_idx;
+        READ_TYPE_INDEX(elem_name_idx, constant_pool, CONSTANT_Utf8, ptr, len);
+        char* elem_name;
+        elem_name = CP_UTF8(constant_pool, elem_name_idx);
+        assert(elem_name == SYMBOL(self) or elem_name == SYMBOL(others));
+
+        u1 value_category;
+        READ_U1(value_category, ptr, len);
+        assert(value_category == 'e');
+
+        u2 enum_name_idx;
+        READ_U2(enum_name_idx, ptr, len);
+        char* enum_name;
+        enum_name = CP_UTF8(constant_pool, enum_name_idx);
+        assert(enum_name == SYMBOL(GroupingPolicy));
+
+        u2 enum_value_name_idx;
+        READ_U2(enum_value_name_idx, ptr, len);
+        char* enum_value_name;
+        enum_value_name = CP_UTF8(constant_pool, enum_value_name_idx);
+
+        int enum_value = 0;
+        if (enum_value_name == SYMBOL(UNSPECIFIED)) {
+            enum_value = GP_UNSPECIFIED;
+        }
+        else if (enum_value_name == SYMBOL(NEW_GROUP)) {
+            enum_value = GP_NEW_GROUP;
+        }
+        else if (enum_value_name == SYMBOL(CURRENT_GROUP)) {
+            enum_value = GP_CURRENT_GROUP;
+        }
+        else if (enum_value_name == SYMBOL(NO_GROUP)) {
+            enum_value = GP_NO_GROUP;
+        }
+        else {
+            assert(false);
+        }
+
+        if (elem_name == SYMBOL(self)) {
+            self_policy = enum_value;
+        }
+        else if (elem_name == SYMBOL(others)) {
+            others_policy = enum_value;
+        }
+        else {
+            assert(false);
+        }
+
+    }
+}
+
 void process_runtime_visible_annotations(void* data,
                                          ClassBlock* classblock, ConstantPool* constant_pool)
 {
@@ -139,35 +200,19 @@ void process_runtime_visible_annotations(void* data,
         READ_TYPE_INDEX(anno_name_idx, constant_pool, CONSTANT_Utf8, ptr, len);
         anno_name = CP_UTF8(constant_pool, anno_name_idx);
 
-        if (anno_name == SYMBOL(Speculative)) {
-            classblock->speculative_type = ST_UNSPECIFIED;
-            u2 elem_count;
-            READ_U2(elem_count, ptr, len);
-            for (; elem_count != 0; elem_count--) {
-                u2 elem_name_idx;
-                char* elem_name;
-                READ_TYPE_INDEX(elem_name_idx, constant_pool, CONSTANT_Utf8, ptr, len);
-                elem_name = CP_UTF8(constant_pool, elem_name_idx);
-
-                if (elem_name == SYMBOL(type)) {
-                    u1 nouse;
-                    READ_U1(nouse, ptr, len);
-
-                    u2 type_value_idx;
-                    READ_U2(type_value_idx, ptr, len);
-
-                    u4 type_value;
-                    type_value = CP_INTEGER(constant_pool, type_value_idx);
-                    classblock->speculative_type = type_value;
-                }
-                else {
-                    u1 nouse1;
-                    READ_U1(nouse1, ptr, len);
-
-                    u2 nouse2;
-                    READ_U2(nouse2, ptr, len);
-                }
-            } // for
+        if (anno_name == SYMBOL(GroupingPolicies)) {
+            process_policies(ptr, constant_pool,
+                             classblock->grouping_policy_self,
+                             classblock->grouping_policy_others);
+        }
+        else if (anno_name == SYMBOL(ClassGroupingPolicies)) {
+            process_policies(ptr, constant_pool,
+                             classblock->class_grouping_policy_self,
+                             classblock->class_grouping_policy_others);
+        }
+        else {
+            std::cout << classblock->name << std::endl;
+            assert(false);      // todo
         }
     }
 }
@@ -587,14 +632,8 @@ Class *defineClass(const char* classname, char *data, int offset, int len, Objec
         return found;
     }
 
-    if (OoSpmtJvm::do_spec && is_speculative_class(classobj)) {
-        if (classobj->get_core() == 0) {
-            Core* core = OoSpmtJvm::instance()->alloc_core_for_object(classobj);
-            if (core) {
-                threadSelf()->add_core(core);
-            }
-        }
-    }
+    Core* current_core = g_current_core();
+    current_core->after_alloc_object(classobj);
 
     return classobj;
 }

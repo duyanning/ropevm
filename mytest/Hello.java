@@ -1,8 +1,3 @@
-@java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
-@java.lang.annotation.Target({ java.lang.annotation.ElementType.TYPE })
-@interface Speculative {
-}
-
 class Beast {
     public int f()
     {
@@ -13,7 +8,9 @@ class Beast {
 
 }
 
-@Speculative
+
+@GroupingPolicies(self=GroupingPolicy.NEW_GROUP, others=GroupingPolicy.CURRENT_GROUP)
+@ClassGroupingPolicies(self=GroupingPolicy.NO_GROUP)
 class Wolf extends Beast {
     public Wolf()
     {

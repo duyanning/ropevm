@@ -10,8 +10,9 @@ class OoSpmtJvm
 public:
     //    ~OoSpmtJvm();
     Core* alloc_core();
-    Core* alloc_core_for_object(Object* object);
-    Core* core_for_object(Object* object);
+    Group* new_group_for(Object* leader);
+    Group* new_group_for(Object* leader, Core* core);
+
     static OoSpmtJvm* instance();
     static bool do_spec;
 

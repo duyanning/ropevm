@@ -13,6 +13,7 @@
 #include "Snapshot.h"
 #include "Helper.h"
 #include "frame.h"
+#include "Group.h"
 
 using namespace std;
 
@@ -69,7 +70,7 @@ SpeculativeMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
 {
     if (intercept_vm_backdoor(target_object, new_mb)) return;
 
-    log_when_invoke_return(true, m_user, frame->mb, target_object, new_mb);
+    //log_when_invoke_return(true, m_user, frame->mb, target_object, new_mb);
 
     MINILOG(s_logger,
             "#" << m_core->id() << " (S) is to invoke method: " << *new_mb);
@@ -81,11 +82,13 @@ SpeculativeMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
         return;
     }
 
-    if (m_core->is_owner_or_subsidiary(target_object)) { // target_object is myself or subsidiaries
+    Group* target_group = target_object->get_group();
 
-        MINILOG(s_logger,
-                "#" << m_core->id() << " (S) target object is "
-                << (m_core->is_owner(target_object) ? "owner" : "subsidiary"));
+    if (target_group == get_group()) { // target_object is in this group
+
+        // MINILOG(s_logger,
+        //         "#" << m_core->id() << " (S) target object is "
+        //         << (m_core->is_owner(target_object) ? "owner" : "subsidiary"));
 
         sp -= new_mb->args_count;
 
@@ -95,26 +98,26 @@ SpeculativeMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
         }
 
 
-        Frame* new_frame = create_frame(target_object, new_mb, frame, get_user(), &args[0], sp, pc);
+        Frame* new_frame = create_frame(target_object, new_mb, frame, frame->get_object(), &args[0], sp, pc);
         new_frame->is_certain = false;
 
         frame->last_pc = pc;
 
-        MINILOGPROC(s_user_change_logger, show_user_change,
-                    (os, m_core->id(), "(S)",
-                     m_user, target_object, 1, frame->mb, new_mb));
+        // MINILOGPROC(s_user_change_logger, show_user_change,
+        //             (os, m_core->id(), "(S)",
+        //              m_user, target_object, 1, frame->mb, new_mb));
 
         frame = new_frame;
         sp = (uintptr_t*)frame->ostack_base;
         pc = (CodePntr)frame->mb->code;
 
-        change_user(target_object);
+        //change_user(target_object);
     }
-    else {                      // target_object is others
+    else {                      // target_object is NOT in this group
 
-        MINILOG(s_logger,
-                "#" << m_core->id()
-                 << " (S) target object(" << target_object << ") is other objects");
+        // MINILOG(s_logger,
+        //         "#" << m_core->id()
+        //          << " (S) target object(" << target_object << ") is other objects");
 
         //{{{ just for debug
         MINILOG_IF(m_core->id() == 5,
@@ -148,15 +151,15 @@ SpeculativeMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
             args.push_back(read(&sp[i]));
         }
 
-        Core* target_core =
-            OoSpmtJvm::instance()->core_for_object(target_object);
-        if (target_core) {      // target_object has a core
+        if (target_group) {
+            // post speculative message
+            Core* target_core = target_group->get_core();
             MINILOG(s_logger,
                      "#" << m_core->id() << " (S) target object has a core #"
                      << target_core->id());
 
             InvokeMsg* msg =
-                new InvokeMsg(target_object, new_mb, frame, get_user(), &args[0], sp, pc, m_core->get_owner());
+                new InvokeMsg(target_object, new_mb, frame, frame->get_object(), &args[0], sp, pc);
 
             MINILOG(s_logger,
                      "#" << m_core->id() << " (S) add invoke task to #"
@@ -164,7 +167,7 @@ SpeculativeMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
 
             target_core->add_speculative_task(msg);
         }
-        else {                  // target_object is a coreless object
+        else {
             MINILOG(s_logger,
                     "#" << m_core->id() << " target object is coreless");
         }
@@ -231,7 +234,9 @@ SpeculativeMode::do_method_return(int len)
 //     Core* target_core = OoSpmtJvm::instance()->core_for_object(frame->calling_object);
 //     MINILOG0("#" << m_core->id() << " (S)return from " << *frame->mb << " target: #" << target_core->id());
 
-    if (m_core->is_owner_or_subsidiary(target_object)) { // target_object is myself or subsidiaries
+    Group* target_group = target_object->get_group();
+
+    if (target_group == get_group()) { // target_object is in this group
 
         //{{{ just for debug
         if (m_core->id() == 0) {
@@ -247,10 +252,10 @@ SpeculativeMode::do_method_return(int len)
 
         Frame* current_frame = frame;
 
-        MINILOGPROC(s_user_change_logger, show_user_change,
-                    (os, m_core->id(), "(S)",
-                     m_user, current_frame->calling_object, 2,
-                     current_frame->mb, current_frame->prev->mb));
+        // MINILOGPROC(s_user_change_logger, show_user_change,
+        //             (os, m_core->id(), "(S)",
+        //              m_user, current_frame->calling_object, 2,
+        //              current_frame->mb, current_frame->prev->mb));
 
         frame = current_frame->prev;
         sp = caller_sp;
@@ -259,9 +264,9 @@ SpeculativeMode::do_method_return(int len)
         destroy_frame(current_frame);
         pc += (*pc == OPC_INVOKEINTERFACE_QUICK ? 5 : 3);
 
-        change_user(target_object);
+        //change_user(target_object);
     }
-    else {                      // target_object is others
+    else {                      // target_object is NOT in this group
         snapshot();
         destroy_frame(frame);
 
@@ -326,7 +331,9 @@ SpeculativeMode::do_get_field(Object* target_object, FieldBlock* fb, uintptr_t* 
             //            << " of " << static_cast<void*>(target_object));
             << " of " << target_object);
 
-    if (m_core->is_owner_or_subsidiary(target_object)) { // target_object is myself or subsidiaries
+    Group* target_group = target_object->get_group();
+
+    if (target_group == get_group()) { // target_object is in this group
         sp -= is_static ? 0 : 1;
         for (int i = 0; i < size; ++i) {
             write(sp, read(addr + i));
@@ -334,7 +341,7 @@ SpeculativeMode::do_get_field(Object* target_object, FieldBlock* fb, uintptr_t* 
         }
         pc += 3;
     }
-    else {                      // target_object is others
+    else {                      // target_object is NOT in this group
         snapshot();
 
         // read all at one time, to avoid data change between two reading.
@@ -366,7 +373,10 @@ SpeculativeMode::do_put_field(Object* target_object, FieldBlock* fb,
     MINILOG(s_logger,
             "#" << m_core->id() << " (S) is to putfield: " << *fb);
 
-    if (m_core->is_owner_or_subsidiary(target_object)) { // target_object is myself or subsidiaries
+
+    Group* target_group = target_object->get_group();
+
+    if (target_group == get_group()) { // target_object is in this group
         sp -= size;
         for (int i = 0; i < size; ++i) {
             write(addr + i, read(sp + i));
@@ -374,11 +384,11 @@ SpeculativeMode::do_put_field(Object* target_object, FieldBlock* fb,
         sp -= is_static ? 0 : 1;
         pc += 3;
     }
-    else {                      // target_object is others
+    else {                      // target_object is NOT in this group
         snapshot();
-        Core* target_core =
-            OoSpmtJvm::instance()->core_for_object(target_object);
-        if (target_core) {      // target_object has a core
+
+        if (target_group) {      // target_object has a core
+            Core* target_core = target_group->get_core();
             sp -= size;
 
             vector<uintptr_t> val;
@@ -421,18 +431,19 @@ SpeculativeMode::do_array_load(Object* array, int index, int type_size)
 
     void* addr = array_elem_addr(array, index, type_size);
     int nslots = type_size > 4 ? 2 : 1; // number of slots for value
+    assert(array != get_group()->get_leader()); // array never can be leader
+
     Object* target_object = array;
+    Group* target_group = target_object->get_group();
 
-    assert(array != m_core->m_owner); // array never can be owner
-
-    if (m_core->is_owner_or_subsidiary(target_object)) { // target_object is myself or subsidiaries
+    if (target_group == get_group()) { // target_object is in this group
         sp -= 2; // pop up arrayref and index
         load_from_array(sp, addr, type_size);
         sp += nslots;
 
         pc += 1;
     }
-    else {                      // target_object is others
+    else {                      // target_object is NOT in this group
         snapshot();
 
         // read all at one time, to avoid data change between two reading.
@@ -462,23 +473,23 @@ SpeculativeMode::do_array_store(Object* array, int index, int type_size)
 
     void* addr = array_elem_addr(array, index, type_size);
     int nslots = type_size > 4 ? 2 : 1; // number of slots for value
-
+    assert(array != get_group()->get_leader()); // array never can be leader
     Object* target_object = array;
+    Group* target_group = target_object->get_group();
 
-    assert(array != m_core->m_owner); // array never can be owner
-
-    if (m_core->is_owner_or_subsidiary(target_object)) { // target_object is myself or subsidiaries
+    if (target_group == get_group()) { // target_object is in this group
         sp -= nslots; // pop up value
         store_to_array(sp, addr, type_size);
         sp -= 2;                    // pop arrayref and index
 
         pc += 1;
     }
-    else {                      // target_object is others
+    else {                      // target_object is NOT in this group
         snapshot();
-        Core* target_core =
-            OoSpmtJvm::instance()->core_for_object(target_object);
-        if (target_core) {      // target_object has a core
+
+        if (target_group) {      // target_object has a core
+            Core* target_core = target_group->get_core();
+
             sp -= nslots; // pop up value
 
             uint32_t val[2]; // at most 2 slots
@@ -512,37 +523,6 @@ SpeculativeMode::do_array_store(Object* array, int index, int type_size)
     }
 }
 
-void
-SpeculativeMode::before_alloc_object()
-{
-}
-
-void
-SpeculativeMode::after_alloc_object(Object* obj)
-{
-    if (is_speculative_object(obj)) {
-        MINILOG(s_new_main_logger, "#" << m_core->id() << " (S) new main " << obj->classobj->name());
-        Core* core = OoSpmtJvm::instance()->alloc_core_for_object(obj);
-        if (core) {
-            threadSelf()->add_core(core);
-        }
-    }
-    else {
-        MINILOG(s_new_sub_logger, "#" << m_core->id() << " (S) new sub " << obj->classobj->name());
-        assert(m_core->m_owner);
-
-        m_core->add_subsidiary(obj);
-    }
-}
-
-// void
-// SpeculativeMode::do_new_object(Class* classobj)
-// {
-//     MINILOG(s_new_logger, "#" << m_core->id() << " (S) new " << classobj->name());
-//     Base::do_new_object(classobj);
-// }
-
-
 void*
 SpeculativeMode::do_execute_method(Object* target_object,
                                    MethodBlock *mb,
@@ -575,7 +555,7 @@ SpeculativeMode::load_next_task()
         frame = 0;
         pc = 0;
         sp = 0;
-        m_user = 0;
+        //m_user = 0;
         m_core->m_is_waiting_for_task = true;
         m_core->halt();
     }
@@ -615,7 +595,7 @@ SpeculativeMode::load_next_task()
                 // new_frame->xxx = 999;
                 // cout << "#" << m_core->id() << " create xxx999 " << *new_frame << endl;
 
-                change_user(msg->object);
+                //change_user(msg->object);
                 sp = (uintptr_t*)new_frame->ostack_base;
 
                 frame = new_frame;
@@ -626,7 +606,7 @@ SpeculativeMode::load_next_task()
             PutMsg* msg = static_cast<PutMsg*>(task_msg);
             m_core->add_message_to_be_verified(msg);
 
-            change_user(msg->obj);
+            //change_user(msg->obj);
 
             for (int i = 0; i < msg->val.size(); ++i) {
                 write(msg->addr + i, msg->val[i]);
@@ -643,7 +623,7 @@ SpeculativeMode::load_next_task()
             int index = msg->index;
             int type_size = msg->type_size;
 
-            change_user(array);
+            //change_user(array);
 
             void* addr = array_elem_addr(array, index, type_size);
             store_array_from_no_cache_mem(&msg->slots[0], addr, type_size);
@@ -666,11 +646,11 @@ SpeculativeMode::load_next_task()
 void
 SpeculativeMode::snapshot(bool shot_frame)
 {
-    assert(m_core->is_owner_enclosure(m_user));
+    //assert(m_core->is_owner_enclosure(m_user));
 
     if (shot_frame) {
         Frame* f = this->frame;
-        assert(f == 0 || m_core->is_owner_enclosure(f->get_object()));
+        //assert(f == 0 || m_core->is_owner_enclosure(f->get_object()));
 
 
         if (f) {
@@ -681,7 +661,7 @@ SpeculativeMode::snapshot(bool shot_frame)
                 if (f->snapshoted) break;
                 f->snapshoted = true;
 
-                if (not m_core->is_owner_enclosure(f->calling_object))
+                if (f->calling_object->get_group() != get_group())
                     break;
 
                 //if (f == m_core->m_certain_mode.frame) break;
@@ -705,7 +685,7 @@ SpeculativeMode::snapshot(bool shot_frame)
     //                cache_logger, show_cache,
     //                (os, m_core->id(), m_core->m_cache, false));
     // //}}} just for debug
-    snapshot->user = this->m_user;
+    //snapshot->user = this->m_user;
     snapshot->pc = this->pc;
     snapshot->frame = shot_frame ? this->frame : 0;
     snapshot->sp = this->sp;

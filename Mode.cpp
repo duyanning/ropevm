@@ -9,6 +9,7 @@
 #include "Helper.h"
 #include "Loggers.h"
 #include "jni.h"
+#include "Group.h"
 
 using namespace std;
 
@@ -22,7 +23,7 @@ Mode::Mode(const char* name)
     sp = 0;
     pc = 0;
 
-    m_user = 0;
+    //m_user = 0;
 }
 
 const char*
@@ -55,23 +56,38 @@ Mode::set_core(Core* core)
     m_core = core;
 }
 
-bool is_speculative_object(Object* obj)
+GroupingPolicyEnum
+get_grouping_policy_self(Object* obj)
 {
-    Class* classobj = obj->classobj;
-    bool spec = false;
-    SpeculativeTypeEnum spt = (SpeculativeTypeEnum)classobj->classblock()->speculative_type;
-    if (spt == ST_UNSPECIFIED || spt == ST_OBJECT || spt == ST_BOTH)
-        spec = true;
-    return spec;
+    int policy = 0;
+    if (is_normal_obj(obj)) {
+        Class* classobj = obj->classobj;
+        policy = classobj->classblock()->grouping_policy_self;
+    }
+    else if (is_class_obj(obj)) {
+        policy = (GroupingPolicyEnum)static_cast<Class*>(obj)->classblock()->class_grouping_policy_self;
+    }
+    else {
+        assert(false);
+    }
+    return static_cast<GroupingPolicyEnum>(policy);
 }
 
-bool is_speculative_class(Class* classobj)
+GroupingPolicyEnum
+get_grouping_policy_others(Object* obj)
 {
-    bool spec = false;
-    SpeculativeTypeEnum spt = (SpeculativeTypeEnum)classobj->classblock()->speculative_type;
-    if (spt == ST_CLASS || spt == ST_BOTH)
-        spec = true;
-    return spec;
+    int policy = 0;
+    if (is_normal_obj(obj)) {
+        Class* classobj = obj->classobj;
+        policy = classobj->classblock()->grouping_policy_others;
+    }
+    else if (is_class_obj(obj)) {
+        policy = (GroupingPolicyEnum)static_cast<Class*>(obj)->classblock()->class_grouping_policy_others;
+    }
+    else {
+        assert(false);
+    }
+    return static_cast<GroupingPolicyEnum>(policy);
 }
 
 void
@@ -80,9 +96,70 @@ Mode::before_alloc_object()
 }
 
 void
-Mode::after_alloc_object(Object* obj)
+Mode::after_alloc_object(Object* obj, bool is_cls)
 {
-    assert(false);
+    if (not OoSpmtJvm::do_spec) return;
+
+    assert(obj->get_group() == 0); // obj is in no group
+
+    GroupingPolicyEnum final_policy;
+    final_policy = get_grouping_policy_self(obj);
+
+    // resolve policy
+    if (final_policy == GP_UNSPECIFIED) {
+        Object* current_object = 0;
+        if (frame) {
+            current_object = frame->get_object();
+            if (current_object) {
+                final_policy = get_grouping_policy_others(current_object);
+            }
+        }
+
+        if (final_policy == GP_UNSPECIFIED) {
+            if (current_object) {
+                Object* group_leader = current_object->get_group()->get_leader();
+                final_policy = get_grouping_policy_others(group_leader);
+            }
+        }
+
+        if (final_policy == GP_UNSPECIFIED) {
+            if (is_normal_obj(obj)) {
+                final_policy = GP_CURRENT_GROUP;
+            }
+            else if (is_class_obj(obj)) {
+                final_policy = GP_NO_GROUP;
+            }
+            else {
+                assert(false);  // todo
+            }
+        }
+    }
+
+    // grouping according to final policy
+    if (final_policy == GP_NEW_GROUP) {
+        Group* new_group = OoSpmtJvm::instance()->new_group_for(obj);
+        threadSelf()->add_core(new_group->get_core());
+
+        MINILOG_IF(debug_scaffold::java_main_arrived,
+                   (is_certain_mode() ? c_new_main_logger : s_new_main_logger),
+                   "#" << m_core->id() << " " << tag() << " new main " << (is_cls ? static_cast<Class*>(obj)->name() : obj->classobj->name()));
+
+    }
+    else if (final_policy == GP_CURRENT_GROUP) {
+        Group* current_group = get_group();
+        current_group->add(obj);
+
+        MINILOG_IF(debug_scaffold::java_main_arrived,
+                   (is_certain_mode() ? c_new_main_logger : s_new_main_logger),
+                   "#" << m_core->id() << " " << tag() << " new sub " << (is_cls ? static_cast<Class*>(obj)->name() : obj->classobj->name()));
+    }
+    else if (final_policy == GP_NO_GROUP) {
+        // do nothing
+    }
+    else {
+        assert(false);          // MUST get a final policy
+    }
+
 }
 
 // void vmlog(String msg)
@@ -297,16 +374,16 @@ show_invoke_return(std::ostream& os, bool is_invoke, int id, const char* tag,
     os << "#" << id << " " << tag << " ";
     //os << (is_invoke ? "invoke " : "return ");
     os << caller;
-    if (caller->get_core())
-        os << "(#" << caller->get_core()->id() << ")";
+    if (caller->get_group())
+        os << "(#" << caller->get_group()->get_core()->id() << ")";
     else
         os << "(#none)";
     os << " ";
     os << *caller_mb;
     os << (is_invoke ? " ===>>> " : " <<<=== ");
     os << callee;
-    if (callee->get_core())
-        os << "(#" << callee->get_core()->id() << ")";
+    if (callee->get_group())
+        os << "(#" << callee->get_group()->get_core()->id() << ")";
     else
         os << "(#none)";
     os << " ";
@@ -394,22 +471,22 @@ Mode::store_array_from_no_cache_mem(uintptr_t* sp, void* elem_addr, int type_siz
     }
 }
 
-void
-Mode::set_user(Object* user)
-{
-    //assert(user != m_user);
-    if (m_user == user)
-        return;
+// void
+// Mode::set_user(Object* user)
+// {
+//     //assert(user != m_user);
+//     if (m_user == user)
+//         return;
 
-    m_user = user;
-}
+//     m_user = user;
+// }
 
-void
-Mode::change_user(Object* user)
-{
-    //on_user_change(m_user, user);
-    set_user(user);
-}
+// void
+// Mode::change_user(Object* user)
+// {
+//     //on_user_change(m_user, user);
+//     set_user(user);
+// }
 
 //{{{ just for debug
 
@@ -461,19 +538,31 @@ show_user_change(std::ostream& os, int id, const char* m,
 
 //}}} just for debug
 
-bool
-Mode::is_user_enclosure(Object* obj)
-{
-    if (m_user == 0) return false;
+// bool
+// Mode::is_user_enclosure(Object* obj)
+// {
+//     if (m_user == 0) return false;
 
-    if (is_user(obj))
-        return true;
-    if (m_core->is_owner(m_user) && m_core->is_subsidiary(obj))
-        return true;
-    if (m_core->is_subsidiary(m_user) && m_core->is_owner(obj))
-        return true;
-    if (m_core->is_subsidiary(m_user) && m_core->is_subsidiary(obj))
-        return true;
-    //assert(false);
-    return false;
+//     if (is_user(obj))
+//         return true;
+//     if (m_core->is_owner(m_user) && m_core->is_subsidiary(obj))
+//         return true;
+//     if (m_core->is_subsidiary(m_user) && m_core->is_owner(obj))
+//         return true;
+//     if (m_core->is_subsidiary(m_user) && m_core->is_subsidiary(obj))
+//         return true;
+//     //assert(false);
+//     return false;
+// }
+
+// bool
+// Mode::is_in_this_group(Object* object)
+// {
+//     return object->get_group() == m_core->get_group();
+// }
+
+Group*
+Mode::get_group()
+{
+    return m_core->get_group();
 }

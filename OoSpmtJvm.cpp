@@ -2,6 +2,7 @@
 #include "OoSpmtJvm.h"
 #include "Helper.h"
 #include "Statistic.h"
+#include "Group.h"
 
 using namespace std;
 
@@ -54,22 +55,20 @@ OoSpmtJvm::alloc_core()
     return core;
 }
 
-Core*
-OoSpmtJvm::core_for_object(Object* obj)
+Group*
+OoSpmtJvm::new_group_for(Object* leader, Core* core)
 {
-    if (obj == 0) return 0;
-    return obj->get_core();
+    Group* group = new Group(leader, core);
+
+    MINILOG0("#" << core->id() << " is assigned to obj: " << leader << " class: " << type_name(leader));
+    return group;
 }
 
-Core*
-OoSpmtJvm::alloc_core_for_object(Object* object)
+Group*
+OoSpmtJvm::new_group_for(Object* leader)
 {
     Core* core = alloc_core();
-    if (core) {
-        core->set_owner(object);
-    }
-    MINILOG0("#" << core->id() << " is assigned to obj: " << object << " class: " << type_name(object));
-    return core;
+    return new_group_for(leader, core);
 }
 
 bool OoSpmtJvm::do_spec;

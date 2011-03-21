@@ -1,6 +1,8 @@
 #ifndef FRAME_H
 #define FRAME_H
 
+class Group;
+
 class Frame {
 public:
     CodePntr last_pc;
@@ -23,7 +25,6 @@ public:
     bool snapshoted;
     Object* object;
     Object* calling_object;
-    Object* calling_owner;
 
     std::vector<Object*> * lrefs;
 

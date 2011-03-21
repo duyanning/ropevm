@@ -21,6 +21,7 @@ class Beast {
 }
 
 @Speculative
+@Speculative
 class Wolf extends Beast {
     public void _p_slice_for_ctor()
     {

@@ -18,6 +18,7 @@ class Class;
 
 class Message;
 class Snapshot;
+class Group;
 
 class Core {
     friend class Mode;
@@ -28,20 +29,13 @@ class Core {
 public:
     Thread* m_thread;
 
-    Object* m_owner;
-
-    int objects_count;                 // refs count
-
-    //Object* m_user;
+    Group* m_group;
 
     bool m_halt;
 public:
     ~Core();
-    void set_user(Object* user) { m_certain_mode.set_user(user); }
-    Object* get_user() { return m_certain_mode.get_user(); }
-    void set_owner(Object* object);
-    Object* get_owner() { return m_owner; }
-    void add_subsidiary(Object* object);
+    void set_group(Group* group);
+    Group* get_group() { return m_group; }
     void set_thread(Thread* thread);
     uintptr_t* run();
     bool is_halt();
@@ -108,12 +102,6 @@ public:
 
     // void before_alloc_array();
     // void after_alloc_array();
-
-    bool is_owner(Object* obj) { return m_owner == obj; }
-    bool is_subsidiary(Object* obj);
-    bool is_owner_or_subsidiary(Object* obj);
-    bool is_owner_enclosure(Object* obj) { return is_owner_or_subsidiary(obj); }
-    bool has_owner() { return m_owner != 0; }
 
     void scan();
 

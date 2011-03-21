@@ -12,9 +12,10 @@ public:
     virtual const char* tag() = 0;
     virtual void step() = 0;
     virtual void exec_an_instr();
+
     virtual void before_alloc_object();
-    virtual void after_alloc_object(Object* obj);
-    //virtual void do_new_object(Class* classobj);
+    virtual void after_alloc_object(Object* obj, bool is_cls = false);
+
     virtual void do_invoke_method(Object* objectref, MethodBlock* new_mb);
     virtual void do_method_return(int len);
     virtual void do_throw_exception() = 0;
@@ -56,15 +57,9 @@ public:
     virtual void enter_execution() = 0;
     virtual void leave_execution() = 0;
 
-    bool is_user(Object* obj) { return m_user == obj; }
-    bool is_user_enclosure(Object* obj);
-    Object* get_user() { return m_user; }
-    void set_user(Object* user);
-    void change_user(Object* user);
-
+    Group* get_group();
 public:
     //-------------------
-    Object* m_user;
     CodePntr pc;
     Frame *frame;               // last_frame in jamvm
     uintptr_t *sp;

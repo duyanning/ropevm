@@ -11,9 +11,6 @@ public:
     CertainMode();
     virtual const char* tag() { return "(C)"; }
     virtual void step();
-    virtual void before_alloc_object();
-    virtual void after_alloc_object(Object* obj);
-    //virtual void do_new_object(Class* classobj);
     virtual void do_invoke_method(Object* target_object, MethodBlock* new_mb);
     virtual void do_method_return(int len);
     virtual void do_throw_exception();

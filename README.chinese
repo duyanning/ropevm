@@ -3,3 +3,33 @@
 
 自己安装的这些都须安装在/usr/local下
 
+=======================================
+在~/bin下为以下文件建立同名符号链接：
+ropevm/tools/javarunbin
+ropevm/tools/roperunbin
+ropevm/debug/ropevm
+jamvm
+
+当前目录.也必须加入PATH，因为
+javarunbin
+roperunbin
+都要 . cmd
+cmd在各个test目录下
+
+
+=========================
+export spec=1
+export log=1
+
+命令行参数
+-Xspec:<on/off>
+-Xlog:<on/off>
+======================
+在~/bin下
+ln -s ~/work/ropevm/ropeenv
+
+之后，在每个命令行窗口
+. ropeenv
+这样就可以直接使用tools下的工具了
+
+
