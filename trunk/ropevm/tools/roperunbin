@@ -1,5 +1,0 @@
-#!/usr/bin/env sh
-
-. cmd
-ropevm -cp bin $APP $PARMS
-

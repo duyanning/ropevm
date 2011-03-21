@@ -35,21 +35,9 @@ Core::~Core()
 }
 
 void
-Core::set_owner(Object* object)
+Core::set_group(Group* group)
 {
-    assert(object != m_owner);
-    object->set_core(this);
-    object->set_is_owner(true);
-    m_owner = object;
-    objects_count++;
-}
-
-void
-Core::add_subsidiary(Object* object)
-{
-    object->set_core(this);
-    object->set_is_owner(false);
-    objects_count++;
+    m_group = group;
 }
 
 void
@@ -144,7 +132,6 @@ Core::init()
     m_certain_msg = 0;
     m_mode = &m_speculative_mode;
     //m_user = 0;
-    m_owner = 0;
 
     m_certain_depth = 0;
     m_speculative_depth = 0;
@@ -158,8 +145,6 @@ Core::init()
 
     m_quit_step_loop = false;
     m_result = 0;
-
-    objects_count = 0;
 
     // stat
     m_count_spec_msgs_sent = 0;
@@ -231,20 +216,20 @@ Core::log_when_leave_certain()
             "#" << id() << " now use cache ver(" << m_cache.version() << ")");
     MINILOG(when_leave_certain_logger,
             "#" << id() << " SPEC details:");
-    MINILOGPROC(when_leave_certain_logger,
-                show_triple,
-                (os, id(),
-                 m_speculative_mode.frame, m_speculative_mode.sp, m_speculative_mode.pc,
-                 m_speculative_mode.m_user,
-                 true));
+    // MINILOGPROC(when_leave_certain_logger,
+    //             show_triple,
+    //             (os, id(),
+    //              m_speculative_mode.frame, m_speculative_mode.sp, m_speculative_mode.pc,
+    //              m_speculative_mode.m_user,
+    //              true));
 
     MINILOG(when_leave_certain_logger,
             "#" << id() << " ---------------------------");
     MINILOG(when_leave_certain_logger,
             "#" << id() << " RVP details:");
-    MINILOGPROC(when_leave_certain_logger,
-                show_triple,
-                (os, id(), m_rvp_mode.frame, m_rvp_mode.sp, m_rvp_mode.pc, m_rvp_mode.m_user, true));
+    // MINILOGPROC(when_leave_certain_logger,
+    //             show_triple,
+    //             (os, id(), m_rvp_mode.frame, m_rvp_mode.sp, m_rvp_mode.pc, m_rvp_mode.m_user, true));
     MINILOG(when_leave_certain_logger,
             "#" << id() << " ---------------------------");
 }
@@ -255,13 +240,11 @@ Core::sync_speculative_with_certain()
     m_speculative_mode.pc = m_certain_mode.pc;
     m_speculative_mode.frame = m_certain_mode.frame;
     m_speculative_mode.sp = m_certain_mode.sp;
-    m_speculative_mode.m_user = m_certain_mode.m_user;
 }
 
 void
 Core::sync_certain_with_speculative()
 {
-    m_certain_mode.m_user = m_speculative_mode.m_user;
     m_certain_mode.pc = m_speculative_mode.pc;
     m_certain_mode.frame = m_speculative_mode.frame;
     m_certain_mode.sp = m_speculative_mode.sp;
@@ -270,7 +253,6 @@ Core::sync_certain_with_speculative()
 void
 Core::sync_certain_with_snapshot(Snapshot* snapshot)
 {
-    m_certain_mode.m_user = snapshot->user;
     m_certain_mode.pc = snapshot->pc;
     m_certain_mode.frame = snapshot->frame;
     m_certain_mode.sp = snapshot->sp;
@@ -357,20 +339,20 @@ Core::enter_certain_mode()
             "#" << id() << " SPEC details:");
 
     if (original_uncertain_mode()->is_speculative_mode()) {
-        MINILOGPROC(when_enter_certain_logger,
-                    show_triple,
-                    (os, id(),
-                     m_speculative_mode.frame, m_speculative_mode.sp, m_speculative_mode.pc,
-                     m_speculative_mode.m_user));
+        // MINILOGPROC(when_enter_certain_logger,
+        //             show_triple,
+        //             (os, id(),
+        //              m_speculative_mode.frame, m_speculative_mode.sp, m_speculative_mode.pc,
+        //              m_speculative_mode.m_user));
     }
     else {
 
         MINILOG(when_enter_certain_logger,
                 "#" << id() << " RVP details:");
-        MINILOGPROC(when_enter_certain_logger,
-                    show_triple,
-                    (os, id(), m_rvp_mode.frame, m_rvp_mode.sp, m_rvp_mode.pc, m_rvp_mode.m_user,
-                     true));
+        // MINILOGPROC(when_enter_certain_logger,
+        //             show_triple,
+        //             (os, id(), m_rvp_mode.frame, m_rvp_mode.sp, m_rvp_mode.pc, m_rvp_mode.m_user,
+        //              true));
     }
 
     MINILOG(when_enter_certain_logger,
@@ -398,7 +380,6 @@ Core::leave_rvp_mode(Object* target_object)
     MINILOG0("#" << id() << " leave RVP mode");
 
     //m_speculative_mode.m_user = m_rvp_mode.m_user;
-    m_speculative_mode.m_user = target_object;
     m_speculative_mode.pc = m_rvp_mode.pc;
     m_speculative_mode.frame = m_rvp_mode.frame;
     m_speculative_mode.sp = m_rvp_mode.sp;
@@ -413,12 +394,12 @@ Core::leave_rvp_mode(Object* target_object)
             "#" << id() << " now use cache ver(" << m_cache.version() << ")");
     MINILOG(when_leave_rvp_logger,
             "#" << id() << " SPEC details:");
-    MINILOGPROC(when_leave_rvp_logger,
-                show_triple,
-                (os, id(),
-                 m_speculative_mode.frame, m_speculative_mode.sp, m_speculative_mode.pc,
-                 m_speculative_mode.m_user,
-                 true));
+    // MINILOGPROC(when_leave_rvp_logger,
+    //             show_triple,
+    //             (os, id(),
+    //              m_speculative_mode.frame, m_speculative_mode.sp, m_speculative_mode.pc,
+    //              m_speculative_mode.m_user,
+    //              true));
 
     MINILOG(when_leave_rvp_logger,
             "#" << id() << " ---------------------------");
@@ -530,43 +511,6 @@ private:
     Frame* m_certain_frame;
 };
 
-// void
-// Core::free_discarded_frames(bool only_snapshot)
-// {
-//     Mode* mode = original_uncertain_mode();
-//     if (mode == 0) return;
-
-//     assert(not mode->is_certain_mode());
-
-//     MINILOG(free_frames_logger,
-//             "#" << id() << " free no use frames, " << mode->get_name());
-
-//     set<Frame*> frames;
-
-//     Frame* f = mode->frame;
-//     if (f) {
-//         assert(f->mb);
-
-//         for (;;) {
-//             if (f->is_certain) break;
-//             MINILOG(free_frames_logger,
-//                     "#" << id() << " free " << (is_rvp_frame(f) ? "rvp" : "spec") << "frame " << *f);
-//             // if (f->xxx == 999)
-//             //     cout << "xxx999" << endl;
-//             frames.insert(f);
-//             if (f->is_task_frame) break;
-//             f = f->prev;
-//         }
-//     }
-
-//     MINILOG(free_frames_logger,
-//             "#" << id() << " free no use frames in snapshot, len: " << m_snapshots_to_be_committed.size());
-//     Collect_delayed_frame cdf(frames);
-//     for_each(m_snapshots_to_be_committed.begin(), m_snapshots_to_be_committed.end(), cdf);
-
-//     for_each(frames.begin(), frames.end(), Delete());
-// }
-
 void
 Core::collect_inuse_frames(set<Frame*>& frames)
 {
@@ -580,7 +524,11 @@ Core::collect_inuse_frames(set<Frame*>& frames)
 
     Frame* f = mode->frame;
     if (f) {
+        if (f->mb) {
+            cout << f->mb->name << endl;
+        }
         assert(f->mb);
+        //cout << "i am " << *f->mb << endl;
 
         for (;;) {
             if (f->is_certain) break;
@@ -774,19 +722,6 @@ Core::scan()
     // scan rvp buffer
 }
 
-bool
-Core::is_subsidiary(Object* obj)
-{
-    return obj->get_core() == this && not obj->is_owner();
-}
-
-bool
-Core::is_owner_or_subsidiary(Object* obj)
-{
-    if (obj == 0) return false;
-    return obj->get_core() == this;
-}
-
 void
 Core::clear_frame_in_cache(Frame* f)
 {
@@ -825,7 +760,6 @@ Core::report_stat(ostream& os)
     os << '#' << m_id << '\t' << "verify ok" << '\t' << m_count_verify_ok << '\n';
     os << '#' << m_id << '\t' << "verify fail" << '\t' << m_count_verify_fail << '\n';
     os << '#' << m_id << '\t' << "verify empty" << '\t' << m_count_verify_empty << '\n';
-    os << '#' << m_id << '\t' << "object count" << '\t' << objects_count << '\n';
     os << '#' << m_id << '\t' << "rvp count" << '\t' << m_count_rvp << '\n';
     os << '#' << m_id << '\t' << "certain instr count" << '\t' << m_count_certain_instr << '\n';
     os << '#' << m_id << '\t' << "spec instr count" << '\t' << m_count_spec_instr << '\n';

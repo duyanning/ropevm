@@ -3,6 +3,7 @@
 
 class Class;
 class Core;
+class Group;
 
 class Object {
 public:
@@ -10,19 +11,15 @@ public:
     //Object()
     void init()
     {
-        m_core = 0;
-        m_is_owner = false;
+        m_group = 0;
     }
 
-    void set_core(Core* core) { m_core = core; }
-    Core* get_core() { return m_core; }
-    void set_is_owner(bool is) { m_is_owner = is; }
-    bool is_owner() { return m_is_owner; }
+    void set_group(Group* group) { m_group = group; }
+    Group* get_group() { return m_group; }
 
     uintptr_t lock;
 private:
-    Core* m_core;
-    bool m_is_owner;              // am I owner of the core?
+    Group* m_group;
 public:
     Class* classobj;
 };

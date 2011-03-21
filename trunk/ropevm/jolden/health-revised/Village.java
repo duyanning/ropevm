@@ -10,7 +10,7 @@ import java.util.Enumeration;
  * A class represnting a village in the Columbian health care system
  * simulation.
  **/
-@Speculative
+@SpeculativeObject
 class Village
 {
     private Village[] forward;

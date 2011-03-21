@@ -46,7 +46,7 @@ Mode::exec_an_instr()
     assert(not frame->is_bad());
 
     // speculative (pc, frame, sp) only serves owner
-    assert(is_speculative_mode() ? m_core->is_owner_or_subsidiary(frame->get_object()) : true);
+    assert(is_speculative_mode() ? (frame->get_object()->get_group() == get_group()) : true);
     // rvp (pc, frame, sp) only serves others
     //assert(is_rvp_mode() ? frame->get_object() != m_core->m_owner : true);
 

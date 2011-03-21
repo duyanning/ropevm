@@ -72,7 +72,6 @@ Frame::Frame(int lvars_size, int ostack_size)
     is_certain = true;
     caller_sp = 0;
     caller_pc = 0;
-    calling_owner = 0;
 
     //{{{ just for debug
     call_count++;
@@ -105,7 +104,6 @@ Frame::~Frame()
     caller_sp = 0;
     calling_object = 0;
     magic = 2009;
-    calling_owner = 0;
     object = 0;
     //}}} just for debug
     xxx = 0;
@@ -121,6 +119,7 @@ Frame::get_object()
     //     return mb->classobj;
     // }
     // return (Object*)lvars[0];
+    //assert(object);
     return object;
 }
 
@@ -184,7 +183,6 @@ Frame* create_frame(Object* object, MethodBlock* new_mb, Frame* prev, Object* ca
     new_frame->calling_object = calling_object;
     new_frame->caller_sp = caller_sp;
     new_frame->caller_pc = caller_pc;
-    new_frame->calling_owner = calling_owner;
 
     if (args)
         copy_args_to_params(args, new_frame->lvars, new_mb->args_count);

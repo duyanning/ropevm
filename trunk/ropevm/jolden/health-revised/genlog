@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-minivmrunbin > b.txt  2>&1
+roperunbin > b.txt  2>&1
 
 x=0
 while [ $x -lt 40 ]

@@ -80,7 +80,7 @@ RvpMode::before_alloc_object()
 }
 
 void
-RvpMode::after_alloc_object(Object* obj)
+RvpMode::after_alloc_object(Object* obj, bool is_cls)
 {
     assert(false);              // should not get here
 }
@@ -90,7 +90,12 @@ RvpMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
 {
     if (intercept_vm_backdoor(target_object, new_mb)) return;
 
-    log_when_invoke_return(true, m_user, frame->mb, target_object, new_mb);
+    //log_when_invoke_return(true, m_user, frame->mb, target_object, new_mb);
+
+    Group* target_group = target_object->get_group();
+    if (target_group == get_group()) { // object re-entry
+        assert(false);               // todo
+    }
 
     if (is_priviledged(new_mb)) {
         MINILOG(r_logger,
@@ -143,7 +148,7 @@ RvpMode::do_method_return(int len)
         return;
     }
 
-    log_when_invoke_return(false, frame->calling_object, frame->prev->mb, m_user, frame->mb);
+    //log_when_invoke_return(false, frame->calling_object, frame->prev->mb, m_user, frame->mb);
 
     MINILOG_IF(debug_scaffold::java_main_arrived,
                r_frame_logger,
@@ -162,8 +167,9 @@ RvpMode::do_method_return(int len)
     //{{{ just for debug
 
     Object* target_object = frame->prev->get_object();
+    Group* target_group = target_object->get_group();
 
-    if (is_rvp_frame(frame->prev) || not target_object->get_core()) {
+    if (target_group != get_group()) {
         sp -= len;
         uintptr_t* caller_sp = frame->caller_sp;
         for (int i = 0; i < len; ++i) {
@@ -182,8 +188,7 @@ RvpMode::do_method_return(int len)
         destroy_frame(current_frame);
         pc += (*pc == OPC_INVOKEINTERFACE_QUICK ? 5 : 3);
     }
-    else if (m_core->is_owner_or_subsidiary(target_object)) { // should quit RVP mode
-
+    else { // should quit RVP mode
 
         //{{{ just for debug
         if (m_core->m_id == 0
@@ -227,12 +232,6 @@ RvpMode::do_method_return(int len)
         //         << " free rvpframe" << *current_frame);
 
         destroy_frame(current_frame);
-    }
-    else {                      // has core
-        //assert(false);
-        m_core->change_to_speculative_mode();
-        destroy_frame(frame);
-        m_core->get_speculative_mode()->load_next_task();
     }
 }
 

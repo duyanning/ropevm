@@ -13,6 +13,7 @@
 #include "DebugScaffold.h"
 #include "Snapshot.h"
 #include "frame.h"
+#include "Group.h"
 
 using namespace std;
 
@@ -58,22 +59,22 @@ void transfer_certain_control(Core* src, Core* dst, Message* msg)
     }
     //}}} just for debug
 
-    MINILOG0_IF(src->get_owner(),
-                "#" << src->id() << " transfer certain control to #" << dst->id()
-                << " frame: " << src->m_certain_mode.frame
-                << " (o:"
-                << src->get_owner()
-                << ", u:" << src->get_user()
-                << "=>o:"
-                << dst->get_owner()
-                << ")"
-                << "(o:"
-                << type_name(src->get_owner())
-                << ", u:" << type_name(src->get_user())
-                << "=>o:"
-                << type_name(dst->get_owner())
-                << ")"
-                << " because: " << *msg)
+    // MINILOG0_IF(src->get_owner(),
+    //             "#" << src->id() << " transfer certain control to #" << dst->id()
+    //             << " frame: " << src->m_certain_mode.frame
+    //             << " (o:"
+    //             << src->get_owner()
+    //             << ", u:" << src->get_user()
+    //             << "=>o:"
+    //             << dst->get_owner()
+    //             << ")"
+    //             << "(o:"
+    //             << type_name(src->get_owner())
+    //             << ", u:" << type_name(src->get_user())
+    //             << "=>o:"
+    //             << type_name(dst->get_owner())
+    //             << ")"
+    //             << " because: " << *msg)
 
         // MINILOG0_IF(src->get_owner() && src->m_certain_mode.frame->mb,
         //             "#" << src->id() << " frame:"
@@ -91,7 +92,6 @@ CertainMode::do_execute_method(Object* target_object,
                                std::vector<uintptr_t>& jargs)
 {
     // save (pc, frame, sp) triples
-    Object* old_user = m_user;
     CodePntr old_pc = pc;
     Frame* old_frame = frame;
     uintptr_t* old_sp = sp;
@@ -99,50 +99,45 @@ CertainMode::do_execute_method(Object* target_object,
 
     // dummy frame is used to receive RV of top_frame
     // dummy->prev is current frame
-    Frame* dummy = create_frame(0, 0, frame, m_user, 0, 0, 0);
+    Frame* dummy = create_frame(0, 0, frame, frame->get_object(), 0, 0, 0);
     dummy->_name_ = "dummy frame";
 
     void *ret;
     ret = dummy->ostack_base;
 
 
-    Object* old_owner = m_core->m_owner;
     //Object* old_user = m_user;
 
 
-    if (is_user_enclosure(target_object)) { // target_object is myself
+    Object* current_object = frame->get_object();
+
+    Group* current_group = current_object ? current_object->get_group() : 0;
+    Group* target_group = target_object->get_group();
+
+    if (target_group == get_group() or target_group == 0) { // target object is in my group or no group
+
         invoke_my_method(target_object, new_mb, &jargs[0],
-                         m_user,
+                         frame->get_object(),
                          0, dummy, dummy->ostack_base);
-    }
-    else {                      // target_object is others
-        if (m_core->is_owner_or_subsidiary(target_object)) {
-            invoke_my_method(target_object, new_mb, &jargs[0],
-                             m_user,
-                             0, dummy, dummy->ostack_base);
-        }
-        else {
-
-            Core* target_core =
-                OoSpmtJvm::instance()->core_for_object(target_object);
-            if (target_core) {      // target_object has a core
-                assert(false);
-                InvokeMsg* msg =
-                    new InvokeMsg(target_object, new_mb, dummy, m_user, &jargs[0], dummy->ostack_base, 0, m_core->get_owner());
-                m_core->halt();
-
-                frame->last_pc = pc;
-                transfer_certain_control(m_core, target_core, msg);
-            }
-            else {                  // target_object is coreless object
-                invoke_my_method(target_object, new_mb, &jargs[0],
-                                 m_user,
-                                 0, dummy, dummy->ostack_base);
-            }
-        }
 
     }
+    else {                      // target object is in other groups
 
+        assert(false);          // todo
+
+        Core* target_core = target_group->get_core();
+
+        InvokeMsg* msg =
+            new InvokeMsg(target_object, new_mb, dummy, frame->get_object(), &jargs[0], dummy->ostack_base, 0);
+        m_core->halt();
+
+        frame->last_pc = pc;
+        transfer_certain_control(m_core, target_core, msg);
+
+        // if (not current_group) { // current object is in no group
+        //     m_core->halt();
+        // }
+    }
 
     // run the nested step-loop
     void* ret2;
@@ -153,15 +148,14 @@ CertainMode::do_execute_method(Object* target_object,
     m_core->start();
 
 
-    assert(m_core->m_owner == old_owner);
-    assert(m_user == old_user);
+    //assert(m_core->m_owner == old_owner);
+    //assert(m_user == old_user);
 
 
     // restore (pc, frame, pc)
     frame = old_frame;
     sp = old_sp;
     pc = old_pc;
-    m_user = old_user;
 
     assert(frame == dummy->prev);
 
@@ -175,7 +169,7 @@ CertainMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
 {
     if (intercept_vm_backdoor(target_object, new_mb)) return;
 
-    log_when_invoke_return(true, m_user, frame->mb, target_object, new_mb);
+    //log_when_invoke_return(true, m_user, frame->mb, target_object, new_mb);
 
     MiniLogger logger(cout, false);
 
@@ -183,41 +177,36 @@ CertainMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
                logger,
                *new_mb);
 
-    if (is_user_enclosure(target_object)) { // target_object is myself
+    Object* current_object = frame->get_object();
+
+    Group* current_group = current_object ? current_object->get_group() : 0;
+    Group* target_group = target_object->get_group();
+
+
+    if (target_group == get_group() or target_group == 0) { // target object is in my group or no group
         sp -= new_mb->args_count;
         invoke_my_method(target_object, new_mb, sp,
-                         m_user,
+                         frame->get_object(),
                          pc, frame, sp);
     }
-    else {                      // target_object is others
-        if (m_core->is_owner_or_subsidiary(target_object)) {
-            sp -= new_mb->args_count;
-            invoke_my_method(target_object, new_mb, sp,
-                             m_user,
-                             pc, frame, sp);
+    else {                      // target object is in other groups
+
+        Core* target_core = target_group->get_core();
+
+        //transfer certain control to target core
+        sp -= new_mb->args_count;
+
+        InvokeMsg* msg =
+            new InvokeMsg(target_object, new_mb, frame, frame->get_object(), sp, sp, pc);
+
+        frame->last_pc = pc;
+        frame->snapshoted = true;
+        transfer_certain_control(m_core, target_core, msg);
+
+        if (not current_group) { // current object is in no group
+            m_core->halt();
         }
-        else {
-            Core* target_core =
-                OoSpmtJvm::instance()->core_for_object(target_object);
 
-            if (target_core) {      // target_object has a core
-                //transfer certain control to target core
-                sp -= new_mb->args_count;
-
-                InvokeMsg* msg =
-                    new InvokeMsg(target_object, new_mb, frame, m_user, sp, sp, pc, m_core->get_owner());
-
-                frame->last_pc = pc;
-                frame->snapshoted = true;
-                transfer_certain_control(m_core, target_core, msg);
-            }
-            else { // target_object is a coreless object
-                sp -= new_mb->args_count;
-                invoke_my_method(target_object, new_mb, sp,
-                                 m_user,
-                                 pc, frame, sp);
-            }
-        }
     }
 
 }
@@ -228,72 +217,42 @@ CertainMode::do_method_return(int len)
 //     if (is_application_class(frame->mb->classobj)) {
 //         MINILOG0("#" << m_core->id() << " (C)return from " << *frame->mb);
 //     }
-    log_when_invoke_return(false, frame->calling_object, frame->prev->mb, m_user, frame->mb);
+    //log_when_invoke_return(false, frame->calling_object, frame->prev->mb, m_user, frame->mb);
 
+    Object* current_object = frame->get_object();
     Object* target_object = frame->calling_object;
 
-    if (is_user_enclosure(target_object)) { // target_object is myself
+    Group* current_group = current_object ? current_object->get_group() : 0;
+    Group* target_group = target_object ? target_object->get_group() : 0;
+
+    if (target_group == get_group() or target_group == 0) { // target object is in my group or no group
         return_my_method(frame, sp - len, len);
     }
-    else {                      // target_object is others
-        if (m_core->is_owner_or_subsidiary(target_object)) {
-            if (m_core->has_message_to_be_verified()) {
-                // ReturnMsg* msg = new ReturnMsg(frame->mb, frame->prev, sp - len, len,
-                //                                frame->caller_sp, frame->caller_pc, frame);
-                ReturnMsg* msg = new ReturnMsg(frame->object, frame->mb, frame->prev,
-                                               frame->calling_object, sp - len, len,
-                                               frame->caller_sp, frame->caller_pc);
-                destroy_frame(frame);
-                m_core->verify_speculation(msg);
-            }
-            else {
-                return_my_method(frame, sp - len, len);
-            }
+    else {                      // target object is in other groups
+
+        Core* target_core = target_group->get_core();
+
+        if (frame->is_top_frame()) { // prev is dummy
+            assert(false);      // todo
 
         }
-        else {
-            //{{{ just for debug
-            if (m_core->id() == 8) {
-                int x = 0;
-                x++;
-            }
-            //}}} just for debug
-            Core* target_core =
-                OoSpmtJvm::instance()->core_for_object(target_object);
 
-            if (target_core == 0) {
-                Object* calling_owner = frame->calling_owner;
-                Core* c =
-                    OoSpmtJvm::instance()->core_for_object(calling_owner);
-                if (c) {
-                    int x = 0;
-                    x++;
-                    target_core = c;
-                }
-            }
+        //transfer certain control to target core
+        sp -= len;
 
-            if (target_core) {      // target_object has a core
-                assert(frame->prev->mb); // dummy
+        ReturnMsg* msg = new ReturnMsg(frame->object, frame->mb, frame->prev,
+                                       frame->calling_object, sp, len,
+                                       frame->caller_sp, frame->caller_pc);
+        m_core->clear_frame_in_cache(frame);
+        destroy_frame(frame);
+        transfer_certain_control(m_core, target_core, msg);
 
-                //transfer certain control to target core
-                sp -= len;
-
-                // ReturnMsg* msg = new ReturnMsg(frame->mb, frame->prev, sp, len,
-                //                                frame->caller_sp, frame->caller_pc, frame);
-                ReturnMsg* msg = new ReturnMsg(frame->object, frame->mb, frame->prev,
-                                               frame->calling_object, sp, len,
-                                               frame->caller_sp, frame->caller_pc);
-                m_core->clear_frame_in_cache(frame);
-                destroy_frame(frame);
-                transfer_certain_control(m_core, target_core, msg);
-            }
-            else {                  // target_object is coreless object
-                return_my_method(frame, sp - len, len);
-            }
+        if (not current_group) { // current object is in no group
+            m_core->halt();
         }
     }
-}
 
+}
 
 void
 CertainMode::invoke_my_method(Object* target_object, MethodBlock* new_mb, uintptr_t* args,
@@ -308,10 +267,10 @@ CertainMode::invoke_my_method(Object* target_object, MethodBlock* new_mb, uintpt
     }
     //}}} just for debug
 
-    MINILOGPROC(c_user_change_logger, show_user_change,
-                (os, m_core->id(), "(C)",
-                 m_user, target_object, 1, caller_frame->mb, new_mb));
-    change_user(target_object);
+    // MINILOGPROC(c_user_change_logger, show_user_change,
+    //             (os, m_core->id(), "(C)",
+    //              m_user, target_object, 1, caller_frame->mb, new_mb));
+    // change_user(target_object);
 
 
     caller_frame->last_pc = pc;
@@ -349,12 +308,12 @@ CertainMode::invoke_my_method(Object* target_object, MethodBlock* new_mb, uintpt
 void
 CertainMode::return_my_method(Frame* current_frame, uintptr_t* rv, int len)
 {
-    MINILOGPROC(c_user_change_logger, show_user_change,
-                (os, m_core->id(), "(C)",
-                 m_user, current_frame->calling_object, 2,
-                 current_frame->mb, current_frame->prev->mb));
+    // MINILOGPROC(c_user_change_logger, show_user_change,
+    //             (os, m_core->id(), "(C)",
+    //              m_user, current_frame->calling_object, 2,
+    //              current_frame->mb, current_frame->prev->mb));
 
-    change_user(current_frame->calling_object);
+    //change_user(current_frame->calling_object);
 
     assert(len == 0 || len == 1 || len == 2);
 
@@ -514,34 +473,27 @@ CertainMode::do_get_field(Object* target_object, FieldBlock* fb,
     }
     //}}} just for debug
 
+    Object* current_object = frame->get_object();
+    Group* current_group = current_object->get_group();
+    Group* target_group = target_object->get_group();
+
     sp -= is_static ? 0 : 1;
 
-    if (is_user_enclosure(target_object)) { // target_object is myself
+    if (current_group == get_group() and (target_group == 0 or target_group != get_group())
+        and m_core->has_message_to_be_verified()) {
+
+        GetMsg* msg = new GetMsg(target_object, fb, addr, size, frame, sp, pc);
+        m_core->verify_speculation(msg);
+        return;
+
+    }
+    else {
+
         for (int i = 0; i < size; ++i) {
             write(sp, read(addr + i));
             sp++;
         }
-    }
-    else {                      // target_object is others
-        if (m_core->is_owner_or_subsidiary(m_user)) { // i am owner
-            if (m_core->has_message_to_be_verified()) {
-                GetMsg* msg = new GetMsg(target_object, fb, addr, size, frame, sp, pc);
-                m_core->verify_speculation(msg);
-                return;
-            }
-            else {
-                for (int i = 0; i < size; ++i) {
-                    write(sp, read(addr + i));
-                    sp++;
-                }
-            }
-        }
-        else {                  // i am guest
-            for (int i = 0; i < size; ++i) {
-                write(sp, read(addr + i));
-                sp++;
-            }
-        }
+
     }
 
     pc += 3;
@@ -572,41 +524,36 @@ CertainMode::do_put_field(Object* target_object, FieldBlock* fb,
     // if target object has a core, target core should verify
     // target object may be others or owner of this core
 
+    Object* current_object = frame->get_object();
+    Group* current_group = current_object->get_group();
+    Group* target_group = target_object->get_group();
+
     sp -= size;
 
-    if (is_user_enclosure(target_object)) { // target_object is myself
+    if (target_group == get_group() or target_group == 0) { // target object is in my group or no group
+
         for (int i = 0; i < size; ++i) {
             write(addr + i, read(sp + i));
         }
+
     }
-    else {                      // target_object is others
-        if (m_core->is_owner_or_subsidiary(target_object)) {
-            // guest put owner.field or subsidiary.field
-            PutMsg* msg = new PutMsg(target_object, fb, addr, sp, size, is_static, 0);
-            m_core->verify_speculation(msg);
+    else {                      // target object is in other groups
+
+
+        Core* target_core = target_object->get_group()->get_core();
+        assert(target_core);
+
+        PutMsg* msg = new PutMsg(target_object, fb, addr, sp, size, is_static, m_core);
+
+        sp -= is_static ? 0 : 1;
+        pc += 3;
+        transfer_certain_control(m_core, target_core, msg);
+
+        if (not current_group) { // current object is in no group
+            m_core->halt();
         }
-        else {
-            Core* target_core =
-                OoSpmtJvm::instance()->core_for_object(target_object);
 
-            if (target_core) {      // target_object has a core
-                PutMsg* msg = new PutMsg(target_object, fb, addr, sp, size, is_static, m_core);
-
-                sp -= is_static ? 0 : 1;
-                pc += 3;
-                transfer_certain_control(m_core, target_core, msg);
-
-                return;         // avoid sp-=... and pc += ...
-            }
-            else { // target_object is a coreless object
-                for (int i = 0; i < size; ++i) {
-                    write(addr + i, read(sp + i));
-                }
-
-                // AckMsg* ack = new AckMsg;
-                // m_core->verify_speculation(ack);
-            }
-        }
+        return;         // avoid sp-=... and pc += ...
     }
 
     sp -= is_static ? 0 : 1;
@@ -616,36 +563,30 @@ CertainMode::do_put_field(Object* target_object, FieldBlock* fb,
 void
 CertainMode::do_array_load(Object* array, int index, int type_size)
 {
-    //assert(size == 1 || size == 2);
+    Object* target_object = array;
+    Object* current_object = frame->get_object();
+    Group* target_group = target_object->get_group();
+    Group* current_group = current_object->get_group();
 
     sp -= 2; // pop up arrayref and index
 
     void* addr = array_elem_addr(array, index, type_size);
     int nslots = type_size > 4 ? 2 : 1; // number of slots for value
-    Object* target_object = array;
 
-    if (is_user_enclosure(target_object)) { // target_object is myself
+    if (current_group == get_group() and (target_group == 0 or target_group != get_group())
+        and m_core->has_message_to_be_verified()) {
+
+        ArrayLoadMsg* msg =
+            new ArrayLoadMsg(array, index, (uint8_t*)addr, type_size, frame, sp, pc);
+        m_core->verify_speculation(msg);
+        return;
+
+    }
+    else {
+
         load_from_array(sp, addr, type_size);
         sp += nslots;
-    }
-    else {                      // target_object is others
-        if (m_core->is_owner_or_subsidiary(m_user)) { // i am owner
 
-            if (m_core->has_message_to_be_verified()) {
-                ArrayLoadMsg* msg =
-                    new ArrayLoadMsg(array, index, (uint8_t*)addr, type_size, frame, sp, pc);
-                m_core->verify_speculation(msg);
-                return;
-            }
-            else {
-                load_from_array(sp, addr, type_size);
-                sp += nslots;
-            }
-        }
-        else {                  // i am guest
-            load_from_array(sp, addr, type_size);
-            sp += nslots;
-        }
     }
 
     pc += 1;
@@ -654,79 +595,41 @@ CertainMode::do_array_load(Object* array, int index, int type_size)
 void
 CertainMode::do_array_store(Object* array, int index, int type_size)
 {
-    //assert(size == 1 || size == 2);
-
-    // if target object has a core, target core should verify
-    // target object may be others or owner of this core
-
     void* addr = array_elem_addr(array, index, type_size);
     int nslots = type_size > 4 ? 2 : 1; // number of slots for value
     Object* target_object = array;
+    Object* current_object = frame->get_object();
+    Group* current_group = current_object->get_group();
+    Group* target_group = target_object->get_group();
 
     sp -= nslots;
 
-    if (is_user_enclosure(target_object)) { // target_object is myself
+    if (target_group == get_group() or target_group == 0) { // target object is in my group or no group
+
         store_to_array(sp, addr, type_size);
+
     }
-    else {                      // target_object is others
-        if (m_core->is_owner_or_subsidiary(target_object)) {
-            // guest store owner[i] or subsidiary[i]
-            ArrayStoreMsg* msg = new ArrayStoreMsg(array, index, sp, nslots, type_size, 0);
-            m_core->verify_speculation(msg);
+    else {                      // target object is in other groups
+
+
+        Core* target_core = target_object->get_group()->get_core();
+        assert(target_core);
+
+        ArrayStoreMsg* msg = new ArrayStoreMsg(array, index, sp, nslots, type_size,
+                                               m_core);
+        sp -= 2;                    // pop up arrayref and index
+        pc += 1;
+        transfer_certain_control(m_core, target_core, msg);
+
+        if (not current_group) { // current object is in no group
+            m_core->halt();
         }
-        else {
 
-            Core* target_core =
-                OoSpmtJvm::instance()->core_for_object(target_object);
-
-            if (target_core) {      // target_object has a core
-                ArrayStoreMsg* msg = new ArrayStoreMsg(array, index, sp, nslots, type_size,
-                                                       m_core);
-                sp -= 2;                    // pop up arrayref and index
-                pc += 1;
-                transfer_certain_control(m_core, target_core, msg);
-
-                return;         // avoid sp-=... and pc += ...
-            }
-            else { // target_object is a coreless object
-                store_to_array(sp, addr, type_size);
-            }
-        }
+        return;         // avoid sp-=... and pc += ...
     }
 
     sp -= 2;                    // pop up arrayref and index
     pc += 1;
-}
-
-void
-CertainMode::before_alloc_object()
-{
-}
-
-void
-CertainMode::after_alloc_object(Object* obj)
-{
-    if (not OoSpmtJvm::do_spec) return;
-
-    if (is_speculative_object(obj)) {
-        MINILOG_IF(debug_scaffold::java_main_arrived,
-                   c_new_main_logger,
-                   "#" << m_core->id() << " (C) new main " << obj->classobj->name());
-
-        Core* core = OoSpmtJvm::instance()->alloc_core_for_object(obj);
-        if (core) {
-            threadSelf()->add_core(core);
-        }
-    }
-    else {
-        if (m_core->has_owner() && m_core->is_owner_or_subsidiary(m_user)) {
-            MINILOG_IF(debug_scaffold::java_main_arrived,
-                       c_new_sub_logger,
-                       "#" << m_core->id() << " (C) new sub " << obj->classobj->name());
-
-            m_core->add_subsidiary(obj);
-        }
-    }
 }
 
 bool
@@ -861,7 +764,8 @@ CertainMode::handle_verification_success(Message* message, bool self)
         m_core->sync_certain_with_snapshot(snapshot);
 
         if (message->get_type() == Message::ret && frame) {
-            assert(m_core->is_owner_enclosure(frame->get_object()));
+            //assert(m_core->is_owner_enclosure(frame->get_object()));
+            assert(get_group() == frame->get_object()->get_group());
             assert(is_sp_ok(sp, frame));
             assert(is_pc_ok(pc, frame->mb));
         }
@@ -911,10 +815,10 @@ CertainMode::handle_verification_success(Message* message, bool self)
 
     MINILOG(commit_detail_logger,
             "#" << m_core->id() << " CERT details:");
-    MINILOGPROC(commit_detail_logger, show_triple,
-                (os, m_core->id(),
-                 frame, sp, pc, m_user,
-                 true));
+    // MINILOGPROC(commit_detail_logger, show_triple,
+    //             (os, m_core->id(),
+    //              frame, sp, pc, m_user,
+    //              true));
 
     if (message->get_type() == Message::put) {
         PutMsg* msg = static_cast<PutMsg*>(message);
@@ -953,7 +857,7 @@ CertainMode::handle_verification_failure(Message* message, bool self)
         //}}} just for debug
         ReturnMsg* msg = static_cast<ReturnMsg*>(message);
         //return_my_method(msg->frame, &msg->retval[0], msg->retval.size());
-        change_user(msg->calling_object);
+
         uintptr_t* caller_sp = msg->caller_sp;
         for (int i = 0; i < msg->retval.size(); ++i) {
             *caller_sp++ = msg->retval[i];
