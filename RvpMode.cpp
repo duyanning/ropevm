@@ -80,7 +80,7 @@ RvpMode::before_alloc_object()
 }
 
 void
-RvpMode::after_alloc_object(Object* obj, bool is_cls)
+RvpMode::after_alloc_object(Object* obj)
 {
     assert(false);              // should not get here
 }

@@ -14,7 +14,7 @@ public:
     virtual void exec_an_instr();
 
     virtual void before_alloc_object();
-    virtual void after_alloc_object(Object* obj, bool is_cls = false);
+    virtual void after_alloc_object(Object* obj);
 
     virtual void do_invoke_method(Object* objectref, MethodBlock* new_mb);
     virtual void do_method_return(int len);
