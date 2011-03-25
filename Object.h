@@ -7,22 +7,27 @@ class Group;
 
 class Object {
 public:
-    // because using gcMalloc to alloc Object, ctor for Object has no chance to run
-    //Object()
-    void init()
-    {
-        m_group = 0;
-    }
 
-    void set_group(Group* group) { m_group = group; }
-    Group* get_group() { return m_group; }
+    //Object() // because using gcMalloc to alloc Object, ctor for Object has no chance to run, so we MUST call initialize
+    void initialize();
+    void set_group(Group* group);
+    void join_group_in_other_threads(Group* group);
+    Group* get_group();
 
     uintptr_t lock;
 private:
-    Group* m_group;
+    Group* m_group;             // set by the thread that created it
 public:
     Class* classobj;
 };
+
+inline
+void
+Object::initialize()
+{
+    m_group = 0;
+}
+
 
 
 // // struct ClassBlock;

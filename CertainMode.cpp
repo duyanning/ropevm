@@ -86,6 +86,8 @@ void transfer_certain_control(Core* src, Core* dst, Message* msg)
     src->leave_certain_mode(msg);
 }
 
+
+// DO NOT forget invoke (reflect.cpp)!!!
 void*
 CertainMode::do_execute_method(Object* target_object,
                                MethodBlock *new_mb,
@@ -105,61 +107,56 @@ CertainMode::do_execute_method(Object* target_object,
     void *ret;
     ret = dummy->ostack_base;
 
-
-    //Object* old_user = m_user;
-
-
     Object* current_object = frame->get_object();
+    //assert(current_object);
 
-    Group* current_group = current_object ? current_object->get_group() : 0;
+    assert(target_object);
+
+    Group* current_group = current_object ? current_object->get_group() : threadSelf()->get_default_group();
     Group* target_group = target_object->get_group();
 
-    if (target_group == get_group() or target_group == 0) { // target object is in my group or no group
+    assert(target_group->get_thread() == threadSelf());
+
+
+    if (target_group == current_group) {
 
         invoke_my_method(target_object, new_mb, &jargs[0],
                          frame->get_object(),
                          0, dummy, dummy->ostack_base);
 
-    }
-    else {                      // target object is in other groups
+        // run the nested step-loop
+        void* ret2;
+        ret2 = executeJava();
+        //assert(ret == ret2);
+        assert(m_core->m_mode->is_certain_mode());
 
-        assert(false);          // todo
+        // restore (pc, frame, pc)
+        frame = old_frame;
+        sp = old_sp;
+        pc = old_pc;
+
+        assert(frame == dummy->prev);
+
+        //destroy_frame(dummy);
+    }
+    else {
+
+        //assert(false);          // caution!
 
         Core* target_core = target_group->get_core();
 
         InvokeMsg* msg =
             new InvokeMsg(target_object, new_mb, dummy, frame->get_object(), &jargs[0], dummy->ostack_base, 0);
-        m_core->halt();
 
         frame->last_pc = pc;
-        transfer_certain_control(m_core, target_core, msg);
 
-        // if (not current_group) { // current object is in no group
-        //     m_core->halt();
-        // }
+        m_core->halt();
+        target_core->send_certain_message(msg);
+        target_core->execute_method();
+
+        //m_core->halt();
+
     }
-
-    // run the nested step-loop
-    void* ret2;
-    ret2 = executeJava();
-    //assert(ret == ret2);
-    assert(m_core->m_mode->is_certain_mode());
-
-    m_core->start();
-
-
-    //assert(m_core->m_owner == old_owner);
-    //assert(m_user == old_user);
-
-
-    // restore (pc, frame, pc)
-    frame = old_frame;
-    sp = old_sp;
-    pc = old_pc;
-
-    assert(frame == dummy->prev);
-
-    //destroy_frame(dummy);
 
     return ret;
 }
@@ -177,19 +174,24 @@ CertainMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
                logger,
                *new_mb);
 
-    Object* current_object = frame->get_object();
+    assert(target_object);
 
-    Group* current_group = current_object ? current_object->get_group() : 0;
+    Object* current_object = frame->get_object();
+    assert(current_object);
+
+    Group* current_group = current_object->get_group();
     Group* target_group = target_object->get_group();
 
+    assert(target_group->get_thread() == threadSelf());
+    if (target_group == current_group) {
 
-    if (target_group == get_group() or target_group == 0) { // target object is in my group or no group
         sp -= new_mb->args_count;
         invoke_my_method(target_object, new_mb, sp,
                          frame->get_object(),
                          pc, frame, sp);
+
     }
-    else {                      // target object is in other groups
+    else {
 
         Core* target_core = target_group->get_core();
 
@@ -201,9 +203,13 @@ CertainMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
 
         frame->last_pc = pc;
         frame->snapshoted = true;
-        transfer_certain_control(m_core, target_core, msg);
 
-        if (not current_group) { // current object is in no group
+        target_core->send_certain_message(msg);
+
+        if (current_group->can_speculate()) {
+            m_core->leave_certain_mode(msg);
+        }
+        else {
             m_core->halt();
         }
 
@@ -220,15 +226,19 @@ CertainMode::do_method_return(int len)
     //log_when_invoke_return(false, frame->calling_object, frame->prev->mb, m_user, frame->mb);
 
     Object* current_object = frame->get_object();
+    assert(current_object);
     Object* target_object = frame->calling_object;
 
-    Group* current_group = current_object ? current_object->get_group() : 0;
-    Group* target_group = target_object ? target_object->get_group() : 0;
+    Group* current_group = current_object->get_group();
+    Group* target_group = target_object ? target_object->get_group() : threadSelf()->get_default_group();
 
-    if (target_group == get_group() or target_group == 0) { // target object is in my group or no group
+    assert(target_group->get_thread() == threadSelf());
+    if (target_group == current_group) {
+
         return_my_method(frame, sp - len, len);
+
     }
-    else {                      // target object is in other groups
+    else {
 
         Core* target_core = target_group->get_core();
 
@@ -243,13 +253,18 @@ CertainMode::do_method_return(int len)
         ReturnMsg* msg = new ReturnMsg(frame->object, frame->mb, frame->prev,
                                        frame->calling_object, sp, len,
                                        frame->caller_sp, frame->caller_pc);
-        m_core->clear_frame_in_cache(frame);
-        destroy_frame(frame);
-        transfer_certain_control(m_core, target_core, msg);
 
-        if (not current_group) { // current object is in no group
+        target_core->send_certain_message(msg);
+
+        if (current_group->can_speculate()) {
+            m_core->clear_frame_in_cache(frame);
+            destroy_frame(frame);
+            m_core->leave_certain_mode(msg);
+        }
+        else {
             m_core->halt();
         }
+
     }
 
 }
@@ -383,7 +398,7 @@ CertainMode::do_throw_exception()
     /* If we didn't find a handler, restore exception and
        return to previous invocation */
     if (pc == NULL) {
-        assert(false);          // when uncaughed exception ocurr, we get here
+        //assert(false);          // when uncaughed exception ocurr, we get here
         exception = excep;
         //{{{ just for debug
         if (m_core->id() == 7) {
@@ -479,8 +494,7 @@ CertainMode::do_get_field(Object* target_object, FieldBlock* fb,
 
     sp -= is_static ? 0 : 1;
 
-    if (current_group == get_group() and (target_group == 0 or target_group != get_group())
-        and m_core->has_message_to_be_verified()) {
+    if (current_group->can_speculate() and m_core->has_message_to_be_verified()) {
 
         GetMsg* msg = new GetMsg(target_object, fb, addr, size, frame, sp, pc);
         m_core->verify_speculation(msg);
@@ -497,6 +511,7 @@ CertainMode::do_get_field(Object* target_object, FieldBlock* fb,
     }
 
     pc += 3;
+
 }
 
 /*
@@ -530,30 +545,27 @@ CertainMode::do_put_field(Object* target_object, FieldBlock* fb,
 
     sp -= size;
 
-    if (target_group == get_group() or target_group == 0) { // target object is in my group or no group
-
-        for (int i = 0; i < size; ++i) {
-            write(addr + i, read(sp + i));
-        }
-
-    }
-    else {                      // target object is in other groups
-
+    if (target_group->can_speculate()) {
 
         Core* target_core = target_object->get_group()->get_core();
-        assert(target_core);
 
         PutMsg* msg = new PutMsg(target_object, fb, addr, sp, size, is_static, m_core);
 
         sp -= is_static ? 0 : 1;
         pc += 3;
-        transfer_certain_control(m_core, target_core, msg);
 
-        if (not current_group) { // current object is in no group
-            m_core->halt();
-        }
+        m_core->halt();
+        target_core->send_certain_message(msg);
 
         return;         // avoid sp-=... and pc += ...
+
+    }
+    else {
+
+        for (int i = 0; i < size; ++i) {
+            write(addr + i, read(sp + i));
+        }
+
     }
 
     sp -= is_static ? 0 : 1;
@@ -573,8 +585,7 @@ CertainMode::do_array_load(Object* array, int index, int type_size)
     void* addr = array_elem_addr(array, index, type_size);
     int nslots = type_size > 4 ? 2 : 1; // number of slots for value
 
-    if (current_group == get_group() and (target_group == 0 or target_group != get_group())
-        and m_core->has_message_to_be_verified()) {
+    if (current_group->can_speculate() and m_core->has_message_to_be_verified()) {
 
         ArrayLoadMsg* msg =
             new ArrayLoadMsg(array, index, (uint8_t*)addr, type_size, frame, sp, pc);
@@ -590,6 +601,7 @@ CertainMode::do_array_load(Object* array, int index, int type_size)
     }
 
     pc += 1;
+
 }
 
 void
@@ -604,13 +616,7 @@ CertainMode::do_array_store(Object* array, int index, int type_size)
 
     sp -= nslots;
 
-    if (target_group == get_group() or target_group == 0) { // target object is in my group or no group
-
-        store_to_array(sp, addr, type_size);
-
-    }
-    else {                      // target object is in other groups
-
+    if (target_group->can_speculate()) {
 
         Core* target_core = target_object->get_group()->get_core();
         assert(target_core);
@@ -619,13 +625,17 @@ CertainMode::do_array_store(Object* array, int index, int type_size)
                                                m_core);
         sp -= 2;                    // pop up arrayref and index
         pc += 1;
-        transfer_certain_control(m_core, target_core, msg);
 
-        if (not current_group) { // current object is in no group
-            m_core->halt();
-        }
+        m_core->halt();
+        target_core->send_certain_message(msg);
 
         return;         // avoid sp-=... and pc += ...
+
+    }
+    else {
+
+        store_to_array(sp, addr, type_size);
+
     }
 
     sp -= 2;                    // pop up arrayref and index

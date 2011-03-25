@@ -38,10 +38,12 @@ typedef struct monitor {
     struct monitor *next;
 } Monitor;
 
+
+class Group;
 class Core;
 
 class Thread {
- public:
+public:
     Object* thread;
     int id;
     pthread_t tid;
@@ -64,9 +66,16 @@ class Thread {
     unsigned int wait_id;
     unsigned int notify_id;
 
+    Group* m_default_group;
     Core* m_certain_core;
     std::vector<Core*> m_cores;
     Core* m_current_core;
+
+    typedef std::map<Object*, Group*> ObjectGroupMap;
+    ObjectGroupMap m_object_to_group;
+    void register_object_group(Object* object, Group* group);
+    Group* group_of(Object* obj);
+    Group* assign_group_for(Object* obj, Object* current_object);
     void add_core(Core* core);
     Thread();
     ~Thread();
@@ -74,6 +83,8 @@ class Thread {
     static void* S_threadStart(void *arg);
 
     uintptr_t* go();
+
+    Group* get_default_group();
     Core* get_certain_core();
     void set_certain_core(Core* core);
 
@@ -83,7 +94,7 @@ class Thread {
 };
 
 class VMThread : public Thread {
- public:
+public:
     virtual void beforeBegin();
     virtual void afterEnd();
 };

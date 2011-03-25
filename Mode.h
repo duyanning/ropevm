@@ -15,6 +15,8 @@ public:
 
     virtual void before_alloc_object();
     virtual void after_alloc_object(Object* obj);
+    Group* assign_group_for(Object* obj);
+
 
     virtual void do_invoke_method(Object* objectref, MethodBlock* new_mb);
     virtual void do_method_return(int len);

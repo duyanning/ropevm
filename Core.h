@@ -65,6 +65,8 @@ public:
     void enter_execution();
     void leave_execution();
 
+    void* execute_method();
+
     //void handle_verification_failure(Message* message);
 
     int id() { return m_id; }
@@ -99,6 +101,9 @@ public:
 
     void before_alloc_object();
     void after_alloc_object(Object* obj);
+    Group* assign_group_for(Object* obj);
+
+    void check_object(Object* obj);
 
     // void before_alloc_array();
     // void after_alloc_array();
@@ -192,6 +197,13 @@ void
 Core:: after_alloc_object(Object* obj)
 {
     m_mode->after_alloc_object(obj);
+}
+
+inline
+Group*
+Core::assign_group_for(Object* obj)
+{
+    return m_mode->assign_group_for(obj);
 }
 
 class VerifyFails {

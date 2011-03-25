@@ -9,6 +9,9 @@
 #include "OoSpmtJvm.h"
 #include "DebugScaffold.h"
 #include "Loggers.h"
+#include "Group.h"
+#include "Helper.h"
+#include "frame.h"
 
 #ifdef TRACETHREAD
 #define TRACE(fmt, ...) jam_printf(fmt, ## __VA_ARGS__)
@@ -1033,6 +1036,10 @@ void initialiseThreadStage1(InitArgs *args) {
     //initialiseJavaStack(&main_ee);
     initialiseJavaStack(&main_thread);
     setThreadSelf(&main_thread);
+
+    // create the nonspec group
+    //OoSpmtJvm::instance()->new_group_for(0, threadSelf()->get_certain_core());
+
 }
 
 void initialiseThreadStage2(InitArgs *args) {
@@ -1157,7 +1164,9 @@ Thread::Thread()
     wait_id(0),
     notify_id(0)
 {
-    Core* core = OoSpmtJvm::instance()->alloc_core();
+    // create the only default group
+    m_default_group = OoSpmtJvm::instance()->new_group_for(0, this);
+    Core* core = m_default_group->get_core();
     //core->set_certain_mode();
 
     add_core(core);
@@ -1261,6 +1270,12 @@ Thread::set_certain_core(Core* core)
     //core->m_is_waiting_for_task = false;
 }
 
+Group*
+Thread::get_default_group()
+{
+    return m_default_group;
+}
+
 Core*
 Thread::current_core()
 {
@@ -1277,5 +1292,21 @@ Thread::scan_cores()
         Core* core = *i;
         core->scan();
     }
+}
+
+Group*
+Thread::group_of(Object* obj)
+{
+    Group* group = 0;
+    ObjectGroupMap::iterator i = m_object_to_group.find(obj);
+    if (i != m_object_to_group.end())
+        group = i->second;
+    return group;
+}
+
+void
+Thread::register_object_group(Object* object, Group* group)
+{
+    m_object_to_group[object] = group;
 }
 

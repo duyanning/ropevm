@@ -114,17 +114,30 @@ static Class *addClassToHash(Class *classobj, Object *class_loader) {
     return entry;
 }
 
-static void prepareClass(Class *classobj) {
+static void prepareClass(Class *classobj)
+{
     ClassBlock *cb = CLASS_CB(classobj);
 
-    if(cb->name == SYMBOL(java_lang_Class)) {
-       java_lang_Class = classobj->classobj = classobj;
-       cb->flags |= CLASS_CLASS;
-    } else {
-       if(java_lang_Class == NULL)
-          findSystemClass0(SYMBOL(java_lang_Class));
-       classobj->classobj = java_lang_Class;
+    if (cb->name == SYMBOL(java_lang_Class)) {
+        java_lang_Class = classobj->classobj = classobj;
+        cb->flags |= CLASS_CLASS;
     }
+    else {
+        if(java_lang_Class == NULL)
+            findSystemClass0(SYMBOL(java_lang_Class));
+        classobj->classobj = java_lang_Class;
+    }
+    // dynsearch
+    std::cout << "prepareClass: " << classobj->name() << "UUU" << std::endl;
+    //if (strcmp(classobj->name(), "Hello") == 0) {
+    if (std::string(classobj->name()) == "Hello") {
+    //if (*(classobj->name()) == 'H') {
+        std::cout << "fuck" << std::endl;
+        int x = 0;
+        x++;
+    }
+    // Core* current_core = g_current_core();
+    // current_core->after_alloc_object(classobj);
 }
 
 void process_policies(unsigned char*& ptr, ConstantPool* constant_pool, int& self_policy, int& others_policy)
@@ -217,7 +230,8 @@ void process_runtime_visible_annotations(void* data,
     }
 }
 
-Class *defineClass(const char* classname, char *data, int offset, int len, Object *class_loader) {
+Class *defineClass(const char* classname, char *data, int offset, int len, Object *class_loader)
+{
     unsigned char *ptr = (unsigned char *)data+offset;
     int cp_count, intf_count, i;
     u2 major_version, minor_version, this_idx, super_idx;
@@ -632,6 +646,11 @@ Class *defineClass(const char* classname, char *data, int offset, int len, Objec
         return found;
     }
 
+    // dynsearch
+    if (strcmp(classobj->name(), "Hello") == 0) {
+        int x = 0;
+        x++;
+    }
     Core* current_core = g_current_core();
     current_core->after_alloc_object(classobj);
 
@@ -701,6 +720,10 @@ Class *createArrayClass(const char *classname, Object *class_loader) {
     if((found = addClassToHash(classobj, classblock->class_loader)) == classobj) {
         if(verbose)
             jam_printf("[Created array class %s]\n", classname);
+        // dynsearch
+        Core* current_core = g_current_core();
+        current_core->after_alloc_object(classobj);
+
         return classobj;
     }
 
@@ -723,6 +746,10 @@ createPrimClass(const char *classname, int index) {
     classblock->access_flags = ACC_PUBLIC | ACC_FINAL | ACC_ABSTRACT;
 
     prepareClass(classobj);
+    // dynsearch
+    Core* current_core = g_current_core();
+    current_core->after_alloc_object(classobj);
+
 
     lockHashTable(loaded_classes);
     if(prim_classes[index] == NULL)
@@ -1164,7 +1191,8 @@ unlock:
    objectUnlock((Object *)classobj);
 }
 
-Class *initClass(Class *classobj) {
+Class *initClass(Class *classobj)
+{
    ClassBlock *cb = CLASS_CB(classobj);
    ConstantPool *cp = &cb->constant_pool;
    FieldBlock *fb = cb->fields;
@@ -1214,6 +1242,14 @@ Class *initClass(Class *classobj) {
           goto set_state_and_notify;
       }
    }
+
+    {
+        // dynsearch
+        // std::cout << "ininClass: " << classobj->name() << std::endl;
+        // Core* current_core = g_current_core();
+        // current_core->after_alloc_object(classobj);
+
+    }
 
    /* Never used to bother with this as only static finals use it and
       the constant value's copied at compile time.  However, separate

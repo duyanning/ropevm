@@ -12,6 +12,7 @@
 #include "DebugScaffold.h"
 #include "frame.h"
 #include "Helper.h"
+#include "Group.h"
 
 using namespace std;
 
@@ -767,4 +768,31 @@ Core::report_stat(ostream& os)
     os << '#' << m_id << '\t' << "step count" << '\t' << m_count_step << '\n';
     os << '#' << m_id << '\t' << "idle count" << '\t' << m_count_idle << '\n';
 }
+
+void*
+Core::execute_method()
+{
+    // save (pc, frame, sp)
+    CodePntr old_pc = m_certain_mode.pc;
+    Frame* old_frame = m_certain_mode.frame;
+    uintptr_t* old_sp = m_certain_mode.sp;
+
+    executeJava();
+
+    // restore (pc, frame, pc)
+    m_certain_mode.pc = old_pc;
+    m_certain_mode.frame = old_frame;
+    m_certain_mode.sp = old_sp;
+}
+
+// void
+// Core::check_object(Object* obj)
+// {
+//     assert(obj);
+//     Group* group = obj->get_group();
+//     if (group->get_thread()  == threadSelf())
+//         return;
+
+//     after_alloc_object(obj);
+// }
 

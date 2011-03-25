@@ -39,6 +39,7 @@ bool is_array_object(Object* o)
 bool is_class_obj(Object* o)
 {
     return o->classobj == java_lang_Class;
+    //return IS_CLASS(o);
 }
 
 bool is_normal_obj(Object* o)
@@ -417,4 +418,42 @@ bool is_priviledged(MethodBlock* mb)
     if (mb->is_synchronized()) return true;
 
     return false;
+}
+
+GroupingPolicyEnum
+get_grouping_policy_self(Object* obj)
+{
+    assert(obj);
+
+    int policy = 0;
+    if (is_class_obj(obj)) {
+        policy = (GroupingPolicyEnum)static_cast<Class*>(obj)->classblock()->class_grouping_policy_self;
+    }
+    else {
+        Class* classobj = obj->classobj;
+        policy = classobj->classblock()->grouping_policy_self;
+    }
+    // else {
+    //     assert(false);
+    // }
+    return static_cast<GroupingPolicyEnum>(policy);
+}
+
+GroupingPolicyEnum
+get_grouping_policy_others(Object* obj)
+{
+    assert(obj);
+
+    int policy = 0;
+    if (is_class_obj(obj)) {
+        policy = (GroupingPolicyEnum)static_cast<Class*>(obj)->classblock()->class_grouping_policy_others;
+    }
+    else {
+        Class* classobj = obj->classobj;
+        policy = classobj->classblock()->grouping_policy_others;
+    }
+    // else {
+    //     assert(false);
+    // }
+    return static_cast<GroupingPolicyEnum>(policy);
 }
