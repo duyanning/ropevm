@@ -3,6 +3,7 @@
 
 #include "Core.h"
 
+class Thread;
 class Object;
 
 class OoSpmtJvm
@@ -10,8 +11,7 @@ class OoSpmtJvm
 public:
     //    ~OoSpmtJvm();
     Core* alloc_core();
-    Group* new_group_for(Object* leader);
-    Group* new_group_for(Object* leader, Core* core);
+    Group* new_group_for(Object* leader, Thread* thread);
 
     static OoSpmtJvm* instance();
     static bool do_spec;

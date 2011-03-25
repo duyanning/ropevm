@@ -1868,7 +1868,7 @@ Object *allocObject(Class *classobj) {
 
     if(ob != NULL) {
         ob->classobj = classobj;
-        ob->init();
+        ob->initialize();
 
         /* If the object needs finalising add it to the
            has finaliser list */
@@ -1883,9 +1883,9 @@ Object *allocObject(Class *classobj) {
             SET_SPECIAL_OB(ob);
 
         TRACE_ALLOC("<ALLOC: allocated %s object @%p>\n", cb->name, ob);
-    }
 
-    current_core->after_alloc_object(ob);
+        current_core->after_alloc_object(ob);
+    }
 
     return ob;
 }
@@ -1906,12 +1906,11 @@ Object *allocArray(Class *classobj, int size, int el_size) {
 
     if(ob != NULL) {
         ob->classobj = classobj;
-        ob->init();
+        ob->initialize();
         ARRAY_LEN(ob) = size;
         TRACE_ALLOC("<ALLOC: allocated %s array object @%p>\n", CLASS_CB(classobj)->name, ob);
+        current_core->after_alloc_object(ob);
     }
-
-    current_core->after_alloc_object(ob);
 
     return ob;
 }
@@ -2061,19 +2060,28 @@ Object *allocMultiArray(Class *array_class, int dim, intptr_t *count) {
     return array;
 }
 
-Class *allocClass() {
+Class *allocClass()
+{
+    Core* current_core = g_current_core();
+    current_core->before_alloc_object();
+
     Class *classobj = (Class*)gcMalloc(sizeof(ClassBlock)+sizeof(Class));
 
     if(classobj != NULL) {
         SET_SPECIAL_OB(classobj);
         TRACE_ALLOC("<ALLOC: allocated class object @%p>\n", classobj);
-        classobj->init();
+        classobj->initialize();
+        //current_core->after_alloc_object(classobj);
     }
 
     return classobj;
 }
 
-Object *cloneObject(Object *ob) {
+Object *cloneObject(Object *ob)
+{
+    Core* current_core = g_current_core();
+    current_core->before_alloc_object();
+
     uintptr_t hdr = *HDR_ADDRESS(ob);
     int size = HDR_SIZE(hdr)-HEADER_SIZE;
     Object *clone;
@@ -2090,7 +2098,7 @@ Object *cloneObject(Object *ob) {
 
         /* We will also have copied the objects lock word */
         clone->lock = 0;
-        clone->init();;
+        clone->initialize();
 
         if(IS_FINALIZED(CLASS_CB(clone->classobj)))
             ADD_FINALIZED_OBJECT(clone);
@@ -2105,6 +2113,8 @@ Object *cloneObject(Object *ob) {
         }
 
         TRACE_ALLOC("<ALLOC: cloned object @%p clone @%p>\n", ob, clone);
+
+        current_core->after_alloc_object(clone);
     }
 
     return clone;

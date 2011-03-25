@@ -9,8 +9,7 @@ class Beast {
 }
 
 
-@GroupingPolicies(self=GroupingPolicy.NEW_GROUP, others=GroupingPolicy.CURRENT_GROUP)
-@ClassGroupingPolicies(self=GroupingPolicy.NO_GROUP)
+@GroupingPolicies()
 class Wolf extends Beast {
     public Wolf()
     {
@@ -50,6 +49,7 @@ class Wolf extends Beast {
 
 }
 
+@ClassGroupingPolicies(self=GroupingPolicy.NEW_GROUP)
 class Hello {
     public static void main(String[] args)
     {

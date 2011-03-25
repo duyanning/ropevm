@@ -56,44 +56,6 @@ Mode::set_core(Core* core)
     m_core = core;
 }
 
-GroupingPolicyEnum
-get_grouping_policy_self(Object* obj)
-{
-    assert(obj);
-
-    int policy = 0;
-    if (is_normal_obj(obj)) {
-        Class* classobj = obj->classobj;
-        policy = classobj->classblock()->grouping_policy_self;
-    }
-    else if (is_class_obj(obj)) {
-        policy = (GroupingPolicyEnum)static_cast<Class*>(obj)->classblock()->class_grouping_policy_self;
-    }
-    else {
-        assert(false);
-    }
-    return static_cast<GroupingPolicyEnum>(policy);
-}
-
-GroupingPolicyEnum
-get_grouping_policy_others(Object* obj)
-{
-    assert(obj);
-
-    int policy = 0;
-    if (is_normal_obj(obj)) {
-        Class* classobj = obj->classobj;
-        policy = classobj->classblock()->grouping_policy_others;
-    }
-    else if (is_class_obj(obj)) {
-        policy = (GroupingPolicyEnum)static_cast<Class*>(obj)->classblock()->class_grouping_policy_others;
-    }
-    else {
-        assert(false);
-    }
-    return static_cast<GroupingPolicyEnum>(policy);
-}
-
 void
 Mode::before_alloc_object()
 {
@@ -102,84 +64,11 @@ Mode::before_alloc_object()
 void
 Mode::after_alloc_object(Object* new_object)
 {
-    if (not OoSpmtJvm::do_spec) return;
+    //if (not OoSpmtJvm::do_spec) return;
 
-    assert(new_object->get_group() == 0); // obj is in no group
-    assert(frame);
-
-    GroupingPolicyEnum final_policy;
-    Group* existing_group = 0;    // if final_policy == GP_CURRENT_GROUP, existing_group should be determined
-    final_policy = get_grouping_policy_self(new_object);
-    if (final_policy == GP_CURRENT_GROUP) {
-
-        Object* current_object = frame->get_object();
-        assert(current_object);
-        existing_group = current_object->get_group();
-
-    }
-    else if (final_policy == GP_UNSPECIFIED) {
-
-        Object* current_object = frame->get_object();
-        assert(current_object);
-        final_policy = get_grouping_policy_others(current_object);
-
-        if (final_policy == GP_CURRENT_GROUP) {
-            existing_group = current_object->get_group();
-        }
-        else if (final_policy == GP_UNSPECIFIED) {
-            Group* current_group = get_group();
-            if (current_group) {
-                Object* current_group_leader = current_group->get_leader();
-                final_policy = get_grouping_policy_others(current_group_leader);
-                if (final_policy == GP_CURRENT_GROUP) {
-                    existing_group = current_group;
-                }
-            }
-        }
-
-    }
-
-    // default policy
-    if (final_policy == GP_UNSPECIFIED) {
-        if (is_normal_obj(new_object)) {
-            final_policy = GP_CURRENT_GROUP;
-            existing_group = get_group();
-        }
-        else if (is_class_obj(new_object)) {
-            final_policy = GP_NO_GROUP;
-        }
-        else {
-            assert(false);  // todo
-        }
-    }
-
-    // grouping according to final policy
-    if (final_policy == GP_NEW_GROUP) {
-        Group* new_group = OoSpmtJvm::instance()->new_group_for(new_object);
-        threadSelf()->add_core(new_group->get_core());
-
-        MINILOG_IF(debug_scaffold::java_main_arrived,
-                   (is_certain_mode() ? c_new_main_logger : s_new_main_logger),
-                   "#" << m_core->id() << " " << tag() << " new main "
-                   << (is_class_obj(new_object) ? static_cast<Class*>(new_object)->name() : new_object->classobj->name()));
-
-    }
-    else if (final_policy == GP_CURRENT_GROUP) {
-
-        existing_group->add(new_object);
-
-        MINILOG_IF(debug_scaffold::java_main_arrived,
-                   (is_certain_mode() ? c_new_main_logger : s_new_main_logger),
-                   "#" << m_core->id() << " " << tag() << " new sub "
-                   << (is_class_obj(new_object) ? static_cast<Class*>(new_object)->name() : new_object->classobj->name()));
-    }
-    else if (final_policy == GP_NO_GROUP) {
-        // do nothing
-    }
-    else {
-        assert(false);          // MUST get a final policy
-    }
-
+    Group* group = assign_group_for(new_object);
+    new_object->set_group(group);
+    group->add(new_object);
 }
 
 // void vmlog(String msg)
@@ -558,31 +447,94 @@ show_user_change(std::ostream& os, int id, const char* m,
 
 //}}} just for debug
 
-// bool
-// Mode::is_user_enclosure(Object* obj)
-// {
-//     if (m_user == 0) return false;
-
-//     if (is_user(obj))
-//         return true;
-//     if (m_core->is_owner(m_user) && m_core->is_subsidiary(obj))
-//         return true;
-//     if (m_core->is_subsidiary(m_user) && m_core->is_owner(obj))
-//         return true;
-//     if (m_core->is_subsidiary(m_user) && m_core->is_subsidiary(obj))
-//         return true;
-//     //assert(false);
-//     return false;
-// }
-
-// bool
-// Mode::is_in_this_group(Object* object)
-// {
-//     return object->get_group() == m_core->get_group();
-// }
-
 Group*
 Mode::get_group()
 {
     return m_core->get_group();
+}
+
+Group*
+Mode::assign_group_for(Object* obj)
+{
+    if (not OoSpmtJvm::do_spec) {
+        return threadSelf()->get_default_group();
+    }
+
+
+    GroupingPolicyEnum final_policy;
+    Group* result_group = 0;
+    final_policy = get_grouping_policy_self(obj);
+    if (final_policy == GP_CURRENT_GROUP) {
+
+        Object* current_object = frame->get_object();
+        assert(current_object);
+        result_group = current_object->get_group();
+
+    }
+    else if (final_policy == GP_UNSPECIFIED) {
+
+        Object* current_object = frame->get_object();
+        //assert(current_object);
+        if (current_object) {
+            final_policy = get_grouping_policy_others(current_object);
+
+            if (final_policy == GP_CURRENT_GROUP) {
+                result_group = current_object->get_group();
+            }
+            else if (final_policy == GP_UNSPECIFIED) {
+                Group* current_group = get_group();
+                assert(current_group);
+                Object* current_group_leader = current_group->get_leader();
+                if (current_group_leader) {
+                    final_policy = get_grouping_policy_others(current_group_leader);
+                    if (final_policy == GP_CURRENT_GROUP) {
+                        result_group = current_group;
+                    }
+                }
+            }
+        }
+
+    }
+
+    // default policy
+    if (final_policy == GP_UNSPECIFIED) {
+        if (is_normal_obj(obj)) {
+            final_policy = GP_CURRENT_GROUP;
+            result_group = get_group();
+        }
+        else if (is_class_obj(obj)) {
+            final_policy = GP_NO_GROUP;
+        }
+        else {
+            assert(false);  // todo
+        }
+    }
+
+    // grouping according to final policy
+    if (final_policy == GP_NEW_GROUP) {
+        result_group = OoSpmtJvm::instance()->new_group_for(obj, threadSelf());
+        threadSelf()->add_core(result_group->get_core());
+
+        MINILOG_IF(debug_scaffold::java_main_arrived,
+                   (is_certain_mode() ? c_new_main_logger : s_new_main_logger),
+                   "#" << m_core->id() << " " << tag() << " new main "
+                   << (is_class_obj(obj) ? static_cast<Class*>(obj)->name() : obj->classobj->name()));
+
+    }
+    else if (final_policy == GP_CURRENT_GROUP) {
+
+        // MINILOG_IF(debug_scaffold::java_main_arrived,
+        //            (is_certain_mode() ? c_new_main_logger : s_new_main_logger),
+        //            "#" << m_core->id() << " " << tag() << " new sub "
+        //            << (is_class_obj(obj) ? static_cast<Class*>(obj)->name() : obj->classobj->name()));
+    }
+    else if (final_policy == GP_NO_GROUP) {
+        result_group = threadSelf()->get_default_group();
+    }
+    else {
+        assert(false);          // MUST get a final policy
+    }
+
+    assert(result_group);
+    return result_group;
 }

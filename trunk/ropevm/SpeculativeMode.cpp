@@ -82,13 +82,12 @@ SpeculativeMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
         return;
     }
 
+    Object* current_object = frame->get_object();
+
+    Group* current_group = current_object->get_group();
     Group* target_group = target_object->get_group();
 
-    if (target_group == get_group()) { // target_object is in this group
-
-        // MINILOG(s_logger,
-        //         "#" << m_core->id() << " (S) target object is "
-        //         << (m_core->is_owner(target_object) ? "owner" : "subsidiary"));
+    if (target_group == current_group) {
 
         sp -= new_mb->args_count;
 
@@ -96,53 +95,20 @@ SpeculativeMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
         for (int i = 0; i < new_mb->args_count; ++i) {
             args.push_back(read(&sp[i]));
         }
-
 
         Frame* new_frame = create_frame(target_object, new_mb, frame, frame->get_object(), &args[0], sp, pc);
         new_frame->is_certain = false;
 
         frame->last_pc = pc;
 
-        // MINILOGPROC(s_user_change_logger, show_user_change,
-        //             (os, m_core->id(), "(S)",
-        //              m_user, target_object, 1, frame->mb, new_mb));
-
         frame = new_frame;
         sp = (uintptr_t*)frame->ostack_base;
         pc = (CodePntr)frame->mb->code;
 
-        //change_user(target_object);
     }
-    else {                      // target_object is NOT in this group
-
-        // MINILOG(s_logger,
-        //         "#" << m_core->id()
-        //          << " (S) target object(" << target_object << ") is other objects");
-
-        //{{{ just for debug
-        MINILOG_IF(m_core->id() == 5,
-                   cache_logger,
-                   "#" << m_core->id() << " ostack base: " << frame->ostack_base);
-        MINILOGPROC_IF(m_core->id() == 5,
-                       cache_logger, show_cache,
-                       (os, m_core->id(), m_core->m_cache, false));
-        //}}} just for debug
+    else {
 
         snapshot();             // yes
-
-        //{{{ just for debug
-        MINILOG_IF(m_core->id() == 5,
-                   cache_logger,
-                   "#" << m_core->id() << " ostack base: " << frame->ostack_base);
-        MINILOGPROC_IF(m_core->id() == 5,
-                       cache_logger, show_cache,
-                       (os, m_core->id(), m_core->m_cache, false));
-        //}}} just for debug
-
-        if (m_core->id() == 0 && m_core->m_cache.version() == 5) {
-            int x = 0;
-            x++;
-        }
 
         sp -= new_mb->args_count;
 
@@ -151,7 +117,7 @@ SpeculativeMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
             args.push_back(read(&sp[i]));
         }
 
-        if (target_group) {
+        if (target_group->can_speculate()) {
             // post speculative message
             Core* target_core = target_group->get_core();
             MINILOG(s_logger,
@@ -180,23 +146,13 @@ SpeculativeMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
             create_frame(target_object, pslice, frame, 0, &args[0], sp, pc);
 
         new_frame->is_certain = false;
-        //new_frame->xxx = 999;
-
-        //cout << "#" << m_core->id() << " create xxx999 " << *new_frame << endl;
 
         m_core->m_rvp_mode.pc = (CodePntr)pslice->code;
         m_core->m_rvp_mode.frame = new_frame;
         m_core->m_rvp_mode.sp = new_frame->ostack_base;
 
         m_core->enter_rvp_mode();
-        // //{{{ just for debug
-        // MINILOG_IF(m_core->id() == 0,
-        //            cache_logger,
-        //            "#" << m_core->id() << " ostack base: " << frame->ostack_base);
-        // MINILOGPROC_IF(m_core->id() == 0,
-        //                cache_logger, show_cache,
-        //                (os, m_core->id(), m_core->m_cache, false));
-        // //}}} just for debug
+
     }
 }
 
@@ -230,13 +186,12 @@ SpeculativeMode::do_method_return(int len)
     // }
 
     Object* target_object = frame->calling_object;
+    Object* current_object = frame->get_object();
 
-//     Core* target_core = OoSpmtJvm::instance()->core_for_object(frame->calling_object);
-//     MINILOG0("#" << m_core->id() << " (S)return from " << *frame->mb << " target: #" << target_core->id());
-
+    Group* current_group = current_object->get_group();
     Group* target_group = target_object->get_group();
 
-    if (target_group == get_group()) { // target_object is in this group
+    if (target_group == current_group) {
 
         //{{{ just for debug
         if (m_core->id() == 0) {
@@ -264,13 +219,14 @@ SpeculativeMode::do_method_return(int len)
         destroy_frame(current_frame);
         pc += (*pc == OPC_INVOKEINTERFACE_QUICK ? 5 : 3);
 
-        //change_user(target_object);
     }
-    else {                      // target_object is NOT in this group
+    else {
+
         snapshot();
         destroy_frame(frame);
 
         load_next_task();
+
     }
 }
 
@@ -331,17 +287,23 @@ SpeculativeMode::do_get_field(Object* target_object, FieldBlock* fb, uintptr_t* 
             //            << " of " << static_cast<void*>(target_object));
             << " of " << target_object);
 
+    Object* current_object = frame->get_object();
+
+    Group* current_group = current_object->get_group();
     Group* target_group = target_object->get_group();
 
-    if (target_group == get_group()) { // target_object is in this group
+    if (target_group == current_group) {
+
         sp -= is_static ? 0 : 1;
         for (int i = 0; i < size; ++i) {
             write(sp, read(addr + i));
             sp++;
         }
         pc += 3;
+
     }
-    else {                      // target_object is NOT in this group
+    else {
+
         snapshot();
 
         // read all at one time, to avoid data change between two reading.
@@ -360,6 +322,7 @@ SpeculativeMode::do_get_field(Object* target_object, FieldBlock* fb, uintptr_t* 
             sp++;
         }
         pc += 3;
+
     }
 
 }
@@ -374,20 +337,27 @@ SpeculativeMode::do_put_field(Object* target_object, FieldBlock* fb,
             "#" << m_core->id() << " (S) is to putfield: " << *fb);
 
 
+    Object* current_object = frame->get_object();
+
+    Group* current_group = current_object->get_group();
     Group* target_group = target_object->get_group();
 
-    if (target_group == get_group()) { // target_object is in this group
+    if (target_group == current_group) {
+
         sp -= size;
         for (int i = 0; i < size; ++i) {
             write(addr + i, read(sp + i));
         }
         sp -= is_static ? 0 : 1;
         pc += 3;
+
     }
-    else {                      // target_object is NOT in this group
+    else {
+
         snapshot();
 
-        if (target_group) {      // target_object has a core
+        if (target_group->can_speculate()) {
+
             Core* target_core = target_group->get_core();
             sp -= size;
 
@@ -411,13 +381,12 @@ SpeculativeMode::do_put_field(Object* target_object, FieldBlock* fb,
 
             target_core->add_speculative_task(msg);
         }
-        else {                  // target_object is a coreless object
+        else {
+
             MINILOG(s_logger,
                     "#" << m_core->id() << " target object is coreless");
         }
 
-        AckMsg* ack = new AckMsg;
-        m_core->add_message_to_be_verified(ack);
     }
 }
 
@@ -435,15 +404,20 @@ SpeculativeMode::do_array_load(Object* array, int index, int type_size)
 
     Object* target_object = array;
     Group* target_group = target_object->get_group();
+    Object* current_object = frame->get_object();
+    Group* current_group = current_object->get_group();
 
-    if (target_group == get_group()) { // target_object is in this group
+    if (target_group == current_group) {
+
         sp -= 2; // pop up arrayref and index
         load_from_array(sp, addr, type_size);
         sp += nslots;
 
         pc += 1;
+
     }
-    else {                      // target_object is NOT in this group
+    else {
+
         snapshot();
 
         // read all at one time, to avoid data change between two reading.
@@ -474,20 +448,26 @@ SpeculativeMode::do_array_store(Object* array, int index, int type_size)
     void* addr = array_elem_addr(array, index, type_size);
     int nslots = type_size > 4 ? 2 : 1; // number of slots for value
     assert(array != get_group()->get_leader()); // array never can be leader
+
     Object* target_object = array;
     Group* target_group = target_object->get_group();
+    Object* current_object = frame->get_object();
+    Group* current_group = current_object->get_group();
 
-    if (target_group == get_group()) { // target_object is in this group
+    if (target_group == current_group) {
+
         sp -= nslots; // pop up value
         store_to_array(sp, addr, type_size);
         sp -= 2;                    // pop arrayref and index
 
         pc += 1;
+
     }
-    else {                      // target_object is NOT in this group
+    else {
+
         snapshot();
 
-        if (target_group) {      // target_object has a core
+        if (target_group->can_speculate()) {      // target_object has a core
             Core* target_core = target_group->get_core();
 
             sp -= nslots; // pop up value

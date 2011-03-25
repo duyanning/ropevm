@@ -3,6 +3,7 @@
 #include "Helper.h"
 #include "Statistic.h"
 #include "Group.h"
+#include "thread.h"
 
 using namespace std;
 
@@ -56,19 +57,15 @@ OoSpmtJvm::alloc_core()
 }
 
 Group*
-OoSpmtJvm::new_group_for(Object* leader, Core* core)
-{
-    Group* group = new Group(leader, core);
-
-    MINILOG0("#" << core->id() << " is assigned to obj: " << leader << " class: " << type_name(leader));
-    return group;
-}
-
-Group*
-OoSpmtJvm::new_group_for(Object* leader)
+OoSpmtJvm::new_group_for(Object* leader, Thread* thread)
 {
     Core* core = alloc_core();
-    return new_group_for(leader, core);
+    //Thread* thread = threadSelf();
+
+    Group* group = new Group(thread, leader, core);
+
+    //MINILOG0("#" << core->id() << " is assigned to obj: " << leader << " class: " << type_name(leader));
+    return group;
 }
 
 bool OoSpmtJvm::do_spec;
