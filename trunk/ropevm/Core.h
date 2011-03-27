@@ -42,14 +42,13 @@ public:
     void halt();
     void step();
     void idle();
-    void change_to_certain_mode() { change_mode(&m_certain_mode); }
-    void change_to_speculative_mode() { change_mode(&m_speculative_mode); }
+    void switch_to_certain_mode();
+    void switch_to_speculative_mode();
+    void switch_to_rvp_mode();
     void change_mode(Mode* new_mode);
     void record_current_non_certain_mode();
     void restore_original_non_certain_mode();
     Mode* original_uncertain_mode() { return m_old_mode; }
-    void verify_speculation(Message* message, bool self = true);
-    bool verify(Message* message);
     void init();
     void start();
     void send_certain_message(Message* message);
@@ -58,10 +57,14 @@ public:
     void reload_speculative_tasks();
     void enter_certain_mode();
     void leave_certain_mode(Message* msg);
-    void enter_rvp_mode();
     void leave_rvp_mode(Object* target_object);
     //void snapshot();
 
+    virtual void verify_speculation(Message* message, bool self = true);
+    virtual bool verify(Message* message);
+    void handle_verification_success(Message* message, bool self);
+    void handle_verification_failure(Message* message, bool self);
+    void reexecute_failed_message(Message* message);
     void enter_execution();
     void leave_execution();
 

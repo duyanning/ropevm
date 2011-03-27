@@ -9,6 +9,7 @@
 #include <string>
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <tr1/unordered_map>
 #include <tr1/unordered_set>
 

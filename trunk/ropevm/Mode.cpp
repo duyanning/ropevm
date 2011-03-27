@@ -212,17 +212,17 @@ Mode::destroy_frame(Frame* frame)
 //     assert(false);
 // }
 
-bool
-Mode::verify(Message* message)
-{
-    assert(false);
-}
+// bool
+// Mode::verify(Message* message)
+// {
+//     assert(false);
+// }
 
-void
-Mode::verify_speculation(Message* message, bool self)
-{
-    assert(false);
-}
+// void
+// Mode::verify_speculation(Message* message, bool self)
+// {
+//     assert(false);
+// }
 
 void
 show_triple(std::ostream& os, int id, Frame* frame, uintptr_t* sp, CodePntr pc, Object* user,
@@ -473,7 +473,7 @@ Mode::assign_group_for(Object* obj)
     }
     else if (final_policy == GP_UNSPECIFIED) {
 
-        Object* current_object = frame->get_object();
+        Object* current_object = frame ? frame->get_object() : 0;
         //assert(current_object);
         if (current_object) {
             final_policy = get_grouping_policy_others(current_object);

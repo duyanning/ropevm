@@ -151,7 +151,7 @@ SpeculativeMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
         m_core->m_rvp_mode.frame = new_frame;
         m_core->m_rvp_mode.sp = new_frame->ostack_base;
 
-        m_core->enter_rvp_mode();
+        m_core->switch_to_rvp_mode();
 
     }
 }
@@ -278,21 +278,21 @@ SpeculativeMode::destroy_frame(Frame* frame)
 }
 
 void
-SpeculativeMode::do_get_field(Object* target_object, FieldBlock* fb, uintptr_t* addr, int size, bool is_static)
+SpeculativeMode::do_get_field(Object* source_object, FieldBlock* fb, uintptr_t* addr, int size, bool is_static)
 {
     assert(size == 1 || size == 2);
 
     MINILOG(s_logger,
             "#" << m_core->id() << " (S) is to getfield: " << *fb
             //            << " of " << static_cast<void*>(target_object));
-            << " of " << target_object);
+            << " of " << source_object);
 
     Object* current_object = frame->get_object();
 
     Group* current_group = current_object->get_group();
-    Group* target_group = target_object->get_group();
+    Group* source_group = source_object->get_group();
 
-    if (target_group == current_group) {
+    if (source_group == current_group) {
 
         sp -= is_static ? 0 : 1;
         for (int i = 0; i < size; ++i) {
@@ -314,7 +314,7 @@ SpeculativeMode::do_get_field(Object* target_object, FieldBlock* fb, uintptr_t* 
 
         sp -= is_static ? 0 : 1;
 
-        GetMsg* msg = new GetMsg(target_object, fb, &val[0], size, frame, sp, pc);
+        GetMsg* msg = new GetMsg(source_object, current_object, fb, &val[0], size, frame, sp, pc);
         m_core->add_message_to_be_verified(msg);
 
         for (int i = 0; i < size; ++i) {
@@ -373,7 +373,7 @@ SpeculativeMode::do_put_field(Object* target_object, FieldBlock* fb,
                      "#" << m_core->id() << " (S) target object has a core #"
                      << target_core->id());
 
-            PutMsg* msg = new PutMsg(target_object, fb, addr, &val[0], size, is_static, m_core);
+            PutMsg* msg = new PutMsg(current_object, target_object, fb, addr, &val[0], size, is_static);
 
             MINILOG(s_logger,
                      "#" << m_core->id() << " (S) add putfield task to #"
@@ -402,12 +402,12 @@ SpeculativeMode::do_array_load(Object* array, int index, int type_size)
     int nslots = type_size > 4 ? 2 : 1; // number of slots for value
     assert(array != get_group()->get_leader()); // array never can be leader
 
-    Object* target_object = array;
-    Group* target_group = target_object->get_group();
+    Object* source_object = array;
+    Group* source_group = source_object->get_group();
     Object* current_object = frame->get_object();
     Group* current_group = current_object->get_group();
 
-    if (target_group == current_group) {
+    if (source_group == current_group) {
 
         sp -= 2; // pop up arrayref and index
         load_from_array(sp, addr, type_size);
@@ -426,7 +426,7 @@ SpeculativeMode::do_array_load(Object* array, int index, int type_size)
 
         sp -= 2;
 
-        ArrayLoadMsg* msg = new ArrayLoadMsg(array, index, &val[0], type_size, frame, sp, pc);
+        ArrayLoadMsg* msg = new ArrayLoadMsg(array, current_object, index, &val[0], type_size, frame, sp, pc);
         m_core->add_message_to_be_verified(msg);
 
         load_array_from_no_cache_mem(sp, &val[0], type_size);
@@ -485,7 +485,7 @@ SpeculativeMode::do_array_store(Object* array, int index, int type_size)
                      << target_core->id());
 
             ArrayStoreMsg* msg =
-                new ArrayStoreMsg(target_object, index, &val[0], nslots, type_size,m_core);
+                new ArrayStoreMsg(current_object, target_object, index, &val[0], nslots, type_size);
 
             MINILOG(s_logger,
                      "#" << m_core->id() << " (S) add arraystore task to #"
@@ -498,8 +498,8 @@ SpeculativeMode::do_array_store(Object* array, int index, int type_size)
                     "#" << m_core->id() << " target object is coreless");
         }
 
-        AckMsg* ack = new AckMsg;
-        m_core->add_message_to_be_verified(ack);
+        // AckMsg* ack = new AckMsg;
+        // m_core->add_message_to_be_verified(ack);
     }
 }
 
@@ -545,7 +545,7 @@ SpeculativeMode::load_next_task()
         m_core->m_speculative_tasks.pop_front();
 
         MINILOG(task_load_logger, "#" << m_core->id() << " task loaded: " << *task_msg);
-        if (task_msg->get_type() == Message::call) {
+        if (task_msg->get_type() == Message::invoke) {
 
             InvokeMsg* msg = static_cast<InvokeMsg*>(task_msg);
 
@@ -567,7 +567,7 @@ SpeculativeMode::load_next_task()
                 //snapshot();
 
                 Frame* new_frame =
-                    create_frame(msg->object, new_mb, msg->caller_frame, msg->calling_object,
+                    create_frame(msg->get_target_object(), new_mb, msg->caller_frame, msg->get_source_object(),
                                  &msg->parameters[0], msg->caller_sp, msg->caller_pc);
                 new_frame->is_certain = false;
                 new_frame->is_task_frame = true;
@@ -599,7 +599,7 @@ SpeculativeMode::load_next_task()
             ArrayStoreMsg* msg = static_cast<ArrayStoreMsg*>(task_msg);
             m_core->add_message_to_be_verified(msg);
 
-            Object* array = msg->array;
+            Object* array = msg->get_target_object();
             int index = msg->index;
             int type_size = msg->type_size;
 

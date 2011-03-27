@@ -1172,7 +1172,7 @@ Thread::Thread()
     add_core(core);
     //core->enter_certain_mode();
     set_certain_core(core);
-    core->change_to_certain_mode();
+    core->switch_to_certain_mode();
 
     core->start();
     //set_certain_core(core);
@@ -1207,22 +1207,22 @@ Thread::go()
         //int n = cores.size();   // for debug
 
         //{{{ just for debug
-        {
-            int n = 0;
-            for (vector<Core*>::iterator i = cores.begin(); i != cores.end(); ++i) {
-                Core* core = *i;
-                if (core->is_certain_mode()) {
-                    n++;
-                }
-            }
+        // {
+        //     int n = 0;
+        //     for (vector<Core*>::iterator i = cores.begin(); i != cores.end(); ++i) {
+        //         Core* core = *i;
+        //         if (core->is_certain_mode()) {
+        //             n++;
+        //         }
+        //     }
 
-            if (not (n == 0 || n == 1)) {
-                MINILOG0("num of certain cores: " << n);
-            }
+        //     if (not (n == 0 || n == 1)) {
+        //         MINILOG0("num of certain cores: " << n);
+        //     }
 
-            assert(n == 0 || n == 1);
+        //     assert(n == 0 || n == 1);
 
-        }
+        // }
         //}}} just for debug
 
         for (vector<Core*>::iterator i = cores.begin(); i != cores.end(); ++i) {

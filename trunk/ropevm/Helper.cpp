@@ -427,7 +427,7 @@ get_grouping_policy_self(Object* obj)
 
     int policy = 0;
     if (is_class_obj(obj)) {
-        policy = (GroupingPolicyEnum)static_cast<Class*>(obj)->classblock()->class_grouping_policy_self;
+        policy = static_cast<Class*>(obj)->classblock()->class_grouping_policy_self;
     }
     else {
         Class* classobj = obj->classobj;
@@ -436,6 +436,8 @@ get_grouping_policy_self(Object* obj)
     // else {
     //     assert(false);
     // }
+
+    assert(policy >= 0 and policy <= 3);
     return static_cast<GroupingPolicyEnum>(policy);
 }
 
@@ -455,5 +457,37 @@ get_grouping_policy_others(Object* obj)
     // else {
     //     assert(false);
     // }
+    assert(policy >= 0 and policy <= 3);
     return static_cast<GroupingPolicyEnum>(policy);
+}
+
+string
+info(Frame* frame)
+{
+    ostringstream os;
+    if (frame) {
+        if (frame->mb) {
+            os << (is_priviledged(frame->mb) ? "p" : "");
+            os << (frame->mb->is_static() ? "c" : "");
+            os << frame->mb->classobj->name() << '.' << frame->mb->name << ':' << frame->mb->type;
+        }
+        else {
+            os << "mb=0";
+        }
+    }
+    else
+        os << "NULL";
+    return os.str();
+}
+
+string
+info(Object* o)
+{
+    if (is_normal_obj(o)) {
+        return o->classobj->name();
+    }
+    if  (is_class_obj(o)) {
+        return string("c") + ((Class*)o)->name();
+    }
+    return "";
 }

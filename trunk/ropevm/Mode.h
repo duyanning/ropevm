@@ -17,7 +17,7 @@ public:
     virtual void after_alloc_object(Object* obj);
     Group* assign_group_for(Object* obj);
 
-
+    virtual void process_certain_message(Message* messge) = 0;
     virtual void do_invoke_method(Object* objectref, MethodBlock* new_mb);
     virtual void do_method_return(int len);
     virtual void do_throw_exception() = 0;
@@ -39,8 +39,8 @@ public:
 
 
     virtual void destroy_frame(Frame* frame) = 0;
-    virtual bool verify(Message* message);
-    virtual void verify_speculation(Message* message, bool self);
+    // virtual bool verify(Message* message);
+    // virtual void verify_speculation(Message* message, bool self);
     //virtual void handle_verification_failure(Message* message);
     void set_core(Core* core);
 

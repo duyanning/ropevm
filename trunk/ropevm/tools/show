@@ -1,4 +1,4 @@
 #!/usr/bin/env sh
 
-javap -c -private `basename $1 .class`
+javap -c -private `dirname $1`/`basename $1 .class`
 

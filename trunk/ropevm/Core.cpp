@@ -13,6 +13,7 @@
 #include "frame.h"
 #include "Helper.h"
 #include "Group.h"
+#include "lock.h"
 
 using namespace std;
 
@@ -114,17 +115,17 @@ Core::restore_original_non_certain_mode()
     MINILOG0("#" << id() << " restore to " << m_mode->get_name());
 }
 
-bool
-Core::verify(Message* message)
-{
-    return m_mode->verify(message);
-}
+// bool
+// Core::verify(Message* message)
+// {
+//     return m_mode->verify(message);
+// }
 
-void
-Core::verify_speculation(Message* message, bool self)
-{
-    m_mode->verify_speculation(message, self);
-}
+// void
+// Core::verify_speculation(Message* message, bool self)
+// {
+//     m_mode->verify_speculation(message, self);
+// }
 
 void
 Core::init()
@@ -276,36 +277,36 @@ Core::leave_certain_mode(Message* message)
         sync_speculative_with_certain();
         change_mode(&m_speculative_mode);
 
-        if (message->get_type() == Message::call) {
+        if (message->get_type() == Message::invoke) {
             InvokeMsg* msg = static_cast<InvokeMsg*>(message);
 
             MethodBlock* pslice = get_rvp_method(msg->mb);
             MINILOG0("#" << id() << " (S)calls p-slice: " << *pslice);
-            Frame* new_frame = create_frame(msg->object, pslice, msg->caller_frame, 0,
+            Frame* new_frame = create_frame(msg->get_target_object(), pslice, msg->caller_frame, 0,
                                             &msg->parameters[0], msg->caller_sp, msg->caller_pc);
             new_frame->is_certain = false;
             m_rvp_mode.pc = (CodePntr)pslice->code;
             m_rvp_mode.frame = new_frame;
             m_rvp_mode.sp = new_frame->ostack_base;
 
-            enter_rvp_mode();
+            switch_to_rvp_mode();
         }
         else if (message->get_type() == Message::ret) {
             m_speculative_mode.load_next_task();
         }
         else if (message->get_type() == Message::put) {
-            AckMsg* ack = new AckMsg;
-            add_message_to_be_verified(ack);
+            // AckMsg* ack = new AckMsg;
+            // add_message_to_be_verified(ack);
             halt();
         }
         else if (message->get_type() == Message::arraystore) {
-            AckMsg* ack = new AckMsg;
-            add_message_to_be_verified(ack);
+            // AckMsg* ack = new AckMsg;
+            // add_message_to_be_verified(ack);
             halt();
         }
-        else if (message->get_type() == Message::ack) {
-            m_speculative_mode.load_next_task();
-        }
+        // else if (message->get_type() == Message::ack) {
+        //     m_speculative_mode.load_next_task();
+        // }
         else {
             assert(false);
         }
@@ -360,8 +361,21 @@ Core::enter_certain_mode()
             "#" << id() << " ---------------------------");
 }
 
+
 void
-Core::enter_rvp_mode()
+Core::switch_to_certain_mode()
+{
+    change_mode(&m_certain_mode);
+}
+
+void
+Core::switch_to_speculative_mode()
+{
+    change_mode(&m_speculative_mode);
+}
+
+void
+Core::switch_to_rvp_mode()
 {
     // stat
     m_count_rvp++;
@@ -461,10 +475,10 @@ Core::add_message_to_be_verified(Message* message)
     //{{{ just for debug
     // Snapshot* latest_snapshot;
     // message->snapshot = latest_snapshot;
-    if (m_id == 5 && message->get_type() == Message::ack) {
-        int x = 0;
-        x++;
-    }
+    // if (m_id == 5 && message->get_type() == Message::ack) {
+    //     int x = 0;
+    //     x++;
+    // }
     //}}} just for debug
     m_messages_to_be_verified.push_back(message);
     MINILOG0("#" << id() << " use spec:  " << *message);
@@ -576,7 +590,7 @@ Core::reload_speculative_tasks()
     for (i = m_messages_to_be_verified.begin(); i != m_messages_to_be_verified.end(); ++i) {
         Message* msg = *i;
 
-        if (msg->get_type() == Message::call
+        if (msg->get_type() == Message::invoke
             // || msg->get_type() == Message::put
             // || msg->get_type() == Message::arraystore
             ) {
@@ -783,16 +797,327 @@ Core::execute_method()
     m_certain_mode.pc = old_pc;
     m_certain_mode.frame = old_frame;
     m_certain_mode.sp = old_sp;
+
+    return 0;
 }
 
-// void
-// Core::check_object(Object* obj)
-// {
-//     assert(obj);
-//     Group* group = obj->get_group();
-//     if (group->get_thread()  == threadSelf())
-//         return;
+bool
+Core::verify(Message* message)
+{
+    // stat
+    m_count_verify_all++;
 
-//     after_alloc_object(obj);
-// }
 
+    assert(is_correspondence_btw_msgs_and_snapshots_ok());
+
+    bool ok = false;
+    if (not m_messages_to_be_verified.empty()) {
+        Message* spec_msg = m_messages_to_be_verified.front();
+
+        if (*spec_msg == *message) {
+            ok = true;
+        }
+
+        if (ok) {
+            MINILOG0_IF(debug_scaffold::java_main_arrived,
+                        "#" << id() << " verify " << *message << " OK");
+
+            MINILOG0_IF(debug_scaffold::java_main_arrived,
+                        "#" << id() << " veri spec: " << *spec_msg << " OK");
+        }
+        else {
+            MINILOG0_IF(debug_scaffold::java_main_arrived,
+                        "#" << id() << " verify " << *message << " FAILED"
+                        << " not " << *spec_msg);
+
+            MINILOG0_IF(debug_scaffold::java_main_arrived,
+                        "#" << id() << " veri spec: " << *spec_msg << " FAILED");
+
+            MINILOG0_IF(debug_scaffold::java_main_arrived,
+                        "#" << id() << " details:");
+            MINILOGPROC_IF(debug_scaffold::java_main_arrived,
+                           verify_detail_logger, show_msg_detail,
+                           (os, id(), message));
+            MINILOG0_IF(debug_scaffold::java_main_arrived,
+                        "#" << id() << " ---------");
+            MINILOGPROC_IF(debug_scaffold::java_main_arrived,
+                           verify_detail_logger, show_msg_detail,
+                           (os, id(), spec_msg));
+
+        }
+
+        m_messages_to_be_verified.pop_front();
+        delete spec_msg;
+    }
+    else {
+        MINILOG0_IF(debug_scaffold::java_main_arrived,
+                    "#" << id() << " verify " << *message << " EMPTY");
+        MINILOG0_IF(debug_scaffold::java_main_arrived,
+                    "#" << id() << " veri spec: EMPTY");
+
+        // stat
+        m_count_verify_empty++;
+    }
+
+    return ok;
+}
+
+void
+Core::verify_speculation(Message* message, bool self)
+{
+    bool success = verify(message);
+
+    // stat
+    if (success)
+        m_count_verify_ok++;
+    else
+        m_count_verify_fail++;
+
+    if (success) {
+        handle_verification_success(message, self);
+    }
+    else {
+        handle_verification_failure(message, self);
+    }
+
+    delete message;
+}
+
+void
+Core::handle_verification_success(Message* message, bool self)
+{
+    //bool should_reset_spec_exec = false;
+
+    if (m_snapshots_to_be_committed.empty()) {
+        sync_certain_with_speculative();
+
+        if (m_certain_mode.frame) {
+            //assert(m_core->is_owner_or_subsidiary(frame->get_object()));
+            assert(is_sp_ok(m_certain_mode.sp, m_certain_mode.frame));
+            assert(is_pc_ok(m_certain_mode.pc, m_certain_mode.frame->mb));
+        }
+
+        MINILOG(commit_logger,
+                "#" << id()
+                << " commit to latest, ver(" << m_cache.version() << ")");
+        //{{{ just for debug
+        MINILOG(cache_logger,
+                "#" << id() << " ostack base: " << m_certain_mode.frame->ostack_base);
+        MINILOGPROC(cache_logger, show_cache,
+                    (os, id(), m_cache, false));
+        //}}} just for debug
+        m_cache.commit(m_cache.version());
+        //{{{ just for debug
+        MINILOG(cache_logger,
+                "#" << id() << " ostack base: " << m_certain_mode.frame->ostack_base);
+        MINILOGPROC(cache_logger, show_cache,
+                    (os, id(), m_cache, false));
+        //}}} just for debug
+
+        // because has commited to latest version, cache should restart from ver 0
+        //should_reset_spec_exec = true;
+
+        //{{{ just for debug
+        // if (m_id == 6 && message->get_type() == Message::ack) {
+        //     int x = 0;
+        //     x++;
+        // }
+        //}}} just for debug
+        MINILOG0_IF(debug_scaffold::java_main_arrived,
+                    "#" << id() << " comt spec: latest");
+    }
+    else {
+        Snapshot* snapshot = m_snapshots_to_be_committed.front();
+        m_snapshots_to_be_committed.pop_front();
+        sync_certain_with_snapshot(snapshot);
+
+        if (message->get_type() == Message::ret && m_certain_mode.frame) {
+            //assert(m_core->is_owner_enclosure(frame->get_object()));
+            assert(get_group() == m_certain_mode.frame->get_object()->get_group());
+            assert(is_sp_ok(m_certain_mode.sp, m_certain_mode.frame));
+            assert(is_pc_ok(m_certain_mode.pc, m_certain_mode.frame->mb));
+        }
+
+        MINILOG(commit_logger,
+                "#" << id() << " commit to ver(" << snapshot->version << ")");
+
+        // MINILOG0_IF(debug_scaffold::java_main_arrived,
+        //             "#" << m_core->id() << " comt spec: " << *snapshot->spec_msg);
+
+        //{{{ just for debug
+        MINILOG(cache_logger,
+                "#" << id() << " ostack base: " << m_certain_mode.frame->ostack_base);
+        MINILOGPROC(cache_logger, show_cache,
+                    (os, id(), m_cache, false));
+        //}}} just for debug
+        m_cache.commit(snapshot->version);
+        //{{{ just for debug
+        MINILOG(cache_logger,
+                "#" << id() << " ostack base: " << m_certain_mode.frame->ostack_base);
+        MINILOGPROC(cache_logger, show_cache,
+                    (os, id(), m_cache, false));
+        //}}} just for debug
+
+        // if (snapshot->version == m_core->m_cache.prev_version()) {
+        //     //{{{ just for debug
+        //     int x = 0;
+        //     x++;
+        //     //}}} just for debug
+
+        //     //should_reset_spec_exec = true;
+        // }
+
+        delete snapshot;
+    }
+
+    if (message->get_type() != Message::put
+        and message->get_type() != Message::arraystore) {
+        mark_frame_certain();
+    }
+
+
+    //if (should_reset_spec_exec) {
+    if (not has_message_to_be_verified()) {
+        discard_uncertain_execution(self);
+    }
+
+    MINILOG(commit_detail_logger,
+            "#" << id() << " CERT details:");
+    // MINILOGPROC(commit_detail_logger, show_triple,
+    //             (os, m_core->id(),
+    //              frame, sp, pc, m_user,
+    //              true));
+
+    if (message->get_type() == Message::put or message->get_type() == Message::arraystore) {
+        Object* source_object = message->get_source_object();
+        Group* source_group = source_object->get_group();
+        Core* source_core = source_group->get_core();
+        source_core->start();
+    }
+
+}
+
+void
+Core::reexecute_failed_message(Message* message)
+{
+    if (message->get_type() == Message::invoke) {
+
+        InvokeMsg* msg = static_cast<InvokeMsg*>(message);
+        m_certain_mode.invoke_my_method(msg->get_target_object(), msg->mb, &msg->parameters[0],
+                                        msg->get_source_object(),
+                                        msg->caller_pc, msg->caller_frame, msg->caller_sp, msg->calling_owner);
+
+    }
+    else if (message->get_type() == Message::ret) {
+
+        ReturnMsg* msg = static_cast<ReturnMsg*>(message);
+        //return_my_method(msg->frame, &msg->retval[0], msg->retval.size());
+
+        uintptr_t* caller_sp = msg->caller_sp;
+        for (int i = 0; i < msg->retval.size(); ++i) {
+            *caller_sp++ = msg->retval[i];
+        }
+        if (msg->mb->is_synchronized()) {
+            Object *sync_ob = msg->mb->is_static() ?
+                msg->mb->classobj : (Object*)msg->get_source_object(); // lvars[0] is 'this' reference
+            objectUnlock(sync_ob);
+        }
+
+        assert(msg->caller_frame->mb);
+        // whether native or not
+
+        m_certain_mode.sp = caller_sp;
+        m_certain_mode.pc = msg->caller_pc;
+        m_certain_mode.frame = msg->caller_frame;
+
+        m_certain_mode.pc += (*msg->caller_pc == OPC_INVOKEINTERFACE_QUICK ? 5 : 3);
+    }
+    else if (message->get_type() == Message::get) {
+
+        GetMsg* msg = static_cast<GetMsg*>(message);
+
+        assert(m_certain_mode.pc == msg->caller_pc);
+        assert(m_certain_mode.frame == msg->caller_frame);
+        assert(m_certain_mode.sp == msg->caller_sp);
+
+        // m_certain_mode.pc = msg->caller_pc;
+        // m_certain_mode.frame = msg->caller_frame;
+        // m_certain_mode.sp = msg->caller_sp;
+
+        assert(is_pc_ok(m_certain_mode.pc, m_certain_mode.frame->mb));
+        assert(is_sp_ok(m_certain_mode.sp, m_certain_mode.frame));
+
+        vector<uintptr_t>::iterator begin = msg->val.begin();
+        vector<uintptr_t>::iterator end = msg->val.end();
+        for (vector<uintptr_t>::iterator i = begin; i != end; ++i) {
+            *m_certain_mode.sp++ = *i;
+        }
+
+        m_certain_mode.pc += 3;
+
+    }
+    else if (message->get_type() == Message::put) {
+
+        PutMsg* msg = static_cast<PutMsg*>(message);
+
+        for (int i = 0; i < msg->val.size(); ++i) {
+            m_certain_mode.write(msg->addr + i, msg->val[i]);
+        }
+
+    }
+    else if (message->get_type() == Message::arrayload) {
+
+        ArrayLoadMsg* msg = static_cast<ArrayLoadMsg*>(message);
+
+        assert(m_certain_mode.pc == msg->caller_pc);
+        assert(m_certain_mode.frame == msg->caller_frame);
+        assert(m_certain_mode.sp == msg->caller_sp);
+
+        // m_certain_mode.pc = msg->caller_pc;
+        // m_certain_mode.frame = msg->caller_frame;
+        // m_certain_mode.sp = msg->caller_sp;
+
+        assert(is_pc_ok(m_certain_mode.pc, m_certain_mode.frame->mb));
+        assert(is_sp_ok(m_certain_mode.sp, m_certain_mode.frame));
+
+        int type_size = msg->val.size();
+        m_certain_mode.load_array_from_no_cache_mem(m_certain_mode.sp, &msg->val[0], type_size);
+        m_certain_mode.sp += type_size > 4 ? 2 : 1;
+        m_certain_mode.pc += 1;
+
+    }
+    else if (message->get_type() == Message::arraystore) {
+
+        ArrayStoreMsg* msg = static_cast<ArrayStoreMsg*>(message);
+
+        Object* array = msg->get_target_object();
+        int index = msg->index;
+        int type_size = msg->type_size;
+
+        void* addr = array_elem_addr(array, index, type_size);
+        m_certain_mode.store_array_from_no_cache_mem(&msg->slots[0], addr, type_size);
+
+    }
+    else {
+        assert(false);
+    }
+}
+
+void
+Core::handle_verification_failure(Message* message, bool self)
+{
+    reload_speculative_tasks();
+    discard_uncertain_execution(self);
+
+    reexecute_failed_message(message);
+
+    if (message->get_type() == Message::put or message->get_type() == Message::arraystore) {
+
+        Object* source_object = message->get_source_object();
+        Group* source_group = source_object->get_group();
+        Core* source_core = source_group->get_core();
+        source_core->start();
+        m_speculative_mode.load_next_task();
+
+    }
+}

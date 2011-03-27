@@ -13,11 +13,11 @@ UncertainMode::UncertainMode(const char* name)
 void
 UncertainMode::process_certain_message(Message* msg)
 {
-    if (msg->get_type() == Message::call
+    if (msg->get_type() == Message::invoke
         || msg->get_type() == Message::ret
         || msg->get_type() == Message::put
         || msg->get_type() == Message::arraystore
-        || msg->get_type() == Message::ack
+        //|| msg->get_type() == Message::ack
         ) {
 
         m_core->enter_certain_mode();
