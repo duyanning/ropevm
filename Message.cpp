@@ -8,8 +8,10 @@ using namespace std;
 
 int msg_count = 0;              // just for debug
 
-//Message::Message(Type t, Object* object)
-Message::Message(Type t)
+Message::Message(Type t, Object* source_object, Object* target_object)
+    :
+    m_source_object(source_object),
+    m_target_object(target_object)
 {
     type = t;
     //{{{ just for debug
@@ -33,18 +35,21 @@ Message::is_equal_to(Message& msg)
 {
     if (type != msg.type)
         return false;
+    if (m_source_object != msg.m_source_object)
+        return false;
+    if (m_target_object != msg.m_target_object)
+        return false;
     return equal(msg);
 }
 
 //------------------------------------------------
 InvokeMsg::InvokeMsg(Object* object, MethodBlock* mb, Frame* caller_frame, Object* calling_object, uintptr_t* args, uintptr_t* caller_sp, CodePntr caller_pc, Object* calling_owner)
 :
-    Message(Message::call)
+    Message(Message::invoke, calling_object, object)
 {
-    this->object = object;
     this->mb = mb;
     this->caller_frame = caller_frame;
-    this->calling_object = calling_object;
+
     for (int i = 0; i < mb->args_count; ++i) {
         parameters.push_back(args[i]);
     }
@@ -57,8 +62,6 @@ bool
 InvokeMsg::equal(Message& msg)
 {
     InvokeMsg& m = static_cast<InvokeMsg&>(msg);
-    if (object != m.object)
-        return false;
     if (mb != m.mb)
         return false;
     if (parameters != m.parameters)
@@ -92,7 +95,7 @@ InvokeMsg::show_detail(std::ostream& os, int id) const
 //------------------------------------------------
 ReturnMsg::ReturnMsg(Object* object, MethodBlock* mb, Frame* caller_frame, Object* calling_object, uintptr_t* rv, int len, uintptr_t* caller_sp, CodePntr caller_pc)
 :
-    Message(Message::ret)
+    Message(Message::ret, object, calling_object)
 {
     this->mb = mb;
     this->caller_frame = caller_frame;
@@ -103,8 +106,6 @@ ReturnMsg::ReturnMsg(Object* object, MethodBlock* mb, Frame* caller_frame, Objec
     this->caller_pc = caller_pc;
 
     //this->frame = frame;
-    this->object = object;
-    this->calling_object = calling_object;
 }
 
 bool
@@ -152,9 +153,9 @@ ReturnMsg::show_detail(std::ostream& os, int id) const
 }
 
 //-----------------------------------------------
-GetMsg::GetMsg(Object* obj, FieldBlock* fb, uintptr_t* addr, int size, Frame* caller_frame, uintptr_t* caller_sp, CodePntr caller_pc)
+GetMsg::GetMsg(Object* source_object, Object* target_object, FieldBlock* fb, uintptr_t* addr, int size, Frame* caller_frame, uintptr_t* caller_sp, CodePntr caller_pc)
 :
-    Message(Message::get)
+    Message(Message::get, source_object, target_object)
 {
     for (int i = 0; i < size; ++i) {
         this->val.push_back(addr[i]);
@@ -165,7 +166,6 @@ GetMsg::GetMsg(Object* obj, FieldBlock* fb, uintptr_t* addr, int size, Frame* ca
     this->caller_pc = caller_pc;
 
     //this->instr_len = instr_len;
-    this->obj = obj;
     this->fb = fb;
 }
 
@@ -209,11 +209,10 @@ GetMsg::show_detail(std::ostream& os, int id) const
     //os << "#" << id << "\n";
 }
 //-----------------------------------------------
-PutMsg::PutMsg(Object* obj, FieldBlock* fb, uintptr_t* addr, uintptr_t* val, int len, bool is_static, Core* sender)
+PutMsg::PutMsg(Object* source_object, Object* target_object, FieldBlock* fb, uintptr_t* addr, uintptr_t* val, int len, bool is_static)
 :
-    Message(Message::put)
+    Message(Message::put, source_object, target_object)
 {
-    this->obj = obj;
     for (int i = 0; i < len; ++i) {
         this->val.push_back(val[i]);
     }
@@ -223,7 +222,6 @@ PutMsg::PutMsg(Object* obj, FieldBlock* fb, uintptr_t* addr, uintptr_t* val, int
 //     this->caller_sp = caller_sp;
 //     this->caller_pc = caller_pc;
     this->is_static = is_static;
-    this->sender = sender;
 
     this->fb = fb;
 }
@@ -266,35 +264,35 @@ PutMsg::show_detail(std::ostream& os, int id) const
 }
 
 //-----------------------------------------------
-AckMsg::AckMsg()
-:
-    Message(Message::ack)
-{
-}
+// AckMsg::AckMsg()
+// :
+//     Message(Message::ack, 0, 0)
+// {
+// }
 
-bool
-AckMsg::equal(Message& msg)
-{
-    return true;
-}
+// bool
+// AckMsg::equal(Message& msg)
+// {
+//     return true;
+// }
 
-void
-AckMsg::show(ostream& os) const
-{
-    os << "ack";
-}
+// void
+// AckMsg::show(ostream& os) const
+// {
+//     os << "ack";
+// }
 
-void
-AckMsg::show_detail(std::ostream& os, int id) const
-{
-    //os << "#" << id << "\n";
-}
+// void
+// AckMsg::show_detail(std::ostream& os, int id) const
+// {
+//     //os << "#" << id << "\n";
+// }
 
 //-----------------------------------------------
-ArrayLoadMsg::ArrayLoadMsg(Object* array, int index, uint8_t* addr, int type_size,
+ArrayLoadMsg::ArrayLoadMsg(Object* array, Object* target_object, int index, uint8_t* addr, int type_size,
                            Frame* caller_frame, uintptr_t* caller_sp, CodePntr caller_pc)
 :
-    Message(Message::arrayload)
+    Message(Message::arrayload, array, target_object)
 {
     for (int i = 0; i < type_size; ++i) {
         this->val.push_back(addr[i]);
@@ -305,7 +303,6 @@ ArrayLoadMsg::ArrayLoadMsg(Object* array, int index, uint8_t* addr, int type_siz
     this->caller_pc = caller_pc;
 
     //this->instr_len = instr_len;
-    this->array = array;
     this->index = index;
 }
 
@@ -314,8 +311,6 @@ ArrayLoadMsg::equal(Message& msg)
 {
     ArrayLoadMsg& m = static_cast<ArrayLoadMsg&>(msg);
     if (val != m.val)
-        return false;
-    if (array != m.array)
         return false;
     if (index != m.index)
         return false;
@@ -334,7 +329,7 @@ ArrayLoadMsg::show(ostream& os) const
     int type_size = val.size();
     assert(type_size >= 1 && type_size <= 8);
 
-    os << "array load" << type_size << " " << array->classobj->name() << "(" << index << ") = ";
+    os << "array load" << type_size << " " << m_source_object->classobj->name() << "(" << index << ") = ";
 
     os << hex;
     for (int i = 0; i < val.size(); ++i) {
@@ -350,12 +345,10 @@ ArrayLoadMsg::show_detail(std::ostream& os, int id) const
 }
 //-----------------------------------------------
 
-ArrayStoreMsg::ArrayStoreMsg(Object* array, int index, uintptr_t* slots, int nslots,
-                             int type_size, Core* sender)
+ArrayStoreMsg::ArrayStoreMsg(Object* source_object, Object* array, int index, uintptr_t* slots, int nslots, int type_size)
 :
-    Message(Message::arraystore)
+    Message(Message::arraystore, source_object, array)
 {
-    this->array = array;
     this->index = index;
     for (int i = 0; i < nslots; ++i) {
         this->slots.push_back(slots[i]);
@@ -364,7 +357,6 @@ ArrayStoreMsg::ArrayStoreMsg(Object* array, int index, uintptr_t* slots, int nsl
 //     this->caller_frame = caller_frame;
 //     this->caller_sp = caller_sp;
 //     this->caller_pc = caller_pc;
-    this->sender = sender;
 }
 
 bool
@@ -372,8 +364,6 @@ ArrayStoreMsg::equal(Message& msg)
 {
     ArrayStoreMsg& m = static_cast<ArrayStoreMsg&>(msg);
     if (slots != m.slots)
-        return false;
-    if (array != m.array)
         return false;
     if (index != m.index)
         return false;
@@ -392,7 +382,7 @@ ArrayStoreMsg::show(ostream& os) const
     int nslots = slots.size();
     assert(nslots == 1 || nslots == 2);
 
-    os << "array store" << type_size << " " << array->classobj->name() << "(" << index << ") = ";
+    os << "array store" << type_size << " " << m_target_object->classobj->name() << "(" << index << ") = ";
 
     if (nslots == 1) {
         int i = *(int*)&slots[0];
@@ -434,11 +424,11 @@ show_msg_detail(ostream& os, int id, Message* msg)
 bool
 is_valid_certain_msg(Message* msg)
 {
-    if (msg->get_type() == Message::call
+    if (msg->get_type() == Message::invoke
         || msg->get_type() == Message::ret
         || msg->get_type() == Message::put
         || msg->get_type() == Message::arraystore
-        || msg->get_type() == Message::ack
+        //|| msg->get_type() == Message::ack
         )
         return true;
     else

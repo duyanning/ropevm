@@ -29,4 +29,7 @@ bool is_priviledged(MethodBlock* mb);
 GroupingPolicyEnum get_grouping_policy_self(Object* obj);
 GroupingPolicyEnum get_grouping_policy_others(Object* obj);
 
+std::string info(Frame* frame);
+std::string info(Object* o);
+
 #endif // HELPER_H

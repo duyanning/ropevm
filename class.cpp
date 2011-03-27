@@ -128,14 +128,14 @@ static void prepareClass(Class *classobj)
         classobj->classobj = java_lang_Class;
     }
     // dynsearch
-    std::cout << "prepareClass: " << classobj->name() << "UUU" << std::endl;
-    //if (strcmp(classobj->name(), "Hello") == 0) {
-    if (std::string(classobj->name()) == "Hello") {
-    //if (*(classobj->name()) == 'H') {
-        std::cout << "fuck" << std::endl;
-        int x = 0;
-        x++;
-    }
+    // std::cout << "prepareClass: " << classobj->name() << "UUU" << std::endl;
+    // //if (strcmp(classobj->name(), "Hello") == 0) {
+    // if (std::string(classobj->name()) == "Hello") {
+    // //if (*(classobj->name()) == 'H') {
+    //     std::cout << "fuck" << std::endl;
+    //     int x = 0;
+    //     x++;
+    // }
     // Core* current_core = g_current_core();
     // current_core->after_alloc_object(classobj);
 }

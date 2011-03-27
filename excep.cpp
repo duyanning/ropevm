@@ -221,8 +221,8 @@ Object *setStackTrace0(int max_depth)
     //assert(false);
     Frame* bottom;
     //Frame* last = ee->last_frame;
-	//assert(ee->last_frame == threadSelf()->current_core()->m_mode->frame);
-    Frame* last = threadSelf()->current_core()->m_mode->frame;
+    Core* current_core = threadSelf()->current_core();
+    Frame* last = current_core->m_mode->frame;
     Object *array, *vmthrwble;
     uintptr_t *data;
     int depth = 0;
@@ -233,11 +233,17 @@ Object *setStackTrace0(int max_depth)
         goto out2;
     }
 
-    for(; last->mb != NULL && isInstanceOf(vmthrow_class, last->mb->classobj);
-          last = last->prev);
+    // for(; last->mb != NULL && isInstanceOf(vmthrow_class, last->mb->classobj);
+    //       last = last->prev);
+    while (last->mb != NULL and isInstanceOf(vmthrow_class, last->mb->classobj)) {
+        last = last->prev;
+    }
 
-    for(; last->mb != NULL && isInstanceOf(throw_class, last->mb->classobj);
-          last = last->prev);
+    // for(; last->mb != NULL && isInstanceOf(throw_class, last->mb->classobj);
+    //       last = last->prev);
+    while (last->mb != NULL and isInstanceOf(throw_class, last->mb->classobj)) {
+          last = last->prev;
+    }
 
     bottom = last;
     do {
