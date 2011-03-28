@@ -40,5 +40,6 @@ extern MiniLogger r_invoke_return_logger;
 extern MiniLogger cache_logger;
 extern MiniLogger free_frames_logger;
 extern MiniLogger mark_frame_certain_logger;
+extern MiniLogger delete_frame_logger;
 
 #endif // LOGGERS_H

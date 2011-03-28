@@ -1225,6 +1225,7 @@ Thread::go()
         // }
         //}}} just for debug
 
+        int non_idle_total = 0;
         for (vector<Core*>::iterator i = cores.begin(); i != cores.end(); ++i) {
             m_current_core = *i;
 
@@ -1234,6 +1235,7 @@ Thread::go()
             }
             //if (m_current_core->is_busy()) continue;
 
+            non_idle_total++;
             m_current_core->step();
 
             //                 MINILOG_IF(ret && debug_scaffold::java_main_arrived, step_loop_in_out_logger,
@@ -1253,6 +1255,7 @@ Thread::go()
 
         }
 
+        assert(non_idle_total > 0);
     }
     return 0;
 }
