@@ -1481,7 +1481,7 @@ Class *findNonArrayClassFromClassLoader(char *classname, Object *loader) {
             Thread* this_thread = threadSelf();
             Core* this_core = this_thread->current_core();
             MINILOG0_IF(debug_scaffold::java_main_arrived,
-                        "#" << this_core->id() << " to be load class: " << dot_name);
+                        "#" << this_core->id() << " is to load class: " << dot_name);
         }
 
         Object *string = createString(dot_name);

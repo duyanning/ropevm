@@ -103,6 +103,8 @@ CertainMode::do_execute_method(Object* target_object,
                                MethodBlock *new_mb,
                                std::vector<uintptr_t>& jargs)
 {
+    assert(frame);              // see also: initialiseJavaStack
+
     // save (pc, frame, sp) triples
     CodePntr old_pc = pc;
     Frame* old_frame = frame;
@@ -118,22 +120,22 @@ CertainMode::do_execute_method(Object* target_object,
     void *ret;
     ret = dummy->ostack_base;
 
-    frame->last_pc = pc;
-    frame = 0;
+    //????frame->last_pc = pc;
+    //frame = 0;
 
     //Object* current_object = frame->get_object();
-    Object* current_object = 0;
+    //Object* current_object = frame ? frame->get_object() : 0;
+    Object* current_object = frame->get_object();
     //assert(current_object);
-    assert(current_object == 0);
+    //assert(current_object == 0);
 
     assert(target_object);
 
-    //Group* current_group = current_object ? current_object->get_group() : threadSelf()->get_default_group();
-    Group* current_group = current_object ? current_object->get_group() : m_core->get_group();
+    Group* current_group = current_object ? current_object->get_group() : threadSelf()->get_default_group();
+    //Group* current_group = current_object ? current_object->get_group() : m_core->get_group();
     Group* target_group = target_object->get_group();
 
     assert(target_group->get_thread() == threadSelf());
-
 
     if (target_group == current_group) {
 
@@ -161,11 +163,12 @@ CertainMode::do_execute_method(Object* target_object,
         InvokeMsg* msg =
             new InvokeMsg(target_object, new_mb, dummy, current_object, &jargs[0], dummy->ostack_base, 0);
 
-        MINILOG0("#" << m_core->id() << " transfers to #" << target_core->id()
+        MINILOG0("#" << m_core->id() << " e>>>transfers to #" << target_core->id()
                  // << " " << info(current_object) << " => " << info(target_object)
                  // << " (" << current_object << "=>" << target_object << ")"
                  << " in: "  << info(frame)
                  // << "("  << frame << ")"
+                 << " offset: " << pc-(CodePntr)frame->mb->code
                  << " because: " << *msg);
 
         //frame->last_pc = pc;
@@ -174,6 +177,7 @@ CertainMode::do_execute_method(Object* target_object,
         target_core->send_certain_message(msg);
         //target_core->execute_method();
         executeJava();
+        m_core->switch_to_certain_mode();
         m_core->start();
 
     }
@@ -229,7 +233,7 @@ CertainMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
         frame->last_pc = pc;
         frame->snapshoted = true;
 
-        MINILOG0("#" << m_core->id() << " transfers to #" << target_core->id()
+        MINILOG0("#" << m_core->id() << " i>>>transfers to #" << target_core->id()
                  // << " " << info(current_object) << " => " << info(target_object)
                  // << " (" << current_object << "=>" << target_object << ")"
                  << " in: "  << info(frame)
@@ -283,10 +287,10 @@ CertainMode::do_method_return(int len)
 //     }
     //log_when_invoke_return(false, frame->calling_object, frame->prev->mb, m_user, frame->mb);
 
-    if (frame->is_top_frame()) { // if return from top frame, we cannot use calling_object as target object
-        assert(frame->calling_object == 0);
-        return return_my_method(frame, sp - len, len);
-    }
+    // if (frame->is_top_frame()) { // if return from top frame, we cannot use calling_object as target object
+    //     assert(frame->calling_object == 0);
+    //     return return_my_method(frame, sp - len, len);
+    // }
 
     Object* current_object = frame->get_object();
     assert(current_object);
@@ -295,7 +299,7 @@ CertainMode::do_method_return(int len)
     Group* current_group = current_object->get_group();
     Group* target_group = target_object ? target_object->get_group() : threadSelf()->get_default_group();
 
-    assert(target_group->get_thread() == threadSelf());
+    //assert(target_group->get_thread() == threadSelf());
     if (target_group == current_group) {
 
         return_my_method(frame, sp - len, len);
@@ -305,26 +309,46 @@ CertainMode::do_method_return(int len)
 
         Core* target_core = target_group->get_core();
 
-        if (frame->is_top_frame()) { // prev is dummy
-            assert(false);      // todo
+        // if (frame->is_top_frame()) { // prev is dummy
+        //     assert(false);      // todo
 
-        }
+        // }
 
         //transfer certain control to target core
         sp -= len;
 
-        ReturnMsg* msg = new ReturnMsg(current_object, frame->mb, frame->prev,
-                                       target_object, sp, len,
-                                       frame->caller_sp, frame->caller_pc);
+        if (frame->mb->is_synchronized()) {
+            // Object *sync_ob = current_frame->mb->is_static() ?
+            //     current_frame->mb->classobj : (Object*)current_frame->lvars[0]; // lvars[0] is 'this' reference
+            assert(frame->get_object() == frame->mb->classobj or frame->get_object() == (Object*)frame->lvars[0]);
+            Object* sync_ob = frame->get_object();
+            objectUnlock(sync_ob);
+        }
 
-        MINILOG0("#" << m_core->id() << " transfers to #" << target_core->id()
-                 // << " " << info(current_object) << " => " << info(target_object)
-                 // << " (" << current_object << "=>" << target_object << ")"
-                 << " in: "  << info(frame)
-                 // << "("  << frame << ")"
-                 << " because: " << *msg);
+        if (frame->is_top_frame()) {
 
-        target_core->send_certain_message(msg);
+            MINILOG0("#" << m_core->id() << " t<<<transfers to #" << target_core->id()
+                     << " in: "  << info(frame)
+                     << "because top frame return"
+                     );
+            m_core->signal_quit_step_loop(frame->prev->ostack_base);
+
+        }
+        else {
+
+            ReturnMsg* msg = new ReturnMsg(current_object, frame->mb, frame->prev,
+                                           target_object, sp, len,
+                                           frame->caller_sp, frame->caller_pc);
+            MINILOG0("#" << m_core->id() << " r<<<transfers to #" << target_core->id()
+                     // << " " << info(current_object) << " => " << info(target_object)
+                     // << " (" << current_object << "=>" << target_object << ")"
+                     << " in: "  << info(frame)
+                     // << "("  << frame << ")"
+                     << " because: " << *msg);
+
+            target_core->send_certain_message(msg);
+
+        }
 
         if (current_group->can_speculate()) {
             m_core->clear_frame_in_cache(frame);
@@ -344,6 +368,7 @@ CertainMode::do_method_return(int len)
         }
         else {
             m_core->halt();
+            destroy_frame(frame);
         }
 
     }
@@ -381,7 +406,8 @@ CertainMode::invoke_my_method(Object* target_object, MethodBlock* new_mb, uintpt
 
     if (new_mb->is_native()) {
         // copy args to ostack
-        if (args) std::copy(args, args + new_mb->args_count, frame->ostack_base);
+        if (args)
+            std::copy(args, args + new_mb->args_count, frame->ostack_base);
 
         sp = (*(uintptr_t *(*)(Class*, MethodBlock*, uintptr_t*))
               new_mb->native_invoker)(new_mb->classobj, new_mb,
@@ -455,15 +481,18 @@ CertainMode::return_my_method(Frame* current_frame, uintptr_t* rv, int len)
 void
 CertainMode::before_signal_exception(Class *exception_class)
 {
-    MINILOG(c_exception_logger, "#" << m_core->id()
-            << " (C) exception detected!!! " << exception_class->name());
+    MINILOG(c_exception_logger, "#" << m_core->id() << " (C) before signal exception "
+            << exception_class->name() << " in: " << info(frame));
     // do nothing
 }
 
 void
 CertainMode::do_throw_exception()
 {
-    MINILOG(c_exception_logger, "#" << m_core->id() << " (C) throw exception");
+    MINILOG(c_exception_logger, "#" << m_core->id() << " (C) throw exception"
+            << " in: " << info(frame)
+            << " on: #" << frame->get_object()->get_group()->get_core()->id()
+            );
     //{{{ just for debug
     if (debug_scaffold::java_main_arrived && m_core->id() == 7) {
         int x = 0;
@@ -477,6 +506,10 @@ CertainMode::do_throw_exception()
 
     CodePntr old_pc = pc;      // for debug
     pc = findCatchBlock(excep->classobj);
+    MINILOG(c_exception_logger, "#" << m_core->id() << " (C) handler found"
+            << " in: " << info(frame)
+            << " on: #" << frame->get_object()->get_group()->get_core()->id()
+            );
 
     /* If we didn't find a handler, restore exception and
        return to previous invocation */

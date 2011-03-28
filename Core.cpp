@@ -166,6 +166,10 @@ Core::init()
 void
 Core::start()
 {
+    if (m_id == 5) {
+        int x = 0;
+        x++;
+    }
     if (m_halt) {
         m_halt = false;
         MINILOG0("#" << id() << " (state)start");

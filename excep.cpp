@@ -4,6 +4,9 @@
 #include "symbol.h"
 #include "excep.h"
 #include "Core.h"
+#include "Loggers.h"
+#include "Helper.h"
+#include "Group.h"
 
 static Class *ste_class, *ste_array_class, *throw_class, *vmthrow_class;
 static MethodBlock *vmthrow_init_mb;
@@ -78,6 +81,7 @@ void clearException() {
 
 void signalChainedExceptionClass(Class *exception, const char* message, Object *cause) {
     Core* current_core = g_current_core();
+    std::cout << "error msg: " << message << std::endl;
     current_core->before_signal_exception(exception);
 
     Object *exp = allocObject(exception);
@@ -152,26 +156,33 @@ void printException() {
     }
 }
 
-CodePntr findCatchBlockInMethod(MethodBlock *mb, Class *exception, CodePntr pc_pntr) {
+/*
+  mb                 exception occured in this method
+  exception          exception
+  pc_pntr            points to instruction which caused the exception
+ */
+CodePntr
+findCatchBlockInMethod(MethodBlock *mb, Class *exception, CodePntr pc_pntr)
+{
     ExceptionTableEntry *table = mb->exception_table;
     int size = mb->exception_table_size;
     int pc = pc_pntr - ((CodePntr)mb->code);
     int i;
 
     for(i = 0; i < size; i++)
-        if((pc >= table[i].start_pc) && (pc < table[i].end_pc)) {
+        if ((pc >= table[i].start_pc) and (pc < table[i].end_pc)) {
 
             /* If the catch_type is 0 it's a finally block, which matches
                any exception.  Otherwise, the thrown exception class must
                be an instance of the caught exception class to catch it */
 
-            if(table[i].catch_type != 0) {
+            if (table[i].catch_type != 0) {
                 Class *caught_class = resolveClass(mb->classobj, table[i].catch_type, FALSE);
-                if(caught_class == NULL) {
+                if (caught_class == NULL) {
                     clearException();
                     continue;
                 }
-                if(!isInstanceOf(caught_class, exception))
+                if (!isInstanceOf(caught_class, exception))
                     continue;
             }
             return ((CodePntr)mb->code) + table[i].handler_pc;
@@ -180,21 +191,34 @@ CodePntr findCatchBlockInMethod(MethodBlock *mb, Class *exception, CodePntr pc_p
     return NULL;
 }
 
-CodePntr findCatchBlock(Class *exception) {
+CodePntr
+findCatchBlock(Class *exception)
+{
     //Frame *frame = getExecEnv()->last_frame;
 	//assert(getExecEnv()->last_frame == threadSelf()->current_core()->m_mode->frame);
     Frame* frame = threadSelf()->current_core()->m_mode->frame;
     CodePntr handler_pc = NULL;
 
-    while(((handler_pc = findCatchBlockInMethod(frame->mb, exception, frame->last_pc)) == NULL)
-                    && (frame->prev->mb != NULL)) {
+    MINILOG(c_exception_logger, "#" << threadSelf()->current_core()->id() << " finding handler"
+            << " in: " << info(frame)
+            << " on: #" << frame->get_object()->get_group()->get_core()->id()
+            );
 
-        if(frame->mb->is_synchronized()) {
+    while (((handler_pc = findCatchBlockInMethod(frame->mb, exception, frame->last_pc)) == NULL)
+           and (frame->prev->mb != NULL)) {
+
+        if (frame->mb->is_synchronized()) {
             Object *sync_ob = frame->mb->access_flags & ACC_STATIC ?
-                    (Object*)frame->mb->classobj : (Object*)frame->lvars[0];
+                (Object*)frame->mb->classobj : (Object*)frame->lvars[0];
             objectUnlock(sync_ob);
         }
         frame = frame->prev;
+
+        MINILOG(c_exception_logger, "#" << threadSelf()->current_core()->id() << " finding handler"
+                << " in: " << info(frame)
+                << " on: #" << frame->get_object()->get_group()->get_core()->id()
+                );
+
     }
 
     //getExecEnv()->last_frame = frame;

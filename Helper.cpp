@@ -465,7 +465,10 @@ string
 info(Frame* frame)
 {
     ostringstream os;
-    if (frame) {
+    if (frame->is_dummy()) {
+        os << "dummy";
+    }
+    else {
         if (frame->mb) {
             os << (is_priviledged(frame->mb) ? "p" : "");
             os << (frame->mb->is_static() ? "c" : "");
@@ -475,8 +478,6 @@ info(Frame* frame)
             os << "mb=0";
         }
     }
-    else
-        os << "NULL";
     return os.str();
 }
 

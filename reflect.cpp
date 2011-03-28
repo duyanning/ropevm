@@ -845,7 +845,8 @@ uintptr_t *unwrapAndWidenObject(Class *type, Object *arg, uintptr_t *pntr) {
 
 extern uintptr_t *old_executeJava();
 
-Object *invoke(Object *ob, MethodBlock *mb, Object *arg_array, Object *param_types, int check_access)
+Object*
+invoke(Object *ob, MethodBlock *mb, Object *arg_array, Object *param_types, int check_access)
 {
 
     //assert(false);

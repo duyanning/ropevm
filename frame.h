@@ -32,6 +32,7 @@ public:
     ~Frame();
     Object* get_object();
     bool is_top_frame();
+    bool is_dummy() { return object == 0; }
     //{{{ just for debug
     bool is_alive() { return magic == 1978; }
     bool is_dead() { return magic == 2009; }
