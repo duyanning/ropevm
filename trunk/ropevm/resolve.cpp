@@ -87,6 +87,10 @@ retry:
                 goto retry;
 
             classname = CP_UTF8(cp, name_idx);
+            // if (strcmp(classname, "Wolf") == 0) {
+            //     int x = 0;
+            //     x++;
+            // }
             resolved_class = findClassFromClass(classname, classobj);
 
             /* If we can't find the class an exception will already have

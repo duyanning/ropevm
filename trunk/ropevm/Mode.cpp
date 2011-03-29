@@ -463,6 +463,11 @@ Mode::assign_group_for(Object* obj)
         return threadSelf()->get_default_group();
     }
 
+    if (obj and obj->classobj->name() == "Wolf") {
+        int x = 0;
+        x++;
+    }
+
 
     GroupingPolicyEnum final_policy;
     Group* result_group = 0;
@@ -516,6 +521,8 @@ Mode::assign_group_for(Object* obj)
     // grouping according to final policy
     if (final_policy == GP_NEW_GROUP) {
         result_group = OoSpmtJvm::instance()->new_group_for(obj, threadSelf());
+        // dubug-tmp
+        //result_group = OoSpmtJvm::instance()->new_group_for(0, threadSelf());
         threadSelf()->add_core(result_group->get_core());
 
         MINILOG_IF(debug_scaffold::java_main_arrived,

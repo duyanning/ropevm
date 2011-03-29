@@ -1028,11 +1028,11 @@ Core::reexecute_failed_message(Message* message)
         for (int i = 0; i < msg->retval.size(); ++i) {
             *caller_sp++ = msg->retval[i];
         }
-        if (msg->mb->is_synchronized()) {
-            Object *sync_ob = msg->mb->is_static() ?
-                msg->mb->classobj : (Object*)msg->get_source_object(); // lvars[0] is 'this' reference
-            objectUnlock(sync_ob);
-        }
+        // if (msg->mb->is_synchronized()) {
+        //     Object *sync_ob = msg->mb->is_static() ?
+        //         msg->mb->classobj : (Object*)msg->get_source_object(); // lvars[0] is 'this' reference
+        //     objectUnlock(sync_ob);
+        // }
 
         assert(msg->caller_frame->mb);
         // whether native or not

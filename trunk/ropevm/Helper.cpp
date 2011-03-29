@@ -462,6 +462,22 @@ get_grouping_policy_others(Object* obj)
 }
 
 string
+info(MethodBlock* mb)
+{
+    ostringstream os;
+
+    if (mb) {
+        os << (is_priviledged(mb) ? "p" : "");
+        os << (mb->is_static() ? "c" : "");
+        os << mb->classobj->name() << '.' << mb->name << ':' << mb->type;
+    }
+    else {
+        os << "mb=0";
+    }
+    return os.str();
+}
+
+string
 info(Frame* frame)
 {
     ostringstream os;
