@@ -16,7 +16,7 @@
 uintptr_t* executeJava()
 {
     Thread* this_thread = threadSelf();
-    Core* this_core = this_thread->current_core();
+    Core* this_core = this_thread->get_current_core();
 
     this_core->enter_execution();
 

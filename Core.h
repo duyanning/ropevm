@@ -234,6 +234,7 @@ private:
 class DeepBreak {
 };
 
-Core* g_current_core();
+Core* g_get_current_core();
+void g_set_current_core(Core* current_core);
 
 #endif

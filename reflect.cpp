@@ -877,7 +877,7 @@ invoke(Object *ob, MethodBlock *mb, Object *arg_array, Object *param_types, int 
     }
 
     //create_top_frame(ee, mb->classobj, mb, arg, ret);
-    Core* core = threadSelf()->current_core();
+    Core* core = threadSelf()->get_current_core();
 
     Frame* dummy = new Frame(5, 20);
     dummy->mb = 0;

@@ -39,7 +39,7 @@ loop:
 Class *getCallerCallerClass() {
     //Frame *last = getExecEnv()->last_frame->prev;
 	//assert(getExecEnv()->last_frame->prev == threadSelf()->current_core()->m_mode->frame->prev);
-    Frame* last = threadSelf()->current_core()->m_mode->frame->prev;
+    Frame* last = threadSelf()->get_current_core()->m_mode->frame->prev;
 
     if((last->mb == NULL && (last = last->prev)->prev == NULL) ||
              (last = getCallerFrame(last)) == NULL)
@@ -113,7 +113,7 @@ Frame::~Frame()
 Object*
 Frame::get_object()
 {
-    assert(mb);
+    //assert(mb);
 
     // if (mb->is_static()) {
     //     return mb->classobj;
