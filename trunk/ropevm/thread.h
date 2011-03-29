@@ -69,7 +69,7 @@ public:
     Group* m_default_group;
     Core* m_certain_core;
     std::vector<Core*> m_cores;
-    Core* m_current_core;
+
 
     typedef std::map<Object*, Group*> ObjectGroupMap;
     ObjectGroupMap m_object_to_group;
@@ -88,9 +88,12 @@ public:
     Core* get_certain_core();
     void set_certain_core(Core* core);
 
-    Core* current_core();
+    Core* get_current_core();
+    void set_current_core(Core* current_core);
     void scan();
     void scan_cores();
+private:
+    Core* m_current_core;
 };
 
 class VMThread : public Thread {

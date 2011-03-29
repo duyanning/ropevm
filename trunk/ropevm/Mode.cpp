@@ -538,6 +538,7 @@ Mode::assign_group_for(Object* obj)
         assert(false);          // MUST get a final policy
     }
 
+
     assert(result_group);
     return result_group;
 }

@@ -110,7 +110,6 @@ CertainMode::do_execute_method(Object* target_object,
     Frame* old_frame = frame;
     uintptr_t* old_sp = sp;
 
-
     // dummy frame is used to receive RV of top_frame
     // dummy->prev is current frame
     //Frame* dummy = create_frame(0, 0, frame, frame->get_object(), 0, 0, 0);
@@ -186,6 +185,8 @@ CertainMode::do_execute_method(Object* target_object,
     frame = old_frame;
     sp = old_sp;
     pc = old_pc;
+
+    g_set_current_core(m_core);
 
     return ret;
 }

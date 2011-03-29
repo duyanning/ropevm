@@ -518,7 +518,7 @@ public:
         for (;;) {
             if (f->is_certain) break;
             MINILOG(free_frames_logger,
-                    "#" << g_current_core()->id() << " free frame in snapshot " << *f);
+                    "#" << g_get_current_core()->id() << " free frame in snapshot " << *f);
             m_frames.insert(f);
             if (f->is_task_frame) break;
             f = f->prev;
@@ -726,11 +726,18 @@ Core::is_correspondence_btw_msgs_and_snapshots_ok()
 //}}} just for debug
 
 
-Core* g_current_core()
+Core* g_get_current_core()
 {
     Thread* this_thread = threadSelf();
-    Core* this_core = this_thread->current_core();
+    Core* this_core = this_thread->get_current_core();
     return this_core;
+}
+
+void
+g_set_current_core(Core* current_core)
+{
+    Thread* this_thread = threadSelf();
+    this_thread->set_current_core(current_core);
 }
 
 void
