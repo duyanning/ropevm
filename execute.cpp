@@ -73,9 +73,9 @@ void *executeMethodVaList(Object *ob, Class *classobj, MethodBlock *mb, va_list 
 
 //     int args_count = ob ? mb->args_count - 1 : mb->args_count;
 //     std::vector<uintptr_t> args(args_count);
-    std::vector<uintptr_t> args(mb->args_count);
+    std::vector<uintptr_t> arguments(mb->args_count);
 
-    uintptr_t* arg = &args[0];
+    uintptr_t* arg = &arguments[0];
 
     if (ob) {
         *arg++ = (uintptr_t)ob;
@@ -83,7 +83,7 @@ void *executeMethodVaList(Object *ob, Class *classobj, MethodBlock *mb, va_list 
 
     char *sig = mb->type;
     SCAN_SIG(sig, VA_DOUBLE(jargs, arg), VA_SINGLE(jargs, arg));
-    ret = this_core->m_mode->do_execute_method((ob ? ob : classobj), mb, args);
+    ret = this_core->m_mode->do_execute_method((ob ? ob : classobj), mb, arguments);
 
     return ret;
 }
@@ -96,17 +96,17 @@ void *executeMethodList(Object *ob, Class *classobj, MethodBlock *mb, u8 *jargs)
 
 //     int args_count = ob ? mb->args_count - 1 : mb->args_count;
 //     std::vector<uintptr_t> args(args_count);
-    std::vector<uintptr_t> args(mb->args_count);
+    std::vector<uintptr_t> arguments(mb->args_count);
 
-    uintptr_t* arg = &args[0];
+    uintptr_t* arg = &arguments[0];
 
     if (ob) {
         *arg++ = (uintptr_t)ob;
     }
 
     char *sig = mb->type;
-    SCAN_SIG(sig, JA_DOUBLE(jargs, arg), JA_SINGLE(jargs, arg))
-        ret = this_core->m_mode->do_execute_method((ob ? ob : classobj), mb, args);
+    SCAN_SIG(sig, JA_DOUBLE(jargs, arg), JA_SINGLE(jargs, arg));
+    ret = this_core->m_mode->do_execute_method((ob ? ob : classobj), mb, arguments);
 
     return ret;
 }

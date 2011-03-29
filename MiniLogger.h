@@ -11,8 +11,8 @@ public:
     bool is_enabled() const
     {
         return not disable_all_loggers
-            && m_is_enabled
-            && (m_super ? m_super->is_enabled() : true);
+            and m_is_enabled
+            and (m_super ? m_super->is_enabled() : true);
     }
     void enable() { m_is_enabled = true; }
     void disable() { m_is_enabled = false; }

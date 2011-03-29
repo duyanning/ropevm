@@ -31,5 +31,6 @@ GroupingPolicyEnum get_grouping_policy_others(Object* obj);
 
 std::string info(Frame* frame);
 std::string info(Object* o);
+std::string info(MethodBlock* mb);
 
 #endif // HELPER_H

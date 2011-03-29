@@ -120,18 +120,12 @@ CertainMode::do_execute_method(Object* target_object,
     ret = dummy->ostack_base;
 
     //????frame->last_pc = pc;
-    //frame = 0;
 
-    //Object* current_object = frame->get_object();
-    //Object* current_object = frame ? frame->get_object() : 0;
     Object* current_object = frame->get_object();
-    //assert(current_object);
-    //assert(current_object == 0);
 
     assert(target_object);
 
     Group* current_group = current_object ? current_object->get_group() : threadSelf()->get_default_group();
-    //Group* current_group = current_object ? current_object->get_group() : m_core->get_group();
     Group* target_group = target_object->get_group();
 
     assert(target_group->get_thread() == threadSelf());
@@ -139,7 +133,6 @@ CertainMode::do_execute_method(Object* target_object,
     if (target_group == current_group) {
 
         invoke_my_method(target_object, new_mb, &jargs[0],
-                         //frame->get_object(),
                          current_object,
                          0, dummy, dummy->ostack_base);
 
@@ -151,7 +144,6 @@ CertainMode::do_execute_method(Object* target_object,
 
         //assert(frame == dummy->prev);
 
-        //destroy_frame(dummy);
     }
     else {
 
@@ -165,10 +157,11 @@ CertainMode::do_execute_method(Object* target_object,
         MINILOG0("#" << m_core->id() << " e>>>transfers to #" << target_core->id()
                  // << " " << info(current_object) << " => " << info(target_object)
                  // << " (" << current_object << "=>" << target_object << ")"
+                 << " because: " << *msg
                  << " in: "  << info(frame)
                  // << "("  << frame << ")"
                  << " offset: " << pc-(CodePntr)frame->mb->code
-                 << " because: " << *msg);
+                 );
 
         //frame->last_pc = pc;
 
@@ -237,9 +230,10 @@ CertainMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
         MINILOG0("#" << m_core->id() << " i>>>transfers to #" << target_core->id()
                  // << " " << info(current_object) << " => " << info(target_object)
                  // << " (" << current_object << "=>" << target_object << ")"
+                 << " because: " << *msg
                  << " in: "  << info(frame)
                  // << "("  << frame << ")"
-                 << " because: " << *msg);
+                 );
 
         target_core->send_certain_message(msg);
 
@@ -332,6 +326,14 @@ CertainMode::do_method_return(int len)
                      << " in: "  << info(frame)
                      << "because top frame return"
                      );
+
+            // write RV to dummy frame
+            uintptr_t* caller_sp = frame->caller_sp;
+            for (int i = 0; i < len; ++i) {
+                //*caller_sp++ = current_sp[i];
+                *caller_sp++ = sp[i];
+            }
+
             m_core->signal_quit_step_loop(frame->prev->ostack_base);
 
         }
@@ -343,9 +345,10 @@ CertainMode::do_method_return(int len)
             MINILOG0("#" << m_core->id() << " r<<<transfers to #" << target_core->id()
                      // << " " << info(current_object) << " => " << info(target_object)
                      // << " (" << current_object << "=>" << target_object << ")"
+                     << " because: " << *msg
                      << " in: "  << info(frame)
                      // << "("  << frame << ")"
-                     << " because: " << *msg);
+                     );
 
             target_core->send_certain_message(msg);
 
@@ -382,6 +385,14 @@ CertainMode::invoke_my_method(Object* target_object, MethodBlock* new_mb, uintpt
                               CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp,
                               Object* calling_owner)
 {
+    MINILOG_IF(debug_scaffold::java_main_arrived,
+               invoke_return_logger,
+               "III to " << info(new_mb)
+               );
+    // if (strcmp(new_mb->name, "replace") == 0) {
+    //     cout << "sp-base" << endl;
+    // }
+
     //{{{ just for debug
     if (strcmp("forName", new_mb->name) == 0) {
         int x = 0;
@@ -414,6 +425,13 @@ CertainMode::invoke_my_method(Object* target_object, MethodBlock* new_mb, uintpt
               new_mb->native_invoker)(new_mb->classobj, new_mb,
                                       frame->ostack_base);
 
+        //if (debug_scaffold::java_main_arrived and strcmp(new_mb->name, "replace") == 0) {
+        //if (debug_scaffold::java_main_arrived) {
+        // if (debug_scaffold::java_main_arrived and strcmp(new_mb->name, "arraycopy") == 0) {
+        //     cout << "sp-base " << sp - frame->ostack_base << endl;
+        //     //cout << "sp-base " << new_mb->name << endl;
+        // }
+
         if (exception) {
             throw_exception;
         }
@@ -433,6 +451,11 @@ CertainMode::invoke_my_method(Object* target_object, MethodBlock* new_mb, uintpt
 void
 CertainMode::return_my_method(Frame* current_frame, uintptr_t* rv, int len)
 {
+    MINILOG_IF(debug_scaffold::java_main_arrived,
+               invoke_return_logger,
+               "RRR from " << info(current_frame->mb)
+               );
+
     // MINILOGPROC(c_user_change_logger, show_user_change,
     //             (os, m_core->id(), "(C)",
     //              m_user, current_frame->calling_object, 2,

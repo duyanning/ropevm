@@ -843,22 +843,17 @@ uintptr_t *unwrapAndWidenObject(Class *type, Object *arg, uintptr_t *pntr) {
     return NULL;
 }
 
-extern uintptr_t *old_executeJava();
-
 Object*
 invoke(Object *ob, MethodBlock *mb, Object *arg_array, Object *param_types, int check_access)
 {
 
-    //assert(false);
+    //assert(false);              // todo
     Object **args = (Object**)ARRAY_DATA(arg_array);
 //     Class **types = (Object**)ARRAY_DATA(param_types);
     Class **types = (Class**)ARRAY_DATA(param_types);
     int args_len = arg_array ? ARRAY_LEN(arg_array) : 0;
     int types_len = ARRAY_LEN(param_types);
 
-    //ExecEnv *ee = getExecEnv();
-    //uintptr_t *arg;
-    //void *ret;
     int i;
 
     Object *excep;
@@ -876,64 +871,29 @@ invoke(Object *ob, MethodBlock *mb, Object *arg_array, Object *param_types, int 
         return NULL;
     }
 
-    //create_top_frame(ee, mb->classobj, mb, arg, ret);
     Core* core = threadSelf()->get_current_core();
 
-    Frame* dummy = new Frame(5, 20);
-    dummy->mb = 0;
-    dummy->prev = core->m_mode->frame;
-    dummy->_name_ = "dummy frame";
-
-    Frame* top_frame = new Frame(mb->max_locals, mb->max_stack);
-    top_frame->mb = mb;
-    top_frame->prev = dummy;
-    top_frame->_name_ = "top frame";
-    top_frame->object = ob;
-
     void* ret;
-    ret = dummy->ostack_base;
 
-    uintptr_t* arg;
-    arg = top_frame->lvars;
+    Thread* this_thread = threadSelf();
+    Core* this_core = this_thread->get_current_core();
 
-    if(ob)
+    std::vector<uintptr_t> arguments(mb->args_count);
+    uintptr_t* arg = &arguments[0];
+
+    if (ob)
         *arg++ = (uintptr_t)ob;
 
     for(i = 0; i < args_len; i++)
         if((arg = unwrapAndWidenObject(*types++, *args++, arg)) == NULL) {
-            //pop_top_frame(ee);
-//             core->m_mode->frame = frame = old_frame;
-//             core->m_mode->sp = sp = old_sp;
-//             core->m_mode->pc = pc = old_pc;
+            assert(false);      // todo
             signalException(java_lang_IllegalArgumentException, "arg type mismatch");
             return NULL;
         }
 
-    Frame* old_frame = core->m_mode->frame;
-    uintptr_t* old_sp = core->m_mode->sp;
-    CodePntr old_pc = core->m_mode->pc;
-
-    core->m_mode->frame = top_frame;
-    core->m_mode->sp = top_frame->ostack_base;
-    core->m_mode->pc = (CodePntr)top_frame->mb->code;
-
-    if(mb->is_synchronized())
-        objectLock(ob ? ob : (Object*)mb->classobj);
-
-    if(mb->is_native())
-        (*(u4 *(*)(Class*, MethodBlock*, u4*))
-         mb->native_invoker)(mb->classobj, mb, (u4*)ret);
-    else
-        //old_executeJava();
-        executeJava();
-
-    if(mb->is_synchronized())
-        objectUnlock(ob ? ob : (Object*)mb->classobj);
-
-    //pop_top_frame(ee);
-    core->m_mode->frame = old_frame;
-    core->m_mode->sp = old_sp;
-    core->m_mode->pc = old_pc;
+    //ret = this_core->m_mode->do_execute_method((ob ? ob : classobj), mb, arguments);
+    assert(ob);
+    ret = this_core->m_mode->do_execute_method(ob, mb, arguments);
 
 
     if((excep = exceptionOccurred())) {
