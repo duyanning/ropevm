@@ -67,7 +67,7 @@ public:
     unsigned int notify_id;
 
     Group* m_default_group;
-    Core* m_certain_core;
+    //Core* m_certain_core;
     std::vector<Core*> m_cores;
 
 
@@ -85,8 +85,8 @@ public:
     uintptr_t* go();
 
     Group* get_default_group();
-    Core* get_certain_core();
-    void set_certain_core(Core* core);
+    // Core* get_certain_core();
+    // void set_certain_core(Core* core);
 
     Core* get_current_core();
     void set_current_core(Core* current_core);

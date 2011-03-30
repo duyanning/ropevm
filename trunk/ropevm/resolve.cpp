@@ -384,11 +384,11 @@ MethodBlock* get_rvp_method(MethodBlock* complete)
     std::string method_name;
 
     if (strcmp(complete->name, "<init>") != 0) {
-        method_name += "_p_slice_for_";
+        method_name += "__rvp__";
         method_name += complete->name;
     }
     else {
-        method_name = "_p_slice_for_ctor";
+        method_name = "__rvp__ctor";
     }
 
     // note: lookupMethod compares pointers, so we use newUtf8

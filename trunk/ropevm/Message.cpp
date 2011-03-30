@@ -35,10 +35,10 @@ Message::is_equal_to(Message& msg)
 {
     if (type != msg.type)
         return false;
-    if (m_source_object != msg.m_source_object)
-        return false;
-    if (m_target_object != msg.m_target_object)
-        return false;
+    // if (m_source_object != msg.m_source_object)
+    //     return false;
+    // if (m_target_object != msg.m_target_object)
+    //     return false;
     return equal(msg);
 }
 

@@ -177,7 +177,7 @@ Core::start()
 }
 
 void
-Core::send_certain_message(Message* message)
+Core::transfer_control(Message* message)
 {
     assert(is_valid_certain_msg(message));
 
@@ -319,12 +319,11 @@ Core::leave_certain_mode(Message* message)
 }
 
 void
-Core::enter_certain_mode()
+Core::on_enter_certain_mode()
 {
-    //assert(m_user == m_owner);
     assert(not m_mode->is_certain_mode());
 
-    m_thread->set_certain_core(this);
+    //m_thread->set_certain_core(this);
 
     record_current_non_certain_mode();
     change_mode(&m_certain_mode);
@@ -544,7 +543,7 @@ Core::collect_inuse_frames(set<Frame*>& frames)
     Frame* f = mode->frame;
     if (f) {
         if (f->mb) {
-            cout << f->mb->name << endl;
+            cout << "inuse " << f->mb->name << endl;
         }
         assert(f->mb);
         //cout << "i am " << *f->mb << endl;

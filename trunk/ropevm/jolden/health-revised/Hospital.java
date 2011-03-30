@@ -4,7 +4,6 @@ import java.util.Enumeration;
 /**
  * A class representing a hospital in the Columbian health care system.
  **/
-//@Speculative
 class Hospital
 {
     private int  personnel;
@@ -25,7 +24,7 @@ class Hospital
         inside = new List();
         up = new List();
     }
-    void _p_slice_for_ctor(int level)
+    void __rvp__ctor(int level)
     {
     }
 
@@ -46,7 +45,7 @@ class Hospital
             waiting.add(p);
         }
     }
-    final void _p_slice_for_putInHospital(Patient p)
+    final void __rvp__putInHospital(Patient p)
     {
     }
 
@@ -68,7 +67,7 @@ class Hospital
             }
         }
     }
-    final void _p_slice_for_checkPatientsInside(List returned)
+    final void __rvp__checkPatientsInside(List returned)
     {
     }
 
@@ -99,7 +98,7 @@ class Hospital
         }
         return up;
     }
-    final List _p_slice_for_checkPatientsAssess(Village v)
+    final List __rvp__checkPatientsAssess(Village v)
     {
         return up;
     }
@@ -119,7 +118,7 @@ class Hospital
             }
         }
     }
-    final void _p_slice_for_checkPatientsWaiting()
+    final void __rvp__checkPatientsWaiting()
     {
     }
 }

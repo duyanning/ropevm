@@ -308,9 +308,7 @@ int main(int argc, char *argv[])
             //assert(threadSelf()->get_certain_core()->get_group() == 0);
             debug_scaffold::java_main_arrived = true;
 
-            //OoSpmtJvm::instance()->new_group_for(main_class, threadSelf()->get_certain_core());
-
-            threadSelf()->get_certain_core()->m_is_waiting_for_task = false;
+            //threadSelf()->get_certain_core()->m_is_waiting_for_task = false;
 
             executeStaticMethod(main_class, mb, array);
 
