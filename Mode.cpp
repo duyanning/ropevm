@@ -463,9 +463,12 @@ Mode::assign_group_for(Object* obj)
         return threadSelf()->get_default_group();
     }
 
-    if (obj and obj->classobj->name() == "Wolf") {
+    MINILOG0_IF(is_app_class(obj->classobj), "app obj of " << obj->classobj->name());
+    if (is_app_class(obj->classobj)) {
+        cout << "app obj for " << obj->classobj->name() << endl;
         int x = 0;
         x++;
+
     }
 
 

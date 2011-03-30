@@ -9,7 +9,7 @@ class Beast {
 }
 
 
-@GroupingPolicies()
+@GroupingPolicies(self=GroupingPolicy.NEW_GROUP)
 class Wolf extends Beast {
     public Wolf()
     {
@@ -22,7 +22,7 @@ class Wolf extends Beast {
         x++;
     }
 
-    public void _p_slice_for_ctor()
+    public void __rvp__ctor()
     {
         int x = 0;
         x = 6;
@@ -41,7 +41,7 @@ class Wolf extends Beast {
         return x;
     }
 
-    public int _p_slice_for_f()
+    public int __rvp__f()
     {
         return 6;
         //return 5;	// wrong pslice

@@ -1,16 +1,12 @@
 
 import java.util.Enumeration;
 
-@java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
-@java.lang.annotation.Target({ java.lang.annotation.ElementType.TYPE })
-@interface Speculative {
-}
 
 /**
  * A class represnting a village in the Columbian health care system
  * simulation.
  **/
-@SpeculativeObject
+@GroupingPolicies(self=GroupingPolicy.NEW_GROUP)
 class Village
 {
     private Village[] forward;
@@ -46,7 +42,7 @@ class Village
         //up = new List();
     }
 
-    public void _p_slice_for_ctor(int level, int l, Village p, int s)
+    public void __rvp__ctor(int level, int l, Village p, int s)
     {
     }
 
@@ -62,7 +58,7 @@ class Village
         forward[i] = c;
     }
 
-    void _p_slice_for_addVillage(int i, Village c)
+    void __rvp__addVillage(int i, Village c)
     {
     }
 
@@ -78,7 +74,7 @@ class Village
         return (rand > 0.1 || back == null);
     }
 
-    final boolean _p_slice_for_staysHere()
+    final boolean __rvp__staysHere()
     {
         return true;
     }
@@ -109,7 +105,7 @@ class Village
         }
     }
 
-    static final Village _p_slice_for_createVillage(int level, int label, Village back, int seed)
+    static final Village __rvp__createVillage(int level, int label, Village back, int seed)
     {
         return null;
     }
@@ -155,7 +151,7 @@ class Village
         return up;
     }
 
-    List _p_slice_for_simulate()
+    List __rvp__simulate()
     {
         //return null;
         up = hospital.checkPatientsAssess(this);
@@ -195,7 +191,7 @@ class Village
         return r;
     }
 
-    Results _p_slice_for_getResults()
+    Results __rvp__getResults()
     {
         return null;
     }
@@ -215,7 +211,7 @@ class Village
         return p;
     }
 
-    private Patient _p_slice_for_generatePatient()
+    private Patient __rvp__generatePatient()
     {
         return null;
     }
@@ -225,7 +221,7 @@ class Village
         return (new Integer(label)).toString();
         //return null;
     }
-    public String _p_slice_for_toString()
+    public String __rvp__toString()
     {
         return null;
     }
@@ -245,7 +241,7 @@ class Village
         return answer;
     }
 
-    static float _p_slice_for_myRand(int idum)
+    static float __rvp__myRand(int idum)
     {
         idum ^= MASK;
         int k = idum / IQ;

@@ -1167,22 +1167,19 @@ Thread::Thread()
     // create the only default group
     m_default_group = OoSpmtJvm::instance()->new_group_for(0, this);
     Core* core = m_default_group->get_core();
-    //core->set_certain_mode();
-
     add_core(core);
-    //core->enter_certain_mode();
-    set_certain_core(core);
-    core->switch_to_certain_mode();
 
-    core->start();
     //set_certain_core(core);
-    m_current_core = core;
+    core->switch_to_certain_mode();
+    core->m_is_waiting_for_task = false;
+
+    core->start();              // need?
+
+    m_current_core = core;      // need?
 }
 
 Thread::~Thread()
 {
-    //    delete ee;
-    //    jvm.freeCore(m_mainCore);
 }
 
 void
@@ -1260,18 +1257,17 @@ Thread::go()
     return 0;
 }
 
-Core*
-Thread::get_certain_core()
-{
-    return m_certain_core;
-}
+// Core*
+// Thread::get_certain_core()
+// {
+//     return m_certain_core;
+// }
 
-void
-Thread::set_certain_core(Core* core)
-{
-    m_certain_core = core;
-    //core->m_is_waiting_for_task = false;
-}
+// void
+// Thread::set_certain_core(Core* core)
+// {
+//     m_certain_core = core;
+// }
 
 Group*
 Thread::get_default_group()

@@ -356,7 +356,7 @@ Thread::scan()
     //ExecEnv *ee = thread->ee;
     //Frame *frame = ee->last_frame;
 	//assert(ee->last_frame == thread->get_certain_core()->m_mode->frame);
-    Frame* frame = this->get_certain_core()->m_mode->frame;
+    Frame* frame = 0;//this->get_certain_core()->m_mode->frame;
     uintptr_t *end, *slot;
 
     TRACE_GC("Scanning stacks for thread 0x%x id %d\n", thread, this->id);

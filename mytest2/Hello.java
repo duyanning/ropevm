@@ -1,8 +1,3 @@
-@java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
-@java.lang.annotation.Target({ java.lang.annotation.ElementType.TYPE })
-@interface Speculative {
-}
-
 class Beast {
     public int f(int a)
     {
@@ -12,7 +7,7 @@ class Beast {
 
 }
 
-@Speculative
+@GroupingPolicies(self=GroupingPolicy.NEW_GROUP)
 class Dog extends Beast {
     public Dog()
     {
@@ -25,7 +20,7 @@ class Dog extends Beast {
         x++;
     }
 
-    public void _p_slice_for_ctor()
+    public void __rvp__ctor()
     {
         int x = 0;
         x = 6;
@@ -36,14 +31,14 @@ class Dog extends Beast {
         return 11;
     }
 
-    public int _p_slice_for_g()
+    public int __rvp__g()
     {
         //return 11;
         return 13;	// wrong pslice
     }
 }
 
-@Speculative
+@GroupingPolicies(self=GroupingPolicy.NEW_GROUP)
 class Wolf extends Beast {
     public Wolf()
     {
@@ -62,7 +57,7 @@ class Wolf extends Beast {
 */
     }
 
-    public void _p_slice_for_ctor()
+    public void __rvp__ctor()
     {
         int x = 0;
         x = 6;
@@ -81,7 +76,7 @@ class Wolf extends Beast {
         return x;
     }
 
-    public int _p_slice_for_f(int a)
+    public int __rvp__f(int a)
     {
         //return 6;
         return 5;	// wrong pslice
@@ -89,6 +84,7 @@ class Wolf extends Beast {
 
 }
 
+@ClassGroupingPolicies(self=GroupingPolicy.NEW_GROUP)
 class Hello {
     public static void main(String[] args)
     {

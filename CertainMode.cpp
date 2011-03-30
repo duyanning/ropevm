@@ -54,47 +54,47 @@ CertainMode::step()
     exec_an_instr();
 }
 
-// transfer certain control/mode from src to dst
-void transfer_certain_control(Core* src, Core* dst, Message* msg)
-{
-    // stat
-    OoSpmtJvm::instance()->m_count_control_transfer++;
+// // transfer certain control/mode from src to dst
+// void transfer_certain_control(Core* src, Core* dst, Message* msg)
+// {
+//     // stat
+//     OoSpmtJvm::instance()->m_count_control_transfer++;
 
 
-    assert(debug_scaffold::java_main_arrived);
-    //{{{ just for debug
-    if (src->id() == 6 && dst->id() == 0) {
-        int x = 0;
-        x++;
-    }
-    //}}} just for debug
+//     assert(debug_scaffold::java_main_arrived);
+//     //{{{ just for debug
+//     if (src->id() == 6 && dst->id() == 0) {
+//         int x = 0;
+//         x++;
+//     }
+//     //}}} just for debug
 
-    // MINILOG0_IF(src->get_owner(),
-    //             "#" << src->id() << " transfer certain control to #" << dst->id()
-    //             << " frame: " << src->m_certain_mode.frame
-    //             << " (o:"
-    //             << src->get_owner()
-    //             << ", u:" << src->get_user()
-    //             << "=>o:"
-    //             << dst->get_owner()
-    //             << ")"
-    //             << "(o:"
-    //             << type_name(src->get_owner())
-    //             << ", u:" << type_name(src->get_user())
-    //             << "=>o:"
-    //             << type_name(dst->get_owner())
-    //             << ")"
-    //             << " because: " << *msg)
+//     // MINILOG0_IF(src->get_owner(),
+//     //             "#" << src->id() << " transfer certain control to #" << dst->id()
+//     //             << " frame: " << src->m_certain_mode.frame
+//     //             << " (o:"
+//     //             << src->get_owner()
+//     //             << ", u:" << src->get_user()
+//     //             << "=>o:"
+//     //             << dst->get_owner()
+//     //             << ")"
+//     //             << "(o:"
+//     //             << type_name(src->get_owner())
+//     //             << ", u:" << type_name(src->get_user())
+//     //             << "=>o:"
+//     //             << type_name(dst->get_owner())
+//     //             << ")"
+//     //             << " because: " << *msg)
 
-        // MINILOG0_IF(src->get_owner() && src->m_certain_mode.frame->mb,
-        //             "#" << src->id() << " frame:"
-        //             << *src->m_certain_mode.frame
-        //             );
+//         // MINILOG0_IF(src->get_owner() && src->m_certain_mode.frame->mb,
+//         //             "#" << src->id() << " frame:"
+//         //             << *src->m_certain_mode.frame
+//         //             );
 
 
-    dst->send_certain_message(msg);
-    src->leave_certain_mode(msg);
-}
+//     dst->transfer_control(msg);
+//     src->leave_certain_mode(msg);
+// }
 
 
 // DO NOT forget invoke (reflect.cpp)!!!
@@ -166,7 +166,8 @@ CertainMode::do_execute_method(Object* target_object,
         //frame->last_pc = pc;
 
         m_core->halt();
-        target_core->send_certain_message(msg);
+        m_core->m_is_waiting_for_task = false;
+        target_core->transfer_control(msg);
         //target_core->execute_method();
         executeJava();
         m_core->switch_to_certain_mode();
@@ -235,7 +236,7 @@ CertainMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
                  // << "("  << frame << ")"
                  );
 
-        target_core->send_certain_message(msg);
+        target_core->transfer_control(msg);
 
         if (current_group->can_speculate()) {
 
@@ -246,6 +247,7 @@ CertainMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
             else {
                 MINILOG0("#" << m_core->id() << " start speculative execution");
 
+                m_core->m_is_waiting_for_task = false;
                 m_core->switch_to_speculative_mode();
                 if (is_priviledged(new_mb)) {
                     MINILOG(s_logger,
@@ -350,7 +352,7 @@ CertainMode::do_method_return(int len)
                      // << "("  << frame << ")"
                      );
 
-            target_core->send_certain_message(msg);
+            target_core->transfer_control(msg);
 
         }
 
@@ -695,7 +697,7 @@ CertainMode::do_put_field(Object* target_object, FieldBlock* fb,
         pc += 3;
 
         m_core->halt();
-        target_core->send_certain_message(msg);
+        target_core->transfer_control(msg);
 
         return;         // avoid sp-=... and pc += ...
 
@@ -766,7 +768,7 @@ CertainMode::do_array_store(Object* array, int index, int type_size)
         pc += 1;
 
         m_core->halt();
-        target_core->send_certain_message(msg);
+        target_core->transfer_control(msg);
 
         return;         // avoid sp-=... and pc += ...
 

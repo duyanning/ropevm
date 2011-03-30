@@ -11,6 +11,7 @@ import java.io.*;
  * Feb. 1988.
  * </cite>
  **/
+@ClassGroupingPolicies(self=GroupingPolicy.NEW_GROUP)
 public class Health
 {
     /**

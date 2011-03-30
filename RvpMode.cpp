@@ -209,8 +209,6 @@ RvpMode::do_method_return(int len)
             rv.push_back(read(&sp[i]));
         }
 
-        // ReturnMsg* msg = new ReturnMsg(frame->mb, frame->prev, &rv[0], len,
-        //                                frame->caller_sp, frame->caller_pc, 0);
         ReturnMsg* msg = new ReturnMsg(frame->object, frame->mb, frame->prev,
                                        frame->calling_object, &rv[0], len,
                                        frame->caller_sp, frame->caller_pc);
@@ -226,7 +224,37 @@ RvpMode::do_method_return(int len)
         assert(is_sp_ok(sp, frame));
         assert(is_pc_ok(pc, frame->mb));
 
-        m_core->leave_rvp_mode(target_object);
+        //m_core->leave_rvp_mode(target_object);
+
+
+        MINILOG0("#" << m_core->id() << " leave RVP mode");
+
+        m_core->m_speculative_mode.pc = pc;
+        m_core->m_speculative_mode.frame = frame;
+        m_core->m_speculative_mode.sp = sp;
+
+        m_core->switch_to_speculative_mode();
+
+        // MINILOG(when_leave_rvp_logger,
+        //         "#" << id() << " when leave rvp mode");
+        // MINILOG(when_leave_rvp_logger,
+        //         "#" << id() << " ---------------------------");
+        // MINILOG(when_leave_rvp_logger,
+        //         "#" << id() << " now use cache ver(" << m_cache.version() << ")");
+        // MINILOG(when_leave_rvp_logger,
+        //         "#" << id() << " SPEC details:");
+        // // MINILOGPROC(when_leave_rvp_logger,
+        // //             show_triple,
+        // //             (os, id(),
+        // //              m_speculative_mode.frame, m_speculative_mode.sp, m_speculative_mode.pc,
+        // //              m_speculative_mode.m_user,
+        // //              true));
+
+        // MINILOG(when_leave_rvp_logger,
+        //         "#" << id() << " ---------------------------");
+
+        m_core->m_rvpbuf.clear();
+
 
         // MINILOG(r_destroy_frame_logger, "#" << m_core->id()
         //         << " free rvpframe" << *current_frame);
