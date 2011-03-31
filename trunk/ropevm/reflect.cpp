@@ -871,8 +871,6 @@ invoke(Object *ob, MethodBlock *mb, Object *arg_array, Object *param_types, int 
         return NULL;
     }
 
-    Core* core = threadSelf()->get_current_core();
-
     void* ret;
 
     Thread* this_thread = threadSelf();

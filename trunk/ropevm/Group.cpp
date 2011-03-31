@@ -7,8 +7,8 @@
 
 Group::Group(Thread* thread, Object* leader, Core* core)
     :
-    m_thread(thread),
     m_leader(leader),
+    m_thread(thread),
     m_core(core)
 {
     assert(core);

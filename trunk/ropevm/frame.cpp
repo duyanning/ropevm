@@ -10,7 +10,8 @@ using namespace std;
    via reflection.  These frames must be skipped, else it will
    appear that the caller was loaded by the boot loader. */
 
-Frame *getCallerFrame(Frame *last) {
+Frame *getCallerFrame(Frame *last)
+{
 
 loop:
     /* Skip the top frame, and check if the
@@ -36,7 +37,8 @@ loop:
     return last;
 }
 
-Class *getCallerCallerClass() {
+Class *getCallerCallerClass()
+{
     //Frame *last = getExecEnv()->last_frame->prev;
 	//assert(getExecEnv()->last_frame->prev == threadSelf()->current_core()->m_mode->frame->prev);
     Frame* last = threadSelf()->get_current_core()->m_mode->frame->prev;
@@ -113,13 +115,6 @@ Frame::~Frame()
 Object*
 Frame::get_object()
 {
-    //assert(mb);
-
-    // if (mb->is_static()) {
-    //     return mb->classobj;
-    // }
-    // return (Object*)lvars[0];
-    //assert(object);
     return object;
 }
 
@@ -129,11 +124,8 @@ Frame::is_top_frame()
     return prev->mb == 0;
 }
 
-//               << " (C) destroy frame " << frame << "()" << " for " << *frame->mb);
-    // m_cache.clear(f->lvars, f->lvars + f->mb->max_locals);
-    // m_cache.clear(f->ostack_base, f->ostack_base + f->mb->max_stack);
-
-std::ostream& operator<<(std::ostream& os, const Frame& f)
+std::ostream&
+operator<<(std::ostream& os, const Frame& f)
 {
     os << *f.mb
        << " " << &f
@@ -156,30 +148,35 @@ void copy_args_to_params(uintptr_t* arg, uintptr_t* param, int count)
     std::copy(arg, arg + count, param);
 }
 
-
-Frame* create_frame(Object* object, MethodBlock* new_mb, Frame* prev, Object* calling_object, uintptr_t* args, uintptr_t* caller_sp, CodePntr caller_pc, Object* calling_owner)
+Frame*
+create_dummy_frame(Frame* caller_frame)
 {
-    //assert(calling_object || calling_owner);
+    Frame* dummy_frame = new Frame(5, 20);
+    dummy_frame->prev = caller_frame;
+    dummy_frame->_name_ = "dummy frame";
+    return dummy_frame;
+}
 
-    Frame* new_frame = 0;
-    if (new_mb) {
-        u2 lvars_size = new_mb->max_locals;
-        u2 ostack_size = new_mb->max_stack;
+Frame*
+create_frame(Object* object, MethodBlock* new_mb, Frame* caller_prev, Object* calling_object, uintptr_t* args, uintptr_t* caller_sp, CodePntr caller_pc)
+{
+    assert(new_mb);
 
-        if (new_mb->max_stack == 0 && new_mb->is_native()) {
-            ostack_size = std::max(new_mb->max_locals, (u2)4);
-        }
+    u2 lvars_size = new_mb->max_locals;
+    u2 ostack_size = new_mb->max_stack;
 
-        lvars_size = lvars_size != 0 ? lvars_size : 4;
-        ostack_size = ostack_size != 0 ? ostack_size : 4;
-        new_frame = new Frame(lvars_size, ostack_size);
+    if (new_mb->max_stack == 0 && new_mb->is_native()) {
+        ostack_size = std::max(new_mb->max_locals, (u2)4);
     }
-    else {                      // dummy frame
-        new_frame = new Frame(5, 20);
-    }
+
+    lvars_size = lvars_size != 0 ? lvars_size : 4;
+    ostack_size = ostack_size != 0 ? ostack_size : 4;
+
+    Frame* new_frame = new_frame = new Frame(lvars_size, ostack_size);
+
     new_frame->object = object;
     new_frame->mb = new_mb;
-    new_frame->prev = prev;
+    new_frame->prev = caller_prev;
     new_frame->calling_object = calling_object;
     new_frame->caller_sp = caller_sp;
     new_frame->caller_pc = caller_pc;

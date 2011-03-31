@@ -81,17 +81,15 @@ RvpMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
 
     sp -= new_mb->args_count;
 
-    uintptr_t* arg1 = sp;
-
     std::vector<uintptr_t> args;
     for (int i = 0; i < new_mb->args_count; ++i) {
         args.push_back(read(&sp[i]));
     }
 
-    MethodBlock* simplified_mb = get_rvp_method(new_mb);
+    MethodBlock* rvp_mb = get_rvp_method(new_mb);
 
     Frame* new_frame =
-        create_frame(target_object, simplified_mb, frame, 0, &args[0], sp, pc);
+        create_frame(target_object, rvp_mb, frame, 0, &args[0], sp, pc);
 
     new_frame->is_certain = false;
 
