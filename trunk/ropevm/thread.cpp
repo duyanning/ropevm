@@ -1,12 +1,12 @@
 #include "std.h"
-#include "jam.h"
+#include "rope.h"
 #include "thread.h"
 #include "lock.h"
 #include "hash.h"
 #include "symbol.h"
 #include "excep.h"
 #include "Core.h"
-#include "OoSpmtJvm.h"
+#include "RopeVM.h"
 #include "DebugScaffold.h"
 #include "Loggers.h"
 #include "Group.h"
@@ -1038,7 +1038,7 @@ void initialiseThreadStage1(InitArgs *args) {
     setThreadSelf(&main_thread);
 
     // create the nonspec group
-    //OoSpmtJvm::instance()->new_group_for(0, threadSelf()->get_certain_core());
+    //RopeVM::instance()->new_group_for(0, threadSelf()->get_certain_core());
 
 }
 
@@ -1165,13 +1165,13 @@ Thread::Thread()
     notify_id(0)
 {
     // create the only default group
-    m_default_group = OoSpmtJvm::instance()->new_group_for(0, this);
+    m_default_group = RopeVM::instance()->new_group_for(0, this);
     Core* core = m_default_group->get_core();
     add_core(core);
 
     //set_certain_core(core);
     core->switch_to_certain_mode();
-    core->m_is_waiting_for_task = false;
+    //core->m_is_waiting_for_task = false;
 
     core->start();              // need?
 

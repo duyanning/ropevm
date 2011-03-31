@@ -1,6 +1,6 @@
 #include "std.h"
 #include "Statistic.h"
-#include "jam.h"
+#include "rope.h"
 #include "Mode.h"
 
 using namespace std;

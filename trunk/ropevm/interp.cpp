@@ -1,12 +1,12 @@
 #include "std.h"
-#include "jam.h"
+#include "rope.h"
 #include "thread.h"
 #include "lock.h"
 #include "interp.h"
 #include "excep.h"
 #include "symbol.h"
 #include "Core.h"
-#include "OoSpmtJvm.h"
+#include "RopeVM.h"
 #include "interp-indirect.h"
 #include "Helper.h"
 #include "Statistic.h"
@@ -18,12 +18,8 @@ uintptr_t* executeJava()
     Thread* this_thread = threadSelf();
     Core* this_core = this_thread->get_current_core();
 
-    this_core->enter_execution();
-
     uintptr_t* result;
     result = this_thread->go();
-
-    this_core->leave_execution();
 
     return result;
 }

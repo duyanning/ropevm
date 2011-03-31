@@ -1,5 +1,5 @@
 #include "std.h"
-#include "OoSpmtJvm.h"
+#include "RopeVM.h"
 #include "Helper.h"
 #include "Statistic.h"
 #include "Group.h"
@@ -7,20 +7,20 @@
 
 using namespace std;
 
-OoSpmtJvm* OoSpmtJvm::m_instance = 0;
-int OoSpmtJvm::m_next_core_id = 0;
+RopeVM* RopeVM::m_instance = 0;
+int RopeVM::m_next_core_id = 0;
 
-OoSpmtJvm*
-OoSpmtJvm::instance()
+RopeVM*
+RopeVM::instance()
 {
     if (m_instance == 0) {
-        m_instance = new OoSpmtJvm;
+        m_instance = new RopeVM;
     }
 
     return m_instance;
 }
 
-OoSpmtJvm::OoSpmtJvm()
+RopeVM::RopeVM()
 {
     pthread_mutex_init(&m_lock, 0);
 
@@ -28,7 +28,7 @@ OoSpmtJvm::OoSpmtJvm()
     m_count_control_transfer = 0;
 }
 
-// OoSpmtJvm::~OoSpmtJvm()
+// RopeVM::~RopeVM()
 // {
 //     //    std::cout << "total cores: " << m_cores.size() << std::endl;
 //     for (vector<Core*>::iterator i = m_cores.begin(); i != m_cores.end(); ++i) {
@@ -38,7 +38,7 @@ OoSpmtJvm::OoSpmtJvm()
 // }
 
 Core*
-OoSpmtJvm::alloc_core()
+RopeVM::alloc_core()
 {
     Core* core = 0;
     pthread_mutex_lock(&m_lock);
@@ -57,7 +57,7 @@ OoSpmtJvm::alloc_core()
 }
 
 Group*
-OoSpmtJvm::new_group_for(Object* leader, Thread* thread)
+RopeVM::new_group_for(Object* leader, Thread* thread)
 {
     Core* core = alloc_core();
     //Thread* thread = threadSelf();
@@ -68,15 +68,15 @@ OoSpmtJvm::new_group_for(Object* leader, Thread* thread)
     return group;
 }
 
-bool OoSpmtJvm::do_spec;
+bool RopeVM::do_spec;
 
 void initialiseJvm(InitArgs *args)
 {
-    OoSpmtJvm::do_spec = args->do_spec;
+    RopeVM::do_spec = args->do_spec;
 }
 
 void
-OoSpmtJvm::report_stat(std::ostream& os)
+RopeVM::report_stat(std::ostream& os)
 {
     Statistic::instance()->report_stat(os);
 

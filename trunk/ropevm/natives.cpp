@@ -3,7 +3,7 @@
 #endif
 
 #include "std.h"
-#include "jam.h"
+#include "rope.h"
 #include "alloc.h"
 #include "thread.h"
 #include "lock.h"

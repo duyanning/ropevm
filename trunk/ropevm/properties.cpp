@@ -1,5 +1,5 @@
 #include "std.h"
-#include "jam.h"
+#include "rope.h"
 #include "symbol.h"
 
 /* If we have endian.h include it.  Otherwise, include sys/param.h

@@ -1,8 +1,8 @@
 #include "std.h"
-#include "jam.h"
+#include "rope.h"
 #include "class.h"
 #include "symbol.h"
-#include "OoSpmtJvm.h"
+#include "RopeVM.h"
 #include "frame.h"
 #include "thread.h"
 #include "DebugScaffold.h"
@@ -25,7 +25,7 @@ void showNonStandardOptions() {
     printf("  -Xbootclasspath/c:%s\n", BCP_MESSAGE);
     printf("\t\t   locations where to find Classpath's classes\n");
     printf("  -Xbootclasspath/v:%s\n", BCP_MESSAGE);
-    printf("\t\t   locations where to find JamVM's classes\n");
+    printf("\t\t   locations where to find RopeVM's classes\n");
     printf("  -Xnoasyncgc\t   turn off asynchronous garbage collection\n");
     printf("  -Xcompactalways  always compact the heap when garbage-collecting\n");
     printf("  -Xnocompact\t   turn off heap-compaction\n");
@@ -59,7 +59,7 @@ void showUsage(char *name) {
 
 void showVersionAndCopyright() {
     printf("java version \"%s\"\n", JAVA_COMPAT_VERSION);
-    printf("JamVM version %s\n", VERSION);
+    printf("RopeVM version %s\n", VERSION);
     printf("Copyright (C) 2003-2008 Robert Lougher <rob@lougher.org.uk>\n\n");
     printf("This program is free software; you can redistribute it and/or\n");
     printf("modify it under the terms of the GNU General Public License\n");
@@ -99,7 +99,7 @@ void showVersionAndCopyright() {
 }
 
 void showFullVersion() {
-    printf("java full version \"jamvm-%s\"\n", JAVA_COMPAT_VERSION);
+    printf("java full version \"ropevm-%s\"\n", JAVA_COMPAT_VERSION);
 }
 
 int parseCommandLine(int argc, char *argv[], InitArgs *args) {
@@ -124,7 +124,7 @@ int parseCommandLine(int argc, char *argv[], InitArgs *args) {
 
             if(is_jar) {
                 args->classpath = argv[i];
-                argv[i] = const_cast<char*>("jamvm/java/lang/JarLauncher");
+                argv[i] = const_cast<char*>("ropevm/java/lang/JarLauncher");
             }
 
             return i;
@@ -328,13 +328,13 @@ int main(int argc, char *argv[])
     Statistic::instance()->report_stat(std::cout);
 
     const char* fname = 0;
-    if (OoSpmtJvm::do_spec)
+    if (RopeVM::do_spec)
         fname = "stat-report-spec.txt";
     else
         fname = "stat-report-nonspec.txt";
 
     std::ofstream ofs(fname);
-    OoSpmtJvm::instance()->report_stat(ofs);
+    RopeVM::instance()->report_stat(ofs);
     ofs << std::endl;
     //}}} statistic
 

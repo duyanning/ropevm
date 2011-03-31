@@ -1,5 +1,5 @@
 #include "std.h"
-#include "jam.h"
+#include "rope.h"
 
 #ifndef USE_FFI
 #include <string.h>

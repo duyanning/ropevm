@@ -30,9 +30,6 @@ public:
     virtual void mode_write(uint32_t* addr, uint32_t value);
     virtual void step();
 
-    virtual void enter_execution();
-    virtual void leave_execution();
-
     bool load_next_task();
     void snapshot(bool shot_frame = true);
 

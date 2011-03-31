@@ -1,10 +1,10 @@
 #include "std.h"
-#include "jam.h"
+#include "rope.h"
 #include "Mode.h"
 
 #include "lock.h"
 #include "Core.h"
-#include "OoSpmtJvm.h"
+#include "RopeVM.h"
 #include "DebugScaffold.h"
 #include "Helper.h"
 #include "Loggers.h"
@@ -64,7 +64,7 @@ Mode::before_alloc_object()
 void
 Mode::after_alloc_object(Object* new_object)
 {
-    //if (not OoSpmtJvm::do_spec) return;
+    //if (not RopeVM::do_spec) return;
 
     Group* group = assign_group_for(new_object);
     new_object->set_group(group);
@@ -459,7 +459,7 @@ Mode::get_group()
 Group*
 Mode::assign_group_for(Object* obj)
 {
-    if (not OoSpmtJvm::do_spec) {
+    if (not RopeVM::do_spec) {
         return threadSelf()->get_default_group();
     }
 
@@ -523,9 +523,9 @@ Mode::assign_group_for(Object* obj)
 
     // grouping according to final policy
     if (final_policy == GP_NEW_GROUP) {
-        result_group = OoSpmtJvm::instance()->new_group_for(obj, threadSelf());
+        result_group = RopeVM::instance()->new_group_for(obj, threadSelf());
         // dubug-tmp
-        //result_group = OoSpmtJvm::instance()->new_group_for(0, threadSelf());
+        //result_group = RopeVM::instance()->new_group_for(0, threadSelf());
         threadSelf()->add_core(result_group->get_core());
 
         MINILOG_IF(debug_scaffold::java_main_arrived,

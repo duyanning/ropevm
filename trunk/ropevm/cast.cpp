@@ -1,5 +1,5 @@
 #include "std.h"
-#include "jam.h"
+#include "rope.h"
 
 char implements(Class *classobj, Class *test) {
     ClassBlock *test_cb = CLASS_CB(test);

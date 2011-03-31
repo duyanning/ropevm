@@ -1,5 +1,5 @@
 #include "std.h"
-#include "jam.h"
+#include "rope.h"
 #include "symbol.h"
 
 #define SYMBOL_VALUE(name, value) value
