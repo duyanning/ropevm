@@ -28,13 +28,13 @@ SpeculativeMode::SpeculativeMode()
 uint32_t
 SpeculativeMode::mode_read(uint32_t* addr)
 {
-    return m_core->m_cache.read(addr);
+    return m_core->m_states_buffer.read(addr);
 }
 
 void
 SpeculativeMode::mode_write(uint32_t* addr, uint32_t value)
 {
-    m_core->m_cache.write(addr, value);
+    m_core->m_states_buffer.write(addr, value);
 }
 
 void
@@ -269,8 +269,8 @@ SpeculativeMode::destroy_frame(Frame* frame)
             int x = 0;
             x++;
         }
-        // m_core->m_cache.clear(frame->lvars, frame->lvars + frame->mb->max_locals);
-        // m_core->m_cache.clear(frame->ostack_base, frame->ostack_base + frame->mb->max_stack);
+        // m_core->m_states_buffer.clear(frame->lvars, frame->lvars + frame->mb->max_locals);
+        // m_core->m_states_buffer.clear(frame->ostack_base, frame->ostack_base + frame->mb->max_stack);
         m_core->clear_frame_in_cache(frame);
         //delete frame;
         Mode::destroy_frame(frame);
@@ -655,15 +655,15 @@ SpeculativeMode::snapshot(bool shot_frame)
 
     Snapshot* snapshot = new Snapshot;
 
-    snapshot->version = m_core->m_cache.version();
-    m_core->m_cache.snapshot();
+    snapshot->version = m_core->m_states_buffer.version();
+    m_core->m_states_buffer.freeze();
     // //{{{ just for debug
     // MINILOG_IF(m_core->id() == 5,
     //            cache_logger,
     //            "#" << m_core->id() << " ostack base: " << frame->ostack_base);
     // MINILOGPROC_IF(m_core->id() == 5,
     //                cache_logger, show_cache,
-    //                (os, m_core->id(), m_core->m_cache, false));
+    //                (os, m_core->id(), m_core->m_states_buffer, false));
     // //}}} just for debug
     //snapshot->user = this->m_user;
     snapshot->pc = this->pc;

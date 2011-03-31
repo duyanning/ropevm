@@ -1,6 +1,8 @@
-export ROPEVMROOT=~/work/ropevm
+#!/usr/bin/env bash
 
-ROPECLASSPATH=$ROPEVMROOT/ropeclasses
+export ROPEVMROOT=~/work/ropevm
+export ROPECLASSPATH=$ROPEVMROOT/ropeclasses
+
 export CLASSPATH=.:$ROPECLASSPATH
 export PATH=$ROPEVMROOT/debug:$ROPEVMROOT/tools:$PATH
 

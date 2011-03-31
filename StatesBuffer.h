@@ -1,16 +1,16 @@
-#ifndef CACHE_H
-#define CACHE_H
+#ifndef STATESBUFFER_H
+#define STATESBUFFER_H
 
 //typedef uint8_t Word;
 typedef uint32_t Word;
 
-class Cache {
+class StatesBuffer {
 public:
-    Cache();
-    ~Cache();
+    StatesBuffer();
+    ~StatesBuffer();
     Word read(Word* addr);
     void write(Word* addr, Word value);
-    void snapshot();
+    void freeze();
     void commit(int ver);
     void clear(void* begin, void* end);
     void reset();
@@ -42,12 +42,12 @@ private:
 
 inline
 int
-Cache::version()
+StatesBuffer::version()
 {
     return m_version;
 }
 
 void
-show_cache(std::ostream& os, int id, Cache& cache, bool integer = false);
+show_buffer(std::ostream& os, int id, StatesBuffer& buffer, bool integer = false);
 
-#endif // CACHE_H
+#endif // STATESBUFFER_H

@@ -1,5 +1,5 @@
 #include "std.h"
-#include "Cache.h"
+#include "StatesBuffer.h"
 
 #define USE_NEW
 
@@ -7,7 +7,7 @@ using namespace std;
 
 #ifdef USE_NEW
 void
-Cache::write(Word* addr, Word value)
+StatesBuffer::write(Word* addr, Word value)
 {
     access(addr);
 
@@ -33,7 +33,7 @@ Cache::write(Word* addr, Word value)
 }
 
 Word
-Cache::read(Word* addr)
+StatesBuffer::read(Word* addr)
 {
     access(addr);
 
@@ -67,7 +67,7 @@ private:
 };
 
 void
-Cache::commit(int ver)
+StatesBuffer::commit(int ver)
 {
     access(0);
     assert(ver <= m_version);
@@ -124,13 +124,13 @@ Cache::commit(int ver)
 #endif
 
 void
-Cache::snapshot()
+StatesBuffer::freeze()
 {
     m_version++;
 }
 
 void
-Cache::show(std::ostream& os, int id, bool integer)
+StatesBuffer::show(std::ostream& os, int id, bool integer)
 {
     os << "#" << id << " {{{{----------------\n";
     os << "#" << id << " latest version: " << version()
@@ -160,7 +160,7 @@ Cache::show(std::ostream& os, int id, bool integer)
 }
 
 void
-Cache::clear()
+StatesBuffer::clear()
 {
     for (Hashtable::iterator i = m_hashtable.begin(); i != m_hashtable.end(); ++i) {
         History* history = i->second;
@@ -173,7 +173,7 @@ Cache::clear()
 }
 
 void
-Cache::clear(void* begin, void* end)
+StatesBuffer::clear(void* begin, void* end)
 {
     for (Hashtable::iterator i = m_hashtable.begin(); i != m_hashtable.end();) {
         Word* addr = i->first;
@@ -191,13 +191,13 @@ Cache::clear(void* begin, void* end)
 }
 
 
-Cache::Cache()
+StatesBuffer::StatesBuffer()
 :
     m_version(0)
 {
 }
 
-Cache::~Cache()
+StatesBuffer::~StatesBuffer()
 {
     for (Hashtable::iterator i = m_hashtable.begin(); i != m_hashtable.end(); ++i) {
         History* history = i->second;
@@ -206,35 +206,35 @@ Cache::~Cache()
 }
 
 void
-Cache::reset()
+StatesBuffer::reset()
 {
     clear();
     m_version = 0;
 }
 
 void
-Cache::scan()
+StatesBuffer::scan()
 {
 }
 
 void
-Cache::access(Word* addr)
+StatesBuffer::access(Word* addr)
 {
     int x = 0;
     x++;
 }
 
 void
-show_cache(ostream& os, int id, Cache& cache, bool integer)
+show_buffer(ostream& os, int id, StatesBuffer& buffer, bool integer)
 {
-    cache.show(os, id, integer);
+    buffer.show(os, id, integer);
 }
 
 //--------------------------------------------
 // old
 #ifndef USE_NEW
 // void
-// Cache::write(Word* addr, Word value)
+// StatesBuffer::write(Word* addr, Word value)
 // {
 //     access(addr);
 
@@ -273,7 +273,7 @@ show_cache(ostream& os, int id, Cache& cache, bool integer)
 // }
 
 // Word
-// Cache::read(Word* addr)
+// StatesBuffer::read(Word* addr)
 // {
 //     access(addr);
 
@@ -309,7 +309,7 @@ show_cache(ostream& os, int id, Cache& cache, bool integer)
 // }
 
 // void
-// Cache::commit(int ver)
+// StatesBuffer::commit(int ver)
 // {
 //     assert(ver <= m_version);
 

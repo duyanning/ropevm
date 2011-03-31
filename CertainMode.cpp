@@ -132,7 +132,7 @@ CertainMode::do_execute_method(Object* target_object,
 
     if (target_group == current_group) {
 
-        invoke_my_method(target_object, new_mb, &jargs[0],
+        invoke_to_my_method(target_object, new_mb, &jargs[0],
                          current_object,
                          0, dummy, dummy->ostack_base);
 
@@ -175,10 +175,10 @@ CertainMode::do_execute_method(Object* target_object,
 
     }
 
-    // restore (pc, frame, pc)
+    // restore (pc, frame, sp)
+    pc = old_pc;
     frame = old_frame;
     sp = old_sp;
-    pc = old_pc;
 
     g_set_current_core(m_core);
 
@@ -210,7 +210,7 @@ CertainMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
     if (target_group == current_group) {
 
         sp -= new_mb->args_count;
-        invoke_my_method(target_object, new_mb, sp,
+        invoke_to_my_method(target_object, new_mb, sp,
                          frame->get_object(),
                          pc, frame, sp);
 
@@ -284,81 +284,76 @@ CertainMode::do_method_return(int len)
 //     }
     //log_when_invoke_return(false, frame->calling_object, frame->prev->mb, m_user, frame->mb);
 
-    // if (frame->is_top_frame()) { // if return from top frame, we cannot use calling_object as target object
-    //     assert(frame->calling_object == 0);
-    //     return return_my_method(frame, sp - len, len);
-    // }
+    Frame* current_frame = frame; // some funcitons below will change this->frame, so we save it to destroy
 
-    Object* current_object = frame->get_object();
+    uintptr_t* rv = sp - len;   // rv points to the beginning of retrun value in this frame's operand stack
+    sp -= len;
+
+    Object* current_object = current_frame->get_object();
     assert(current_object);
-    Object* target_object = frame->calling_object;
+    Object* target_object = current_frame->calling_object;
 
     Group* current_group = current_object->get_group();
     Group* target_group = target_object ? target_object->get_group() : threadSelf()->get_default_group();
 
     //assert(target_group->get_thread() == threadSelf());
+
+    if (current_frame->mb->is_synchronized()) {
+        assert(
+               current_frame->get_object() == current_frame->mb->classobj
+               or current_frame->get_object() == (Object*)current_frame->lvars[0]
+               );
+        Object* sync_ob = current_frame->get_object();
+        objectUnlock(sync_ob);
+    }
+
+    if (current_frame->is_top_frame()) {
+
+        // MINILOG0("#" << m_core->id() << " t<<<transfers to #" << target_core->id()
+        //          << " in: "  << info(frame)
+        //          << "because top frame return"
+        //          );
+
+        // write RV to dummy frame
+        uintptr_t* caller_sp = current_frame->caller_sp;
+        for (int i = 0; i < len; ++i) {
+            *caller_sp++ = rv[i];
+        }
+
+        m_core->signal_quit_step_loop(current_frame->prev->ostack_base);
+
+    }
+
+
     if (target_group == current_group) {
 
-        return_my_method(frame, sp - len, len);
+        if (not current_frame->is_top_frame())
+            return_to_my_method(rv, len, current_frame->caller_pc, current_frame->prev, current_frame->caller_sp);
 
     }
     else {
 
-        Core* target_core = target_group->get_core();
+        if (not current_frame->is_top_frame()) {
+            Core* target_core = target_group->get_core();
 
-        // if (frame->is_top_frame()) { // prev is dummy
-        //     assert(false);      // todo
 
-        // }
-
-        //transfer certain control to target core
-        sp -= len;
-
-        if (frame->mb->is_synchronized()) {
-            // Object *sync_ob = current_frame->mb->is_static() ?
-            //     current_frame->mb->classobj : (Object*)current_frame->lvars[0]; // lvars[0] is 'this' reference
-            assert(frame->get_object() == frame->mb->classobj or frame->get_object() == (Object*)frame->lvars[0]);
-            Object* sync_ob = frame->get_object();
-            objectUnlock(sync_ob);
-        }
-
-        if (frame->is_top_frame()) {
-
-            MINILOG0("#" << m_core->id() << " t<<<transfers to #" << target_core->id()
-                     << " in: "  << info(frame)
-                     << "because top frame return"
-                     );
-
-            // write RV to dummy frame
-            uintptr_t* caller_sp = frame->caller_sp;
-            for (int i = 0; i < len; ++i) {
-                //*caller_sp++ = current_sp[i];
-                *caller_sp++ = sp[i];
-            }
-
-            m_core->signal_quit_step_loop(frame->prev->ostack_base);
-
-        }
-        else {
-
-            ReturnMsg* msg = new ReturnMsg(current_object, frame->mb, frame->prev,
-                                           target_object, sp, len,
-                                           frame->caller_sp, frame->caller_pc);
+            ReturnMsg* msg = new ReturnMsg(current_object, current_frame->mb, current_frame->prev,
+                                           target_object, rv, len,
+                                           current_frame->caller_sp, current_frame->caller_pc);
             MINILOG0("#" << m_core->id() << " r<<<transfers to #" << target_core->id()
                      // << " " << info(current_object) << " => " << info(target_object)
                      // << " (" << current_object << "=>" << target_object << ")"
                      << " because: " << *msg
-                     << " in: "  << info(frame)
-                     // << "("  << frame << ")"
+                     << " in: "  << info(current_frame)
+                     // << "("  << current_frame << ")"
                      );
 
             target_core->transfer_control(msg);
-
         }
 
+
         if (current_group->can_speculate()) {
-            m_core->clear_frame_in_cache(frame);
-            destroy_frame(frame);
+            m_core->clear_frame_in_cache(current_frame);
 
             if (not m_core->m_messages_to_be_verified.empty()) {
                 MINILOG0("#" << m_core->id() << " resume speculative execution");
@@ -374,18 +369,19 @@ CertainMode::do_method_return(int len)
         }
         else {
             m_core->halt();
-            destroy_frame(frame);
         }
 
     }
 
+    destroy_frame(current_frame);
+
 }
 
 void
-CertainMode::invoke_my_method(Object* target_object, MethodBlock* new_mb, uintptr_t* args,
-                              Object* calling_object,
-                              CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp,
-                              Object* calling_owner)
+CertainMode::invoke_to_my_method(Object* target_object, MethodBlock* new_mb, uintptr_t* args,
+                                 Object* calling_object,
+                                 CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp
+                                 )
 {
     MINILOG_IF(debug_scaffold::java_main_arrived,
                invoke_return_logger,
@@ -402,15 +398,10 @@ CertainMode::invoke_my_method(Object* target_object, MethodBlock* new_mb, uintpt
     }
     //}}} just for debug
 
-    // MINILOGPROC(c_user_change_logger, show_user_change,
-    //             (os, m_core->id(), "(C)",
-    //              m_user, target_object, 1, caller_frame->mb, new_mb));
-    // change_user(target_object);
-
 
     caller_frame->last_pc = pc;
 
-    frame = create_frame(target_object, new_mb, caller_frame, calling_object, args, caller_sp, caller_pc, calling_owner);
+    frame = create_frame(target_object, new_mb, caller_frame, calling_object, args, caller_sp, caller_pc, 0);
 
     if (frame->mb->is_synchronized()) {
         Object *sync_ob = frame->mb->is_static() ?
@@ -426,13 +417,6 @@ CertainMode::invoke_my_method(Object* target_object, MethodBlock* new_mb, uintpt
         sp = (*(uintptr_t *(*)(Class*, MethodBlock*, uintptr_t*))
               new_mb->native_invoker)(new_mb->classobj, new_mb,
                                       frame->ostack_base);
-
-        //if (debug_scaffold::java_main_arrived and strcmp(new_mb->name, "replace") == 0) {
-        //if (debug_scaffold::java_main_arrived) {
-        // if (debug_scaffold::java_main_arrived and strcmp(new_mb->name, "arraycopy") == 0) {
-        //     cout << "sp-base " << sp - frame->ostack_base << endl;
-        //     //cout << "sp-base " << new_mb->name << endl;
-        // }
 
         if (exception) {
             throw_exception;
@@ -451,56 +435,25 @@ CertainMode::invoke_my_method(Object* target_object, MethodBlock* new_mb, uintpt
 }
 
 void
-CertainMode::return_my_method(Frame* current_frame, uintptr_t* rv, int len)
+CertainMode::return_to_my_method(uintptr_t* rv, int len, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp)
 {
-    MINILOG_IF(debug_scaffold::java_main_arrived,
-               invoke_return_logger,
-               "RRR from " << info(current_frame->mb)
-               );
-
-    // MINILOGPROC(c_user_change_logger, show_user_change,
-    //             (os, m_core->id(), "(C)",
-    //              m_user, current_frame->calling_object, 2,
-    //              current_frame->mb, current_frame->prev->mb));
-
-    //change_user(current_frame->calling_object);
+    // MINILOG_IF(debug_scaffold::java_main_arrived,
+    //            invoke_return_logger,
+    //            "RRR from " << info(current_frame->mb)
+    //            );
 
     assert(len == 0 || len == 1 || len == 2);
 
-    //current_sp -= len;                  // now, sp points to begin of RV
-
     // write RV to caller's frame
-    uintptr_t* caller_sp = current_frame->caller_sp;
     for (int i = 0; i < len; ++i) {
-        //*caller_sp++ = current_sp[i];
         *caller_sp++ = rv[i];
     }
 
-    if (current_frame->mb->is_synchronized()) {
-        Object *sync_ob = current_frame->mb->is_static() ?
-            current_frame->mb->classobj : (Object*)current_frame->lvars[0]; // lvars[0] is 'this' reference
-        objectUnlock(sync_ob);
-    }
+    pc = caller_pc;
+    frame = caller_frame;
+    sp = caller_sp;
 
-    if (current_frame->is_top_frame()) {
-        // whether native or not
-        m_core->signal_quit_step_loop(current_frame->prev->ostack_base);
-
-        destroy_frame(current_frame);
-    }
-    else {
-
-        // whether native or not
-
-        sp = caller_sp;
-        pc = current_frame->caller_pc;
-        frame = current_frame->prev;
-
-        destroy_frame(current_frame);
-
-        pc += (*pc == OPC_INVOKEINTERFACE_QUICK ? 5 : 3);
-    }
-
+    pc += (*pc == OPC_INVOKEINTERFACE_QUICK ? 5 : 3);
 
 }
 
