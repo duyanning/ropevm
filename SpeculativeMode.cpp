@@ -1,12 +1,12 @@
 #include "std.h"
-#include "jam.h"
+#include "rope.h"
 #include "SpeculativeMode.h"
 #include "Core.h"
 
 #include "lock.h"
 
 #include "Message.h"
-#include "OoSpmtJvm.h"
+#include "RopeVM.h"
 #include "interp.h"
 #include "MiniLogger.h"
 #include "Loggers.h"
@@ -40,7 +40,7 @@ SpeculativeMode::mode_write(uint32_t* addr, uint32_t value)
 void
 SpeculativeMode::step()
 {
-    assert(OoSpmtJvm::do_spec);
+    assert(RopeVM::do_spec);
 
     Message* msg = m_core->get_certain_message();
     if (msg) {
@@ -246,20 +246,6 @@ SpeculativeMode::do_throw_exception()
 }
 
 void
-SpeculativeMode::enter_execution()
-{
-    m_core->m_speculative_depth++;
-    //    cout << "enter speculative execution depth: " << m_core->m_speculative_depth << endl;
-}
-
-void
-SpeculativeMode::leave_execution()
-{
-    //    cout << "leave speculative execution depth: " << m_core->m_speculative_depth << endl;
-    m_core->m_speculative_depth--;
-}
-
-void
 SpeculativeMode::destroy_frame(Frame* frame)
 {
     if (not frame->snapshoted) {
@@ -271,7 +257,7 @@ SpeculativeMode::destroy_frame(Frame* frame)
         }
         // m_core->m_states_buffer.clear(frame->lvars, frame->lvars + frame->mb->max_locals);
         // m_core->m_states_buffer.clear(frame->ostack_base, frame->ostack_base + frame->mb->max_stack);
-        m_core->clear_frame_in_cache(frame);
+        m_core->clear_frame_in_states_buffer(frame);
         //delete frame;
         Mode::destroy_frame(frame);
     }

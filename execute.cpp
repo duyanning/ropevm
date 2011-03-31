@@ -1,5 +1,5 @@
 #include "std.h"
-#include "jam.h"
+#include "rope.h"
 #include "sig.h"
 #include "frame.h"
 #include "lock.h"
@@ -9,7 +9,7 @@
 #include "CertainMode.h"
 #include "SpeculativeMode.h"
 #include "RvpMode.h"
-#include "OoSpmtJvm.h"
+#include "RopeVM.h"
 #include "Message.h"
 
 #include "Loggers.h"

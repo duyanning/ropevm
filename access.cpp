@@ -1,5 +1,5 @@
 #include "std.h"
-#include "jam.h"
+#include "rope.h"
 
 static int isSameRuntimePackage(Class *classobj1, Class *classobj2) {
     if(classobj1 != classobj2) {

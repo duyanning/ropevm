@@ -1,7 +1,7 @@
 #include "std.h"
 #ifndef NO_JNI
 #include "jni.h"
-#include "jam.h"
+#include "rope.h"
 #include "thread.h"
 #include "lock.h"
 #include "symbol.h"

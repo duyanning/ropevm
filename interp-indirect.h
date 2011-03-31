@@ -1,7 +1,3 @@
-/* No method preparation is needed on the
-   indirect interpreter */
-#define PREPARE_MB(mb)
-
 #define ARRAY_TYPE(pc)        READ_U1_OP(pc)
 #define SINGLE_INDEX(pc)      READ_U1_OP(pc)
 #define DOUBLE_INDEX(pc)      READ_U2_OP(pc)
@@ -18,15 +14,6 @@
 #define RESOLVED_FIELD(pc)    ((FieldBlock*)CP_INFO(cp, DOUBLE_INDEX(pc)))
 #define RESOLVED_METHOD(pc)   ((MethodBlock*)CP_INFO(cp, DOUBLE_INDEX(pc)))
 #define RESOLVED_CLASS(pc)    ((Class *)CP_INFO(cp, DOUBLE_INDEX(pc)))
-
-/* Macros for checking for common exceptions */
-
-/* #define THROW_EXCEPTION(excep_name, message)                               \ */
-/* {                                                                          \ */
-/*     frame->last_pc = pc;                                                   \ */
-/*     signalException(excep_name, message);                                  \ */
-/*     goto throwException;                                                   \ */
-/* } */
 
 #define NULL_POINTER_CHECK(ref)                                            \
     if(!ref) THROW_EXCEPTION(java_lang_NullPointerException, NULL);

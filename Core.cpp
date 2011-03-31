@@ -1,12 +1,12 @@
 #include "std.h"
-#include "jam.h"
+#include "rope.h"
 #include "Core.h"
 #include "thread.h"
 #include "interp-indirect.h"
 #include "interp.h"
 #include "excep.h"
 #include "Message.h"
-#include "OoSpmtJvm.h"
+#include "RopeVM.h"
 #include "Snapshot.h"
 #include "Loggers.h"
 #include "DebugScaffold.h"
@@ -119,19 +119,10 @@ void
 Core::init()
 {
     m_halt = true;
-    m_certain_msg = 0;
+    m_certain_message = 0;
     m_mode = &m_speculative_mode;
-    //m_user = 0;
-
-    m_certain_depth = 0;
-    m_speculative_depth = 0;
 
     m_is_waiting_for_task = true;
-    //from_certain_to_spec = true;
-
-//     m_owner_pc = 0;
-//     m_owner_frame = 0;
-//     m_owner_sp = 0;
 
     m_quit_step_loop = false;
     m_result = 0;
@@ -169,7 +160,7 @@ Core::transfer_control(Message* message)
 {
     assert(is_valid_certain_msg(message));
 
-    m_certain_msg = message;
+    m_certain_message = message;
     start();
 }
 
@@ -190,10 +181,10 @@ Message*
 Core::get_certain_message()
 {
     Message* msg = 0;
-    if (m_certain_msg) {
-        assert(is_valid_certain_msg(m_certain_msg));
-        msg = m_certain_msg;
-        m_certain_msg = 0;
+    if (m_certain_message) {
+        assert(is_valid_certain_msg(m_certain_message));
+        msg = m_certain_message;
+        m_certain_message = 0;
     }
 
     return msg;
@@ -381,39 +372,6 @@ Core::switch_to_rvp_mode()
 }
 
 void
-Core::leave_rvp_mode(Object* target_object)
-{
-    MINILOG0("#" << id() << " leave RVP mode");
-
-    //m_speculative_mode.m_user = m_rvp_mode.m_user;
-    m_speculative_mode.pc = m_rvp_mode.pc;
-    m_speculative_mode.frame = m_rvp_mode.frame;
-    m_speculative_mode.sp = m_rvp_mode.sp;
-    //m_speculative_mode.pc += (*m_speculative_mode.pc == OPC_INVOKEINTERFACE_QUICK ? 5 : 3);
-    change_mode(&m_speculative_mode);
-
-    MINILOG(when_leave_rvp_logger,
-            "#" << id() << " when leave rvp mode");
-    MINILOG(when_leave_rvp_logger,
-            "#" << id() << " ---------------------------");
-    MINILOG(when_leave_rvp_logger,
-            "#" << id() << " now use cache ver(" << m_states_buffer.version() << ")");
-    MINILOG(when_leave_rvp_logger,
-            "#" << id() << " SPEC details:");
-    // MINILOGPROC(when_leave_rvp_logger,
-    //             show_triple,
-    //             (os, id(),
-    //              m_speculative_mode.frame, m_speculative_mode.sp, m_speculative_mode.pc,
-    //              m_speculative_mode.m_user,
-    //              true));
-
-    MINILOG(when_leave_rvp_logger,
-            "#" << id() << " ---------------------------");
-
-    m_rvpbuf.clear();
-}
-
-void
 Core::add_speculative_task(Message* message)
 {
     //assert(false);
@@ -434,27 +392,6 @@ Core::add_speculative_task(Message* message)
         start();
     }
 }
-
-void
-Core::enter_execution()
-{
-//     MINILOG_IF(true, step_loop_in_out_logger,
-//                "#" << id() << " jump in of a step-loop");
-
-    m_mode->enter_execution();
-}
-
-void
-Core::leave_execution()
-{
-    m_mode->leave_execution();
-}
-
-// void
-// Core::handle_verification_failure(Message* message)
-// {
-//     m_mode->handle_verification_failure(message);
-// }
 
 void
 Core::add_message_to_be_verified(Message* message)
@@ -612,7 +549,7 @@ Core::discard_uncertain_execution(bool self)
     m_snapshots_to_be_committed.clear();
 
     m_states_buffer.reset();
-    m_rvpbuf.clear();
+    m_rvp_buffer.clear();
 
     m_is_waiting_for_task = false;
 }
@@ -726,17 +663,17 @@ Core::scan()
 }
 
 void
-Core::clear_frame_in_cache(Frame* f)
+Core::clear_frame_in_states_buffer(Frame* f)
 {
     m_states_buffer.clear(f->lvars, f->lvars + f->mb->max_locals);
     m_states_buffer.clear(f->ostack_base, f->ostack_base + f->mb->max_stack);
 }
 
 void
-Core::clear_frame_in_rvpbuf(Frame* f)
+Core::clear_frame_in_rvp_buffer(Frame* f)
 {
-    m_rvpbuf.clear(f->lvars, f->lvars + f->mb->max_locals);
-    m_rvpbuf.clear(f->ostack_base, f->ostack_base + f->mb->max_stack);
+    m_rvp_buffer.clear(f->lvars, f->lvars + f->mb->max_locals);
+    m_rvp_buffer.clear(f->ostack_base, f->ostack_base + f->mb->max_stack);
 }
 
 void
@@ -769,24 +706,6 @@ Core::report_stat(ostream& os)
     os << '#' << m_id << '\t' << "rvp instr count" << '\t' << m_count_rvp_instr << '\n';
     os << '#' << m_id << '\t' << "step count" << '\t' << m_count_step << '\n';
     os << '#' << m_id << '\t' << "idle count" << '\t' << m_count_idle << '\n';
-}
-
-void*
-Core::execute_method()
-{
-    // save (pc, frame, sp)
-    CodePntr old_pc = m_certain_mode.pc;
-    Frame* old_frame = m_certain_mode.frame;
-    uintptr_t* old_sp = m_certain_mode.sp;
-
-    executeJava();
-
-    // restore (pc, frame, pc)
-    m_certain_mode.pc = old_pc;
-    m_certain_mode.frame = old_frame;
-    m_certain_mode.sp = old_sp;
-
-    return 0;
 }
 
 bool
@@ -1092,4 +1011,28 @@ Core::handle_verification_failure(Message* message, bool self)
         m_speculative_mode.load_next_task();
 
     }
+}
+
+void
+Core::before_signal_exception(Class *exception_class)
+{
+    m_mode->before_signal_exception(exception_class);
+}
+
+void
+Core::before_alloc_object()
+{
+    m_mode->before_alloc_object();
+}
+
+void
+Core:: after_alloc_object(Object* obj)
+{
+    m_mode->after_alloc_object(obj);
+}
+
+Group*
+Core::assign_group_for(Object* obj)
+{
+    return m_mode->assign_group_for(obj);
 }

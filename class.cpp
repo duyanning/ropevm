@@ -1,5 +1,5 @@
 #include "std.h"
-#include "jam.h"
+#include "rope.h"
 #include "sig.h"
 #include "thread.h"
 #include "lock.h"
@@ -11,7 +11,7 @@
 #include "excep.h"
 #include "DebugScaffold.h"
 #include "Core.h"
-#include "OoSpmtJvm.h"
+#include "RopeVM.h"
 #include "Group.h"
 
 #define PREPARE(ptr) ptr

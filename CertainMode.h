@@ -22,11 +22,8 @@ public:
 
     virtual void do_array_load(Object* array, int index, int type_size);
     virtual void do_array_store(Object* array, int index, int type_size);
-    //virtual void do_array_length(Object* array);
 
     virtual void destroy_frame(Frame* frame);
-    //virtual void on_user_change(Object* old_user, Object* new_user);
-    //void on_owner_lose_control();
 
     void invoke_to_my_method(Object* target_object, MethodBlock* new_mb, uintptr_t* args,
                           Object* calling_object,
@@ -34,19 +31,12 @@ public:
 
     void return_to_my_method(uintptr_t* rv, int len, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp);
 
-    void invoke_my_method(Object* target_object, MethodBlock* new_mb, uintptr_t* args,
-                          Object* calling_object,
-                          CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp);
-    void return_my_method(Frame* current_frame, uintptr_t* rv, int len);
     void get_my_field(Object* obj, FieldBlock* fb, uintptr_t* addr, int size, bool is_static);
     void put_my_field(Object* obj, FieldBlock* fb, uintptr_t* addr, int size, bool is_static);
     void process_certain_message(Message* messge);
 
     virtual uint32_t mode_read(uint32_t* addr);
     virtual void mode_write(uint32_t* addr, uint32_t value);
-
-    virtual void enter_execution();
-    virtual void leave_execution();
 private:
     // for logging
 private:

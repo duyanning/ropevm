@@ -1,5 +1,5 @@
 #include "std.h"
-#include "jam.h"
+#include "rope.h"
 #include "hash.h"
 
 #define HASHTABSZE 1<<10

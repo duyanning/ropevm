@@ -1,5 +1,5 @@
 #include "std.h"
-#include "jam.h"
+#include "rope.h"
 
 #ifndef NO_JNI
 #include "hash.h"

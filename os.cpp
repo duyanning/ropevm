@@ -1,5 +1,5 @@
 #include "std.h"
-#include "jam.h"
+#include "rope.h"
 
 void *nativeStackBase() {
 #ifdef __UCLIBC__

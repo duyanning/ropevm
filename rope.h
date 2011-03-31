@@ -1,5 +1,5 @@
-#ifndef JAM_H
-#define JAM_H
+#ifndef ROPE_H
+#define ROPE_H
 
 /* Configure options */
 #include "config.h"
@@ -963,4 +963,4 @@ array_elem_addr(Object* array, int index, size_t type_size)
     return addr;
 }
 
-#endif // JAM_H
+#endif // ROPE_H

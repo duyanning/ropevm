@@ -1,13 +1,12 @@
 #include "std.h"
-#include "jam.h"
+#include "rope.h"
 #include "RvpMode.h"
 #include "Core.h"
-
 
 #include "lock.h"
 
 #include "Message.h"
-#include "OoSpmtJvm.h"
+#include "RopeVM.h"
 #include "interp.h"
 #include "Loggers.h"
 #include "frame.h"
@@ -38,13 +37,13 @@ bool addr_is_in_frame(void* addr, Frame* frame)
 uint32_t
 RvpMode::mode_read(uint32_t* addr)
 {
-    return m_core->m_rvpbuf.read(addr);
+    return m_core->m_rvp_buffer.read(addr);
 }
 
 void
 RvpMode::mode_write(uint32_t* addr, uint32_t value)
 {
-    m_core->m_rvpbuf.write(addr, value);
+    m_core->m_rvp_buffer.write(addr, value);
 }
 
 void
@@ -229,7 +228,7 @@ RvpMode::do_method_return(int len)
         // MINILOG(when_leave_rvp_logger,
         //         "#" << id() << " ---------------------------");
 
-        m_core->m_rvpbuf.clear();
+        m_core->m_rvp_buffer.clear();
 
 
         // MINILOG(r_destroy_frame_logger, "#" << m_core->id()
@@ -269,26 +268,14 @@ RvpMode::step()
 }
 
 void
-RvpMode::enter_execution()
-{
-
-}
-
-void
-RvpMode::leave_execution()
-{
-
-}
-
-void
 RvpMode::destroy_frame(Frame* frame)
 {
 //     MINILOG(p_destroy_frame_logger, "#" << m_core->id()
 //             << " (R) destroy frame for " << *frame->mb);
 
-    // m_core->m_rvpbuf.clear(frame->lvars, frame->lvars + frame->mb->max_locals);
-    // m_core->m_rvpbuf.clear(frame->ostack_base, frame->ostack_base + frame->mb->max_stack);
-    m_core->clear_frame_in_rvpbuf(frame);
+    // m_core->m_rvp_buffer.clear(frame->lvars, frame->lvars + frame->mb->max_locals);
+    // m_core->m_rvp_buffer.clear(frame->ostack_base, frame->ostack_base + frame->mb->max_stack);
+    m_core->clear_frame_in_rvp_buffer(frame);
 
     if (is_rvp_frame(frame)) {
         MINILOG(r_destroy_frame_logger, "#" << m_core->id()

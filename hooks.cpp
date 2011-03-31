@@ -1,5 +1,5 @@
 #include "std.h"
-#include "jam.h"
+#include "rope.h"
 
 static int (*vfprintf_hook)(FILE *stream, const char *fmt, va_list ap);
 static void (*exit_hook)(int status);

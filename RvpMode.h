@@ -1,7 +1,6 @@
 #ifndef RVPMODE_H
 #define RVPMODE_H
 
-
 #include "UncertainMode.h"
 
 class RvpMode : public UncertainMode {
@@ -31,8 +30,6 @@ public:
     virtual void destroy_frame(Frame* frame);
 
     virtual void step();
-    virtual void enter_execution();
-    virtual void leave_execution();
     // for logging
 private:
     void log_when_invoke_return(bool is_invoke, Object* caller, MethodBlock* caller_mb, Object* callee, MethodBlock* callee_mb);

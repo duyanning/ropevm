@@ -1,7 +1,7 @@
 #ifndef CORE_H
 #define CORE_H
 
-#include "jam.h"
+#include "rope.h"
 
 #include "CertainMode.h"
 #include "SpeculativeMode.h"
@@ -25,13 +25,9 @@ class Core {
     friend class CertainMode;
     friend class SpeculativeMode;
     friend class RvpMode;
-    friend class OoSpmtJvm;
+    friend class RopeVM;
 public:
-    Thread* m_thread;
 
-    Group* m_group;
-
-    bool m_halt;
 public:
     ~Core();
     void set_group(Group* group);
@@ -57,7 +53,6 @@ public:
     void reload_speculative_tasks();
     void on_enter_certain_mode();
     void leave_certain_mode(Message* msg);
-    void leave_rvp_mode(Object* target_object);
     //void snapshot();
 
     virtual void verify_speculation(Message* message, bool self = true);
@@ -65,35 +60,24 @@ public:
     void handle_verification_success(Message* message, bool self);
     void handle_verification_failure(Message* message, bool self);
     void reexecute_failed_message(Message* message);
-    void enter_execution();
-    void leave_execution();
-
-    void* execute_method();
-
-    //void handle_verification_failure(Message* message);
 
     int id() { return m_id; }
     void add_message_to_be_verified(Message* message);
     bool has_message_to_be_verified();
     void destroy_frame(Frame* frame);
 
-    //void init_speculative_support();
-
-    //void on_user_change(Object* old_user, Object* new_user);
-    //bool change_owner_object(Object* new_owner);
     void mark_frame_certain();
     void discard_uncertain_execution(bool self);
     void free_discarded_frames(bool only_snapshot);
     void collect_inuse_frames(std::set<Frame*>& frames);
     void collect_snapshot_frames(std::set<Frame*>& frames);
 
-    // void notify_certain_put(PutMsg* msg);
-
     bool has_messages_to_be_verified() { return not m_messages_to_be_verified.empty(); }
 
     bool check_quit_step_loop();
     void signal_quit_step_loop(uintptr_t* result);
     uintptr_t* get_result();
+
     //{{{ just for debug
     void show_msgs_to_be_verified();
     bool is_correspondence_btw_msgs_and_snapshots_ok();
@@ -106,13 +90,10 @@ public:
     void after_alloc_object(Object* obj);
     Group* assign_group_for(Object* obj);
 
-    void check_object(Object* obj);
-
-    // void before_alloc_array();
-    // void after_alloc_array();
-
     void scan();
 
+    // for stat
+    void report_stat(std::ostream& os);
 private:
     void sync_speculative_with_certain();
     void sync_certain_with_speculative();
@@ -122,11 +103,13 @@ private:
     SpeculativeMode* get_speculative_mode() { return &m_speculative_mode; }
     RvpMode* get_rvp_mode() { return &m_rvp_mode; }
 
-    void clear_frame_in_cache(Frame* f);
-    void clear_frame_in_rvpbuf(Frame* f);
+    void clear_frame_in_states_buffer(Frame* f);
+    void clear_frame_in_rvp_buffer(Frame* f);
 private:
-    int m_speculative_depth;
-    int m_certain_depth;
+    Thread* m_thread;
+    Group* m_group;
+
+    bool m_halt;
 
     int m_id;
 
@@ -134,16 +117,15 @@ private:
     uintptr_t* m_result;
 
 public:
+    Mode* m_mode;
+private:
     SpeculativeMode m_speculative_mode;
     CertainMode m_certain_mode;
     RvpMode m_rvp_mode;
-    Mode* m_mode;
+
     Mode* m_old_mode;
 
-
-    RvpBuffer m_rvpbuf;
-
-    Message* m_certain_msg;
+    Message* m_certain_message;
 
     // speculative execution state
     std::deque<Message*> m_messages_to_be_verified;
@@ -151,6 +133,7 @@ public:
     std::deque<Snapshot*> m_snapshots_to_be_committed;
     StatesBuffer m_states_buffer;
     bool m_is_waiting_for_task; // speculative core is waiting for task
+    RvpBuffer m_rvp_buffer;
 private:
     Core(int id);
 
@@ -163,9 +146,6 @@ private:
 private:
     void log_when_leave_certain();
 
-    // for stat
-public:
-    void report_stat(std::ostream& os);
 private:
     long long m_count_spec_msgs_sent;
     long long m_count_spec_msgs_used;
@@ -181,34 +161,6 @@ private:
     long long m_count_idle;
 };
 
-inline
-void
-Core::before_signal_exception(Class *exception_class)
-{
-    m_mode->before_signal_exception(exception_class);
-}
-
-inline
-void
-Core::before_alloc_object()
-{
-    m_mode->before_alloc_object();
-}
-
-inline
-void
-Core:: after_alloc_object(Object* obj)
-{
-    m_mode->after_alloc_object(obj);
-}
-
-inline
-Group*
-Core::assign_group_for(Object* obj)
-{
-    return m_mode->assign_group_for(obj);
-}
-
 class NestedStepLoop {
 public:
     NestedStepLoop(int core_id, MethodBlock* mb) : m_core_id(core_id), m_mb(mb)  {}
@@ -218,7 +170,6 @@ public:
 private:
     int m_core_id;
     MethodBlock* m_mb;
-
 };
 
 // break switch-case

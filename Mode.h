@@ -11,26 +11,25 @@ public:
     const char* get_name();
     virtual const char* tag() = 0;
     virtual void step() = 0;
-    virtual void exec_an_instr();
+    void exec_an_instr();
 
     virtual void before_alloc_object();
     virtual void after_alloc_object(Object* obj);
     Group* assign_group_for(Object* obj);
 
     virtual void process_certain_message(Message* messge) = 0;
-    virtual void do_invoke_method(Object* objectref, MethodBlock* new_mb);
-    virtual void do_method_return(int len);
+
+    virtual void* do_execute_method(Object* target_object, MethodBlock *mb, std::vector<uintptr_t>& jargs) = 0;
+    virtual void do_invoke_method(Object* objectref, MethodBlock* new_mb) = 0;
+    virtual void do_method_return(int len) = 0;
     virtual void do_throw_exception() = 0;
     virtual void before_signal_exception(Class *exception_class) = 0;
-    virtual void* do_execute_method(Object* target_object, MethodBlock *mb,
-                                    std::vector<uintptr_t>& jargs) = 0;
-    virtual void do_get_field(Object* obj, FieldBlock* fb, uintptr_t* addr, int size, bool is_static = false);
-    virtual void do_put_field(Object* obj, FieldBlock* fb, uintptr_t* addr, int size, bool is_static = false);
 
+    virtual void do_get_field(Object* obj, FieldBlock* fb, uintptr_t* addr, int size, bool is_static = false) = 0;
+    virtual void do_put_field(Object* obj, FieldBlock* fb, uintptr_t* addr, int size, bool is_static = false) = 0;
 
-    virtual void do_array_load(Object* array, int index, int type_size);
-    virtual void do_array_store(Object* array, int index, int type_size);
-    // do_new_array()
+    virtual void do_array_load(Object* array, int index, int type_size) = 0;
+    virtual void do_array_store(Object* array, int index, int type_size) = 0;
 
     void load_from_array(uintptr_t* sp, void* elem_addr, int type_size);
     void store_to_array(uintptr_t* sp, void* elem_addr, int type_size);
@@ -39,12 +38,7 @@ public:
 
 
     virtual void destroy_frame(Frame* frame) = 0;
-    // virtual bool verify(Message* message);
-    // virtual void verify_speculation(Message* message, bool self);
-    //virtual void handle_verification_failure(Message* message);
     void set_core(Core* core);
-
-    //virtual void on_user_change(Object* old_user, Object* new_user) {}
 
     virtual uint32_t mode_read(uint32_t* addr) = 0;
     virtual void mode_write(uint32_t* addr, uint32_t value) = 0;
@@ -56,14 +50,11 @@ public:
     bool is_speculative_mode();
     bool is_rvp_mode();
 
-    virtual void enter_execution() = 0;
-    virtual void leave_execution() = 0;
-
     Group* get_group();
 public:
     //-------------------
     CodePntr pc;
-    Frame *frame;               // last_frame in jamvm
+    Frame *frame;
     uintptr_t *sp;
     //------------------
     Object *exception;          // state?

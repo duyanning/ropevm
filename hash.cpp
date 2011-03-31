@@ -1,5 +1,5 @@
 #include "std.h"
-#include "jam.h"
+#include "rope.h"
 #include "hash.h"
 
 void lockHashTable0(HashTable *table, Thread *self) {

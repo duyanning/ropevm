@@ -1,12 +1,12 @@
 #include "std.h"
-#include "jam.h"
+#include "rope.h"
 #include "CertainMode.h"
 
 #include "lock.h"
 
 #include "Message.h"
 #include "Core.h"
-#include "OoSpmtJvm.h"
+#include "RopeVM.h"
 #include "interp.h"
 #include "Helper.h"
 #include "Loggers.h"
@@ -54,49 +54,6 @@ CertainMode::step()
     exec_an_instr();
 }
 
-// // transfer certain control/mode from src to dst
-// void transfer_certain_control(Core* src, Core* dst, Message* msg)
-// {
-//     // stat
-//     OoSpmtJvm::instance()->m_count_control_transfer++;
-
-
-//     assert(debug_scaffold::java_main_arrived);
-//     //{{{ just for debug
-//     if (src->id() == 6 && dst->id() == 0) {
-//         int x = 0;
-//         x++;
-//     }
-//     //}}} just for debug
-
-//     // MINILOG0_IF(src->get_owner(),
-//     //             "#" << src->id() << " transfer certain control to #" << dst->id()
-//     //             << " frame: " << src->m_certain_mode.frame
-//     //             << " (o:"
-//     //             << src->get_owner()
-//     //             << ", u:" << src->get_user()
-//     //             << "=>o:"
-//     //             << dst->get_owner()
-//     //             << ")"
-//     //             << "(o:"
-//     //             << type_name(src->get_owner())
-//     //             << ", u:" << type_name(src->get_user())
-//     //             << "=>o:"
-//     //             << type_name(dst->get_owner())
-//     //             << ")"
-//     //             << " because: " << *msg)
-
-//         // MINILOG0_IF(src->get_owner() && src->m_certain_mode.frame->mb,
-//         //             "#" << src->id() << " frame:"
-//         //             << *src->m_certain_mode.frame
-//         //             );
-
-
-//     dst->transfer_control(msg);
-//     src->leave_certain_mode(msg);
-// }
-
-
 // DO NOT forget invoke (reflect.cpp)!!!
 void*
 CertainMode::do_execute_method(Object* target_object,
@@ -112,7 +69,6 @@ CertainMode::do_execute_method(Object* target_object,
 
     // dummy frame is used to receive RV of top_frame
     // dummy->prev is current frame
-    //Frame* dummy = create_frame(0, 0, frame, frame->get_object(), 0, 0, 0);
     Frame* dummy = create_frame(0, 0, frame, 0, 0, 0, 0);
     dummy->_name_ = "dummy frame";
 
@@ -136,19 +92,12 @@ CertainMode::do_execute_method(Object* target_object,
                          current_object,
                          0, dummy, dummy->ostack_base);
 
-        // run the nested step-loop
         void* ret2;
         ret2 = executeJava();
         //assert(ret == ret2);
         assert(m_core->m_mode->is_certain_mode());
-
-        //assert(frame == dummy->prev);
-
     }
     else {
-
-        //assert(false);          // caution!
-
         Core* target_core = target_group->get_core();
 
         InvokeMsg* msg =
@@ -168,7 +117,6 @@ CertainMode::do_execute_method(Object* target_object,
         m_core->halt();
         m_core->m_is_waiting_for_task = false;
         target_core->transfer_control(msg);
-        //target_core->execute_method();
         executeJava();
         m_core->switch_to_certain_mode();
         m_core->start();
@@ -180,7 +128,7 @@ CertainMode::do_execute_method(Object* target_object,
     frame = old_frame;
     sp = old_sp;
 
-    g_set_current_core(m_core);
+    g_set_current_core(m_core); // executeJava will change current core
 
     return ret;
 }
@@ -353,7 +301,7 @@ CertainMode::do_method_return(int len)
 
 
         if (current_group->can_speculate()) {
-            m_core->clear_frame_in_cache(current_frame);
+            m_core->clear_frame_in_states_buffer(current_frame);
 
             if (not m_core->m_messages_to_be_verified.empty()) {
                 MINILOG0("#" << m_core->id() << " resume speculative execution");
@@ -517,22 +465,6 @@ CertainMode::do_throw_exception()
     //frame = ee->last_frame;
     sp = frame->ostack_base;
     *sp++ = (uintptr_t)excep;
-}
-
-void
-CertainMode::enter_execution()
-{
-    m_core->m_certain_depth++;
-    m_core->m_speculative_depth = m_core->m_certain_depth;
-    //    cout << "core " << m_core << " enter certain execution depth: " << m_core->m_certain_depth << endl;
-}
-
-void
-CertainMode::leave_execution()
-{
-    //    cout << "core " << m_core <<  " leave certain execution depth: " << m_core->m_certain_depth << endl;
-    m_core->m_certain_depth--;
-    m_core->m_speculative_depth = m_core->m_certain_depth;
 }
 
 void
