@@ -30,10 +30,8 @@
 #define READ_S2_OP(p)    (signed short)READ_U2_OP(p)
 #define READ_S4_OP(p)    (signed int)READ_U4_OP(p)
 
-
-//void copyArgsToParams(uintptr_t* arg, uintptr_t* param, int count);
-
 class Frame;
 class MethodBlock;
 class Object;
-Frame* create_frame(Object* object, MethodBlock* new_mb, Frame* prev, Object* calling_object, uintptr_t* args, uintptr_t* caller_sp, CodePntr caller_pc, Object* calling_owner = 0);
+Frame* create_frame(Object* object, MethodBlock* new_mb, Frame* caller_frame, Object* calling_object, uintptr_t* args, uintptr_t* caller_sp, CodePntr caller_pc);
+Frame* create_dummy_frame(Frame* caller_frame);

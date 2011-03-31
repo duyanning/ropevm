@@ -16,7 +16,6 @@
 uintptr_t* executeJava()
 {
     Thread* this_thread = threadSelf();
-    Core* this_core = this_thread->get_current_core();
 
     uintptr_t* result;
     result = this_thread->go();
@@ -53,7 +52,6 @@ Mode::exec_an_instr()
 
     assert(frame->mb);
     MethodBlock* mb = frame->mb;
-    int magic = frame->magic;
     int c = frame->c;
     uintptr_t* lvars = frame->lvars;
     ConstantPool* cp = mb->classobj->constant_pool();

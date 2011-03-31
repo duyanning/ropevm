@@ -69,8 +69,7 @@ CertainMode::do_execute_method(Object* target_object,
 
     // dummy frame is used to receive RV of top_frame
     // dummy->prev is current frame
-    Frame* dummy = create_frame(0, 0, frame, 0, 0, 0, 0);
-    dummy->_name_ = "dummy frame";
+    Frame* dummy = create_dummy_frame(frame);
 
     void *ret;
     ret = dummy->ostack_base;
@@ -349,7 +348,7 @@ CertainMode::invoke_to_my_method(Object* target_object, MethodBlock* new_mb, uin
 
     caller_frame->last_pc = pc;
 
-    frame = create_frame(target_object, new_mb, caller_frame, calling_object, args, caller_sp, caller_pc, 0);
+    frame = create_frame(target_object, new_mb, caller_frame, calling_object, args, caller_sp, caller_pc);
 
     if (frame->mb->is_synchronized()) {
         Object *sync_ob = frame->mb->is_static() ?
@@ -517,7 +516,7 @@ CertainMode::do_get_field(Object* source_object, FieldBlock* fb,
 
     Object* current_object = frame->get_object();
     Group* current_group = current_object->get_group();
-    Group* source_group = source_object->get_group();
+    //Group* source_group = source_object->get_group();
 
     sp -= is_static ? 0 : 1;
 
@@ -567,7 +566,7 @@ CertainMode::do_put_field(Object* target_object, FieldBlock* fb,
     // target object may be others or owner of this core
 
     Object* current_object = frame->get_object();
-    Group* current_group = current_object->get_group();
+    //Group* current_group = current_object->get_group();
     Group* target_group = target_object->get_group();
 
     sp -= size;
@@ -604,7 +603,7 @@ CertainMode::do_array_load(Object* array, int index, int type_size)
 {
     Object* source_object = array;
     Object* current_object = frame->get_object();
-    Group* source_group = source_object->get_group();
+    //Group* source_group = source_object->get_group();
     Group* current_group = current_object->get_group();
 
     sp -= 2; // pop up arrayref and index
@@ -638,7 +637,7 @@ CertainMode::do_array_store(Object* array, int index, int type_size)
     int nslots = type_size > 4 ? 2 : 1; // number of slots for value
     Object* target_object = array;
     Object* current_object = frame->get_object();
-    Group* current_group = current_object->get_group();
+    //Group* current_group = current_object->get_group();
     Group* target_group = target_object->get_group();
 
     sp -= nslots;
