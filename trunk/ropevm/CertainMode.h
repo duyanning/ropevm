@@ -28,10 +28,15 @@ public:
     //virtual void on_user_change(Object* old_user, Object* new_user);
     //void on_owner_lose_control();
 
+    void invoke_to_my_method(Object* target_object, MethodBlock* new_mb, uintptr_t* args,
+                          Object* calling_object,
+                          CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp);
+
+    void return_to_my_method(uintptr_t* rv, int len, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp);
+
     void invoke_my_method(Object* target_object, MethodBlock* new_mb, uintptr_t* args,
                           Object* calling_object,
-                          CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp,
-                          Object* calling_owner = 0);
+                          CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp);
     void return_my_method(Frame* current_frame, uintptr_t* rv, int len);
     void get_my_field(Object* obj, FieldBlock* fb, uintptr_t* addr, int size, bool is_static);
     void put_my_field(Object* obj, FieldBlock* fb, uintptr_t* addr, int size, bool is_static);

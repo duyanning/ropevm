@@ -33,7 +33,7 @@ Core::Core(int id)
 
 Core::~Core()
 {
-    //    cout << "cache size: " << m_cache.size() << endl;
+    //    cout << "cache size: " << m_states_buffer.size() << endl;
 }
 
 void
@@ -62,18 +62,6 @@ Core::step()
 
     try {
         m_mode->step();
-    }
-    catch (VerifyFails& e) {
-        assert(false);
-        //std::cout << "catch VerifyFails" << std::endl;
-        // if (m_speculative_depth == m_certain_depth) {
-        //     handle_verification_failure(e.get_message());
-        // }
-        // else {
-        //     m_speculative_depth--;
-        //     assert(false);
-        //     throw;
-        // }
     }
     catch (NestedStepLoop& e) {
         MINILOG(step_loop_in_out_logger, "#" << m_id
@@ -219,7 +207,7 @@ Core::log_when_leave_certain()
     MINILOG(when_leave_certain_logger,
             "#" << id() << " ---------------------------");
     MINILOG(when_leave_certain_logger,
-            "#" << id() << " now use cache ver(" << m_cache.version() << ")");
+            "#" << id() << " now use cache ver(" << m_states_buffer.version() << ")");
     MINILOG(when_leave_certain_logger,
             "#" << id() << " SPEC details:");
     // MINILOGPROC(when_leave_certain_logger,
@@ -335,7 +323,7 @@ Core::on_enter_certain_mode()
     MINILOG(when_enter_certain_logger,
             "#" << id() << " ---------------------------");
     MINILOG(when_enter_certain_logger,
-            "#" << id() << " cache ver(" << m_cache.version() << ")");
+            "#" << id() << " cache ver(" << m_states_buffer.version() << ")");
 
     MINILOG(when_enter_certain_logger,
             "#" << id() << " ---------------------------");
@@ -409,7 +397,7 @@ Core::leave_rvp_mode(Object* target_object)
     MINILOG(when_leave_rvp_logger,
             "#" << id() << " ---------------------------");
     MINILOG(when_leave_rvp_logger,
-            "#" << id() << " now use cache ver(" << m_cache.version() << ")");
+            "#" << id() << " now use cache ver(" << m_states_buffer.version() << ")");
     MINILOG(when_leave_rvp_logger,
             "#" << id() << " SPEC details:");
     // MINILOGPROC(when_leave_rvp_logger,
@@ -623,7 +611,7 @@ Core::discard_uncertain_execution(bool self)
     for_each(m_snapshots_to_be_committed.begin(), m_snapshots_to_be_committed.end(), Delete());
     m_snapshots_to_be_committed.clear();
 
-    m_cache.reset();
+    m_states_buffer.reset();
     m_rvpbuf.clear();
 
     m_is_waiting_for_task = false;
@@ -658,7 +646,7 @@ Core::debug_frame_is_not_in_snapshots(Frame* frame)
 //}}} just for debug
 
 bool
-Core::quit_step_loop()
+Core::check_quit_step_loop()
 {
     bool quit = m_quit_step_loop;
     if (quit) {
@@ -671,16 +659,6 @@ void
 Core::signal_quit_step_loop(uintptr_t* result)
 {
     assert(m_mode->is_certain_mode());
-
-    if (result == 0) {
-        MINILOG(c_exception_logger, "#" << id() << " (C) signal quit step loop");
-        //{{{ just for debug
-        if (m_id == 7) {
-            int x = 0;
-            x++;
-        }
-        //}}} just for debug
-    }
 
     m_quit_step_loop = true;
     m_result = result;
@@ -750,8 +728,8 @@ Core::scan()
 void
 Core::clear_frame_in_cache(Frame* f)
 {
-    m_cache.clear(f->lvars, f->lvars + f->mb->max_locals);
-    m_cache.clear(f->ostack_base, f->ostack_base + f->mb->max_stack);
+    m_states_buffer.clear(f->lvars, f->lvars + f->mb->max_locals);
+    m_states_buffer.clear(f->ostack_base, f->ostack_base + f->mb->max_stack);
 }
 
 void
@@ -909,19 +887,19 @@ Core::handle_verification_success(Message* message, bool self)
 
         MINILOG(commit_logger,
                 "#" << id()
-                << " commit to latest, ver(" << m_cache.version() << ")");
+                << " commit to latest, ver(" << m_states_buffer.version() << ")");
         //{{{ just for debug
         MINILOG(cache_logger,
                 "#" << id() << " ostack base: " << m_certain_mode.frame->ostack_base);
-        MINILOGPROC(cache_logger, show_cache,
-                    (os, id(), m_cache, false));
+        MINILOGPROC(cache_logger, show_buffer,
+                    (os, id(), m_states_buffer, false));
         //}}} just for debug
-        m_cache.commit(m_cache.version());
+        m_states_buffer.commit(m_states_buffer.version());
         //{{{ just for debug
         MINILOG(cache_logger,
                 "#" << id() << " ostack base: " << m_certain_mode.frame->ostack_base);
-        MINILOGPROC(cache_logger, show_cache,
-                    (os, id(), m_cache, false));
+        MINILOGPROC(cache_logger, show_buffer,
+                    (os, id(), m_states_buffer, false));
         //}}} just for debug
 
         // because has commited to latest version, cache should restart from ver 0
@@ -957,18 +935,18 @@ Core::handle_verification_success(Message* message, bool self)
         //{{{ just for debug
         MINILOG(cache_logger,
                 "#" << id() << " ostack base: " << m_certain_mode.frame->ostack_base);
-        MINILOGPROC(cache_logger, show_cache,
-                    (os, id(), m_cache, false));
+        MINILOGPROC(cache_logger, show_buffer,
+                    (os, id(), m_states_buffer, false));
         //}}} just for debug
-        m_cache.commit(snapshot->version);
+        m_states_buffer.commit(snapshot->version);
         //{{{ just for debug
         MINILOG(cache_logger,
                 "#" << id() << " ostack base: " << m_certain_mode.frame->ostack_base);
-        MINILOGPROC(cache_logger, show_cache,
-                    (os, id(), m_cache, false));
+        MINILOGPROC(cache_logger, show_buffer,
+                    (os, id(), m_states_buffer, false));
         //}}} just for debug
 
-        // if (snapshot->version == m_core->m_cache.prev_version()) {
+        // if (snapshot->version == m_core->m_states_buffer.prev_version()) {
         //     //{{{ just for debug
         //     int x = 0;
         //     x++;
@@ -1010,39 +988,23 @@ Core::handle_verification_success(Message* message, bool self)
 void
 Core::reexecute_failed_message(Message* message)
 {
-    if (message->get_type() == Message::invoke) {
+    Message::Type type = message->get_type();
+
+    if (type == Message::invoke) {
 
         InvokeMsg* msg = static_cast<InvokeMsg*>(message);
-        m_certain_mode.invoke_my_method(msg->get_target_object(), msg->mb, &msg->parameters[0],
+        m_certain_mode.invoke_to_my_method(msg->get_target_object(), msg->mb, &msg->parameters[0],
                                         msg->get_source_object(),
-                                        msg->caller_pc, msg->caller_frame, msg->caller_sp, msg->calling_owner);
+                                        msg->caller_pc, msg->caller_frame, msg->caller_sp);
 
     }
-    else if (message->get_type() == Message::ret) {
+    else if (type == Message::ret) {
 
         ReturnMsg* msg = static_cast<ReturnMsg*>(message);
-        //return_my_method(msg->frame, &msg->retval[0], msg->retval.size());
+        m_certain_mode.return_to_my_method(&msg->retval[0], msg->retval.size(), msg->caller_pc, msg->caller_frame, msg->caller_sp);
 
-        uintptr_t* caller_sp = msg->caller_sp;
-        for (int i = 0; i < msg->retval.size(); ++i) {
-            *caller_sp++ = msg->retval[i];
-        }
-        // if (msg->mb->is_synchronized()) {
-        //     Object *sync_ob = msg->mb->is_static() ?
-        //         msg->mb->classobj : (Object*)msg->get_source_object(); // lvars[0] is 'this' reference
-        //     objectUnlock(sync_ob);
-        // }
-
-        assert(msg->caller_frame->mb);
-        // whether native or not
-
-        m_certain_mode.sp = caller_sp;
-        m_certain_mode.pc = msg->caller_pc;
-        m_certain_mode.frame = msg->caller_frame;
-
-        m_certain_mode.pc += (*msg->caller_pc == OPC_INVOKEINTERFACE_QUICK ? 5 : 3);
     }
-    else if (message->get_type() == Message::get) {
+    else if (type == Message::get) {
 
         GetMsg* msg = static_cast<GetMsg*>(message);
 
@@ -1066,7 +1028,7 @@ Core::reexecute_failed_message(Message* message)
         m_certain_mode.pc += 3;
 
     }
-    else if (message->get_type() == Message::put) {
+    else if (type == Message::put) {
 
         PutMsg* msg = static_cast<PutMsg*>(message);
 
@@ -1075,7 +1037,7 @@ Core::reexecute_failed_message(Message* message)
         }
 
     }
-    else if (message->get_type() == Message::arrayload) {
+    else if (type == Message::arrayload) {
 
         ArrayLoadMsg* msg = static_cast<ArrayLoadMsg*>(message);
 
@@ -1096,7 +1058,7 @@ Core::reexecute_failed_message(Message* message)
         m_certain_mode.pc += 1;
 
     }
-    else if (message->get_type() == Message::arraystore) {
+    else if (type == Message::arraystore) {
 
         ArrayStoreMsg* msg = static_cast<ArrayStoreMsg*>(message);
 

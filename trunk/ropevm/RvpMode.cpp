@@ -38,36 +38,12 @@ bool addr_is_in_frame(void* addr, Frame* frame)
 uint32_t
 RvpMode::mode_read(uint32_t* addr)
 {
-//     if (frame->calling_object == 0) {
-//         if (addr_is_in_frame(addr, frame)) {
-//             return *addr;
-//         }
-//         else {
-//             //assert(false);
-//             return m_core->m_rvpbuf.read(addr);
-//         }
-//     }
-//     else {
-//         return m_core->m_rvpbuf.read(addr);
-//     }
     return m_core->m_rvpbuf.read(addr);
 }
 
 void
 RvpMode::mode_write(uint32_t* addr, uint32_t value)
 {
-//     if (frame->calling_object == 0) {
-//         if (addr_is_in_frame(addr, frame)) {
-//             *addr = value;
-//         }
-//         else {
-//             //assert(false);
-//             m_core->m_rvpbuf.write(addr, value);
-//         }
-//     }
-//     else {
-//         m_core->m_rvpbuf.write(addr, value);
-//     }
     m_core->m_rvpbuf.write(addr, value);
 }
 

@@ -7,7 +7,7 @@
 #include "SpeculativeMode.h"
 #include "RvpMode.h"
 
-#include "Cache.h"
+#include "StatesBuffer.h"
 #include "RvpBuffer.h"
 
 class Thread;
@@ -91,7 +91,7 @@ public:
 
     bool has_messages_to_be_verified() { return not m_messages_to_be_verified.empty(); }
 
-    bool quit_step_loop();
+    bool check_quit_step_loop();
     void signal_quit_step_loop(uintptr_t* result);
     uintptr_t* get_result();
     //{{{ just for debug
@@ -149,7 +149,7 @@ public:
     std::deque<Message*> m_messages_to_be_verified;
     std::deque<Message*> m_speculative_tasks;
     std::deque<Snapshot*> m_snapshots_to_be_committed;
-    Cache m_cache;
+    StatesBuffer m_states_buffer;
     bool m_is_waiting_for_task; // speculative core is waiting for task
 private:
     Core(int id);
@@ -208,15 +208,6 @@ Core::assign_group_for(Object* obj)
 {
     return m_mode->assign_group_for(obj);
 }
-
-class VerifyFails {
-public:
-    VerifyFails(Message* message) : m_message(message)  {}
-
-    Message* get_message()  { return m_message; }
-private:
-    Message* m_message;
-};
 
 class NestedStepLoop {
 public:

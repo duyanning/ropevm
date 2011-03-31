@@ -205,8 +205,8 @@ Mode::destroy_frame(Frame* frame)
     //assert(m_core->frame_is_not_in_snapshots(frame));
 
     MINILOG(delete_frame_logger, "#" << m_core->id() << " delete frame: " << info(frame) << frame);
-    delete frame;
-    //frame->magic = 2009; // only mark dead, do not delete for debug purpose
+    //delete frame;
+    frame->magic = 2009; // only mark dead, do not delete for debug purpose
 }
 
 // void

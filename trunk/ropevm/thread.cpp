@@ -1237,16 +1237,9 @@ Thread::go()
 
             //                 MINILOG_IF(ret && debug_scaffold::java_main_arrived, step_loop_in_out_logger,
             //                            "#" << m_current_core->id() << " jump out of a step-loop");
-            bool quit = m_current_core->quit_step_loop();
+            bool quit = m_current_core->check_quit_step_loop();
             if (quit) {
-                //assert(m_current_core->);
                 uintptr_t* result = m_current_core->get_result();
-                //{{{ just for debug
-                if (result == 0) {
-                    int x = 0;
-                    x++;
-                }
-                //}}} just for debug
                 return result;
             }
 

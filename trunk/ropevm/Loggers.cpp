@@ -16,7 +16,7 @@ MiniLogger c_new_main_logger(cout, true, &c_new_logger);
 MiniLogger c_new_sub_logger(cout, false, &c_new_logger);
 MiniLogger c_destroy_frame_logger(cout, true, &c_logger);
 
-MiniLogger delete_frame_logger(cout, false);
+MiniLogger delete_frame_logger(cout, true);
 
 MiniLogger invoke_return_logger(cout, false);
 
