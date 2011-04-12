@@ -22,8 +22,6 @@ Mode::Mode(const char* name)
     frame = 0;
     sp = 0;
     pc = 0;
-
-    //m_user = 0;
 }
 
 const char*
@@ -186,46 +184,15 @@ Mode::do_array_store(Object* array, int index, int type_size)
     assert(false);
 }
 
-// void
-// Mode::do_array_length(Object* array)
-// {
-//     assert(false);
-// }
-
 void
 Mode::destroy_frame(Frame* frame)
 {
-    //{{{ just for debug
-    if (frame->c == 23808) {
-        int x = 0;
-        x++;
-    }
-    //}}} just for debug
-
     //assert(m_core->frame_is_not_in_snapshots(frame));
 
     MINILOG(delete_frame_logger, "#" << m_core->id() << " delete frame: " << info(frame) << frame);
-    //delete frame;
-    frame->magic = 2009; // only mark dead, do not delete for debug purpose
+    delete frame;
+    //frame->magic = 2009; // only mark dead, do not delete for debug purpose
 }
-
-// void
-// Mode::handle_verification_failure(Message* message)
-// {
-//     assert(false);
-// }
-
-// bool
-// Mode::verify(Message* message)
-// {
-//     assert(false);
-// }
-
-// void
-// Mode::verify_speculation(Message* message, bool self)
-// {
-//     assert(false);
-// }
 
 void
 show_triple(std::ostream& os, int id, Frame* frame, uintptr_t* sp, CodePntr pc, Object* user,
@@ -381,71 +348,6 @@ Mode::store_array_from_no_cache_mem(uintptr_t* sp, void* elem_addr, int type_siz
     else {
         assert(false);
     }
-}
-
-// void
-// Mode::set_user(Object* user)
-// {
-//     //assert(user != m_user);
-//     if (m_user == user)
-//         return;
-
-//     m_user = user;
-// }
-
-// void
-// Mode::change_user(Object* user)
-// {
-//     //on_user_change(m_user, user);
-//     set_user(user);
-// }
-
-//{{{ just for debug
-
-    // MINILOGPROC(change_user_logger, show_user_change,
-    //             (os, m_core->id(),
-    //              old_user, new_user, reason, old_mb, new_mb));
-
-    // MINILOG_IF(debug_scaffold::java_main_arrived
-    //            && ((old_user ? is_app_obj(old_user) : true)
-    //                || (new_user ? is_app_obj(new_user) : true)
-    //                )
-    //            //&& (m_coreid == 0 || m_id == 5 || m_id == 6)
-    //            ,
-
-// reason:
-// 0: execute
-// 1: invoke
-// 2: return
-// should be called before calling change_user
-void
-show_user_change(std::ostream& os, int id, const char* m,
-                 Object* old_user, Object* new_user,
-                 int reason,
-                 MethodBlock* old_mb, MethodBlock* new_mb)
-{
-    if (new_user == old_user) return;
-    if (not debug_scaffold::java_main_arrived) return;
-
-    bool concern = false;
-    if (old_user && is_app_obj(old_user))
-        concern = true;
-    if (new_user && is_app_obj(new_user))
-        concern = true;
-
-    if (not concern) return;
-
-    os << "#" << id << ' ' << m
-       << " user change(" << old_user << " => " << new_user << ")"
-       << "(" << (old_user ? type_name(old_user) : "0") << " => "
-       << (new_user ? type_name(new_user) : "0")  << ")"
-       << "("
-       << ((old_mb && old_mb->name) ? old_mb->full_name() : "null")
-       << "=>"
-       << (new_mb ? new_mb->full_name() : "null")
-       << ")"
-       << (reason == 1 ? (old_mb ? " invoke" : " execute") : " return")
-       << '\n';
 }
 
 //}}} just for debug

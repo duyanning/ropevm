@@ -148,12 +148,6 @@ void show_triple(std::ostream& os, int id,
                  Frame* frame, uintptr_t* sp, CodePntr pc, Object* user,
                  bool more = false);
 
-void
-show_user_change(std::ostream& os, int id, const char* m,
-                 Object* old_user, Object* new_user,
-                 int reason,
-                 MethodBlock* old_mb, MethodBlock* new_mb);
-
 void log_invoke_return(MiniLogger& logger, bool is_invoke, int id, const char* tag,
                        Object* caller, MethodBlock* caller_mb,
                        Object* callee, MethodBlock* callee_mb);

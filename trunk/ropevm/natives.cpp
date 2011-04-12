@@ -549,7 +549,7 @@ uintptr_t *getClassContext(Class *classobj, MethodBlock *mb, uintptr_t *ostack) 
         return ostack;
 
     //if((last = getCallerFrame(getExecEnv()->last_frame)) == NULL)
-    if((last = getCallerFrame(threadSelf()->get_current_core()->m_mode->frame)) == NULL)
+    if((last = getCallerFrame(threadSelf()->get_current_core()->get_current_mode()->frame)) == NULL)
         array = allocArray(class_class, 0, sizeof(Class*));
     else {
         Frame *bottom = last;
@@ -578,7 +578,7 @@ uintptr_t *getClassContext(Class *classobj, MethodBlock *mb, uintptr_t *ostack) 
 uintptr_t *firstNonNullClassLoader(Class *classobj, MethodBlock *mb, uintptr_t *ostack) {
     assert(false);
     //Frame *last = getExecEnv()->last_frame;
-    Frame *last = threadSelf()->get_current_core()->m_mode->frame;
+    Frame *last = threadSelf()->get_current_core()->get_current_mode()->frame;
     Object *loader = NULL;
 
     do {
@@ -1041,7 +1041,7 @@ uintptr_t *getStack(Class *classobj, MethodBlock *mb, uintptr_t *ostack) {
       return ostack;
 
     //frame = getExecEnv()->last_frame;
-    frame = threadSelf()->get_current_core()->m_mode->frame;
+    frame = threadSelf()->get_current_core()->get_current_mode()->frame;
     depth = 0;
 
     do {
@@ -1058,7 +1058,7 @@ uintptr_t *getStack(Class *classobj, MethodBlock *mb, uintptr_t *ostack) {
         Object **stk = (Object**)ARRAY_DATA(stack);
 
         //frame = getExecEnv()->last_frame;
-        frame = threadSelf()->get_current_core()->m_mode->frame;
+        frame = threadSelf()->get_current_core()->get_current_mode()->frame;
 
         do {
             for(; frame->mb != NULL; frame = frame->prev) {
@@ -1127,7 +1127,7 @@ uintptr_t *getThreadInfoForId(Class *classobj, MethodBlock *mb, uintptr_t *ostac
                 //vmthrowable = setStackTrace0(thread->ee, max_depth);
 
                 //last = thread->ee->last_frame;
-                last = threadSelf()->get_current_core()->m_mode->frame;
+                last = threadSelf()->get_current_core()->get_current_mode()->frame;
                 in_native = last->prev == NULL || last->mb->is_native();
 
                 if(!self)

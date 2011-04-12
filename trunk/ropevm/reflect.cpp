@@ -889,9 +889,9 @@ invoke(Object *ob, MethodBlock *mb, Object *arg_array, Object *param_types, int 
             return NULL;
         }
 
-    //ret = this_core->m_mode->do_execute_method((ob ? ob : classobj), mb, arguments);
+    //ret = this_core->get_current_mode()->do_execute_method((ob ? ob : classobj), mb, arguments);
     assert(ob);
-    ret = this_core->m_mode->do_execute_method(ob, mb, arguments);
+    ret = this_core->get_current_mode()->do_execute_method(ob, mb, arguments);
 
 
     if((excep = exceptionOccurred())) {

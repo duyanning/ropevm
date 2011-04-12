@@ -27,8 +27,6 @@ class Core {
     friend class RvpMode;
     friend class RopeVM;
 public:
-
-public:
     ~Core();
     void set_group(Group* group);
     Group* get_group() { return m_group; }
@@ -41,6 +39,7 @@ public:
     void switch_to_certain_mode();
     void switch_to_speculative_mode();
     void switch_to_rvp_mode();
+    Mode* get_current_mode();
     void change_mode(Mode* new_mode);
     void record_current_non_certain_mode();
     void restore_original_non_certain_mode();
@@ -53,10 +52,9 @@ public:
     void reload_speculative_tasks();
     void on_enter_certain_mode();
     void leave_certain_mode(Message* msg);
-    //void snapshot();
 
-    virtual void verify_speculation(Message* message, bool self = true);
-    virtual bool verify(Message* message);
+    void verify_speculation(Message* message, bool self = true);
+    bool verify(Message* message);
     void handle_verification_success(Message* message, bool self);
     void handle_verification_failure(Message* message, bool self);
     void reexecute_failed_message(Message* message);
@@ -116,13 +114,11 @@ private:
     bool m_quit_step_loop;
     uintptr_t* m_result;
 
-public:
-    Mode* m_mode;
 private:
     SpeculativeMode m_speculative_mode;
     CertainMode m_certain_mode;
     RvpMode m_rvp_mode;
-
+    Mode* m_mode;
     Mode* m_old_mode;
 
     Message* m_certain_message;
@@ -161,18 +157,7 @@ private:
     long long m_count_idle;
 };
 
-class NestedStepLoop {
-public:
-    NestedStepLoop(int core_id, MethodBlock* mb) : m_core_id(core_id), m_mb(mb)  {}
-    int get_core_id()  { return m_core_id; }
-    MethodBlock* get_mb()  { return m_mb; }
-
-private:
-    int m_core_id;
-    MethodBlock* m_mb;
-};
-
-// break switch-case
+// break to loop-switch
 class DeepBreak {
 };
 

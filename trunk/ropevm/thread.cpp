@@ -270,8 +270,8 @@ void initialiseJavaStack(Thread* thread) {
     top->mb = mb;
 
     //thread->ee->last_frame = top;
-    assert(*thread->get_current_core()->m_mode->get_name() == 'C');
-    thread->get_current_core()->m_mode->frame = top;
+    assert(*thread->get_current_core()->get_current_mode()->get_name() == 'C');
+    thread->get_current_core()->get_current_mode()->frame = top;
 }
 
 long long javaThreadId(Thread *thread) {
@@ -874,7 +874,7 @@ void dumpThreadsLoop(Thread *self) {
             int daemon = thr_data[daemon_offset];
             assert(false);
             //Frame *last = thread->ee->last_frame;
-            Frame* last = threadSelf()->get_current_core()->m_mode->frame;
+            Frame* last = threadSelf()->get_current_core()->get_current_mode()->frame;
 
             /* Get thread name; we don't use String2Cstr(), as this mallocs memory
                and may deadlock with a thread suspended in malloc/realloc/free */
