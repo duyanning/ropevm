@@ -334,9 +334,6 @@ CertainMode::invoke_to_my_method(Object* target_object, MethodBlock* new_mb, uin
                invoke_return_logger,
                "III to " << info(new_mb)
                );
-    // if (strcmp(new_mb->name, "replace") == 0) {
-    //     cout << "sp-base" << endl;
-    // }
 
     //{{{ just for debug
     if (strcmp("forName", new_mb->name) == 0) {

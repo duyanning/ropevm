@@ -83,7 +83,7 @@ void *executeMethodVaList(Object *ob, Class *classobj, MethodBlock *mb, va_list 
 
     char *sig = mb->type;
     SCAN_SIG(sig, VA_DOUBLE(jargs, arg), VA_SINGLE(jargs, arg));
-    ret = this_core->m_mode->do_execute_method((ob ? ob : classobj), mb, arguments);
+    ret = this_core->get_current_mode()->do_execute_method((ob ? ob : classobj), mb, arguments);
 
     return ret;
 }
@@ -106,7 +106,7 @@ void *executeMethodList(Object *ob, Class *classobj, MethodBlock *mb, u8 *jargs)
 
     char *sig = mb->type;
     SCAN_SIG(sig, JA_DOUBLE(jargs, arg), JA_SINGLE(jargs, arg));
-    ret = this_core->m_mode->do_execute_method((ob ? ob : classobj), mb, arguments);
+    ret = this_core->get_current_mode()->do_execute_method((ob ? ob : classobj), mb, arguments);
 
     return ret;
 }

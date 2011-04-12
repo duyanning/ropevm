@@ -367,7 +367,7 @@ Thread::scan()
 
     /* Mark any pending exception raised on this thread */
     //markConservativeRoot(ee->exception);
-    markConservativeRoot(threadSelf()->get_current_core()->m_mode->exception);
+    markConservativeRoot(threadSelf()->get_current_core()->get_current_mode()->exception);
 
     /* Scan the thread's C stack and mark all references */
     slot = (uintptr_t*)getStackTop(this);

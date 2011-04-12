@@ -21,7 +21,6 @@ Core::Core(int id)
 :
     m_id(id)
 {
-    //cout << "#" << id << " newed" << endl;
     m_thread = 0;
     m_halt = false;
 
@@ -33,7 +32,6 @@ Core::Core(int id)
 
 Core::~Core()
 {
-    //    cout << "cache size: " << m_states_buffer.size() << endl;
 }
 
 void
@@ -63,12 +61,8 @@ Core::step()
     try {
         m_mode->step();
     }
-    catch (NestedStepLoop& e) {
-        MINILOG(step_loop_in_out_logger, "#" << m_id
-                << " catch-> to be execute java method: " << *e.get_mb());
-        //assert(false);
-    }
     catch (DeepBreak& e) {
+        //assert(false);          // caution needed
     }
 }
 
@@ -102,18 +96,6 @@ Core::restore_original_non_certain_mode()
 	m_mode = m_old_mode;
     MINILOG0("#" << id() << " restore to " << m_mode->get_name());
 }
-
-// bool
-// Core::verify(Message* message)
-// {
-//     return m_mode->verify(message);
-// }
-
-// void
-// Core::verify_speculation(Message* message, bool self)
-// {
-//     m_mode->verify_speculation(message, self);
-// }
 
 void
 Core::init()
@@ -156,15 +138,6 @@ Core::start()
 }
 
 void
-Core::transfer_control(Message* message)
-{
-    assert(is_valid_certain_msg(message));
-
-    m_certain_message = message;
-    start();
-}
-
-void
 Core::halt()
 {
     //{{{ just for debug
@@ -175,6 +148,15 @@ Core::halt()
     //}}} just for debug
     MINILOG0("#" << id() << " (state)halt");
     m_halt = true;
+}
+
+void
+Core::transfer_control(Message* message)
+{
+    assert(is_valid_certain_msg(message));
+
+    m_certain_message = message;
+    start();
 }
 
 Message*
@@ -241,60 +223,6 @@ Core::sync_certain_with_snapshot(Snapshot* snapshot)
     m_certain_mode.pc = snapshot->pc;
     m_certain_mode.frame = snapshot->frame;
     m_certain_mode.sp = snapshot->sp;
-}
-
-void
-Core::leave_certain_mode(Message* message)
-{
-    MINILOG0("#" << id() << " leaves certain mode");
-
-
-    if (not m_messages_to_be_verified.empty()) {
-        MINILOG0("#" << id() << " resume speculative execution");
-        restore_original_non_certain_mode();
-        log_when_leave_certain();
-    }
-    else {
-        MINILOG0("#" << id() << " start speculative execution");
-
-        sync_speculative_with_certain();
-        change_mode(&m_speculative_mode);
-
-        if (message->get_type() == Message::invoke) {
-            InvokeMsg* msg = static_cast<InvokeMsg*>(message);
-
-            MethodBlock* pslice = get_rvp_method(msg->mb);
-            MINILOG0("#" << id() << " (S)calls p-slice: " << *pslice);
-            Frame* new_frame = create_frame(msg->get_target_object(), pslice, msg->caller_frame, 0,
-                                            &msg->parameters[0], msg->caller_sp, msg->caller_pc);
-            new_frame->is_certain = false;
-            m_rvp_mode.pc = (CodePntr)pslice->code;
-            m_rvp_mode.frame = new_frame;
-            m_rvp_mode.sp = new_frame->ostack_base;
-
-            switch_to_rvp_mode();
-        }
-        else if (message->get_type() == Message::ret) {
-            m_speculative_mode.load_next_task();
-        }
-        else if (message->get_type() == Message::put) {
-            // AckMsg* ack = new AckMsg;
-            // add_message_to_be_verified(ack);
-            halt();
-        }
-        else if (message->get_type() == Message::arraystore) {
-            // AckMsg* ack = new AckMsg;
-            // add_message_to_be_verified(ack);
-            halt();
-        }
-        // else if (message->get_type() == Message::ack) {
-        //     m_speculative_mode.load_next_task();
-        // }
-        else {
-            assert(false);
-        }
-
-    }
 }
 
 void
@@ -658,7 +586,7 @@ void
 Core::scan()
 {
     // scan snapshots
-    // scan cache
+    // scan states buffer
     // scan rvp buffer
 }
 
@@ -1035,4 +963,10 @@ Group*
 Core::assign_group_for(Object* obj)
 {
     return m_mode->assign_group_for(obj);
+}
+
+Mode*
+Core::get_current_mode()
+{
+    return m_mode;
 }

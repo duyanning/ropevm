@@ -20,7 +20,6 @@ using namespace std;
 
 SpeculativeMode::SpeculativeMode()
 :
-    //Mode("Speculative mode")
     UncertainMode("Speculative mode")
 {
 }
@@ -162,6 +161,8 @@ SpeculativeMode::do_method_return(int len)
     assert(len == 0 || len == 1 || len == 2);
     assert(not is_priviledged(frame->mb));
 
+    Frame* current_frame = frame;
+
     MINILOG(s_logger,
             // "#" << m_core->id() << " (S) is to return from method: " << *frame->mb
             // << " frame: " << frame);
@@ -174,16 +175,14 @@ SpeculativeMode::do_method_return(int len)
         return;
     }
 
-    // if (frame->is_top_frame()) {
-    //     MINILOG(s_logger,
-    //             "#" << m_core->id() << " (S) " << *frame->mb << " is a top frame");
-    //     m_core->halt();
-    //     return;
-    // }
+    // top frame' caller is native code, so we halt
+    if (frame->is_top_frame()) {
+        MINILOG(s_logger,
+                "#" << m_core->id() << " (S) " << *frame->mb << " is a top frame");
+        m_core->halt();
+        return;
+    }
 
-    // if (frame->prev->is_alive()) {
-    //     log_when_invoke_return(false, frame->calling_object, frame->prev->mb, m_user, frame->mb);
-    // }
 
     Object* target_object = frame->calling_object;
     Object* current_object = frame->get_object();
@@ -200,17 +199,11 @@ SpeculativeMode::do_method_return(int len)
         }
         //}}} just for debug
         sp -= len;
-        uintptr_t* caller_sp = frame->caller_sp;
+        uintptr_t* caller_sp = current_frame->caller_sp;
         for (int i = 0; i < len; ++i) {
             write(caller_sp++, read(&sp[i]));
         }
 
-        Frame* current_frame = frame;
-
-        // MINILOGPROC(s_user_change_logger, show_user_change,
-        //             (os, m_core->id(), "(S)",
-        //              m_user, current_frame->calling_object, 2,
-        //              current_frame->mb, current_frame->prev->mb));
 
         frame = current_frame->prev;
         sp = caller_sp;
@@ -223,7 +216,7 @@ SpeculativeMode::do_method_return(int len)
     else {
 
         snapshot();
-        destroy_frame(frame);
+        destroy_frame(current_frame);
 
         load_next_task();
 
@@ -498,17 +491,9 @@ SpeculativeMode::do_execute_method(Object* target_object,
             << " (S) throw-> to be execute java method: " << *mb);
     m_core->halt();
 
-    throw NestedStepLoop(m_core->id(), mb);
+    throw DeepBreak();
 
     return 0;
-
-    assert(false);
-
-    if (is_priviledged(mb)) {
-        assert(false);
-        m_core->halt();
-        return 0;
-    }
 }
 
 bool
@@ -518,10 +503,9 @@ SpeculativeMode::load_next_task()
 
     if (m_core->m_speculative_tasks.empty()) { // there are NO tasks
         MINILOG(task_load_logger, "#" << m_core->id() << " no task, waiting for task");
-        frame = 0;
         pc = 0;
+        frame = 0;
         sp = 0;
-        //m_user = 0;
         m_core->m_is_waiting_for_task = true;
         m_core->halt();
     }
@@ -531,7 +515,15 @@ SpeculativeMode::load_next_task()
         m_core->m_speculative_tasks.pop_front();
 
         MINILOG(task_load_logger, "#" << m_core->id() << " task loaded: " << *task_msg);
-        if (task_msg->get_type() == Message::invoke) {
+
+        Message::Type type = task_msg->get_type();
+        assert(
+               type == Message::invoke
+               or type == Message::put
+               or type == Message::arraystore
+               );
+
+        if (type == Message::invoke) {
 
             InvokeMsg* msg = static_cast<InvokeMsg*>(task_msg);
 
@@ -550,7 +542,7 @@ SpeculativeMode::load_next_task()
             }
             else {
                 m_core->add_message_to_be_verified(msg);
-                //snapshot();
+                m_core->m_states_buffer.freeze();
 
                 Frame* new_frame =
                     create_frame(msg->get_target_object(), new_mb, msg->caller_frame, msg->get_source_object(),
@@ -558,21 +550,15 @@ SpeculativeMode::load_next_task()
                 new_frame->is_certain = false;
                 new_frame->is_task_frame = true;
 
-                // new_frame->xxx = 999;
-                // cout << "#" << m_core->id() << " create xxx999 " << *new_frame << endl;
-
-                //change_user(msg->object);
                 sp = (uintptr_t*)new_frame->ostack_base;
 
                 frame = new_frame;
                 pc = (CodePntr)new_mb->code;
             }
         }
-        else if (task_msg->get_type() == Message::put) {
+        else if (type == Message::put) {
             PutMsg* msg = static_cast<PutMsg*>(task_msg);
             m_core->add_message_to_be_verified(msg);
-
-            //change_user(msg->obj);
 
             for (int i = 0; i < msg->val.size(); ++i) {
                 write(msg->addr + i, msg->val[i]);
@@ -581,15 +567,13 @@ SpeculativeMode::load_next_task()
             snapshot(false);
             load_next_task();
         }
-        else if (task_msg->get_type() == Message::arraystore) {
+        else if (type == Message::arraystore) {
             ArrayStoreMsg* msg = static_cast<ArrayStoreMsg*>(task_msg);
             m_core->add_message_to_be_verified(msg);
 
             Object* array = msg->get_target_object();
             int index = msg->index;
             int type_size = msg->type_size;
-
-            //change_user(array);
 
             void* addr = array_elem_addr(array, index, type_size);
             store_array_from_no_cache_mem(&msg->slots[0], addr, type_size);
@@ -612,8 +596,6 @@ SpeculativeMode::load_next_task()
 void
 SpeculativeMode::snapshot(bool shot_frame)
 {
-    //assert(m_core->is_owner_enclosure(m_user));
-
     if (shot_frame) {
         Frame* f = this->frame;
         //assert(f == 0 || m_core->is_owner_enclosure(f->get_object()));
@@ -642,7 +624,8 @@ SpeculativeMode::snapshot(bool shot_frame)
     Snapshot* snapshot = new Snapshot;
 
     snapshot->version = m_core->m_states_buffer.version();
-    m_core->m_states_buffer.freeze();
+    //m_core->m_states_buffer.freeze();
+
     // //{{{ just for debug
     // MINILOG_IF(m_core->id() == 5,
     //            cache_logger,
@@ -672,13 +655,6 @@ SpeculativeMode::snapshot(bool shot_frame)
                     (os, m_core->id(), snapshot));
     }
 
-
-    //{{{ just for debug
-    // if (snapshot->frame->c == 23808) {
-    //     int x = 0;
-    //     x++;
-    // }
-    //}}} just for debug
     if (shot_frame) {
         assert(snapshot->frame == 0 || is_sp_ok(snapshot->sp, snapshot->frame));
     }

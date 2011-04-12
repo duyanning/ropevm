@@ -21,17 +21,15 @@ RvpMode::RvpMode()
 {
 }
 
-inline
 bool addr_is_between(void* addr_low, void* addr, void* addr_high)
 {
     return addr_low <= addr && addr < addr_high;
 }
 
-inline
 bool addr_is_in_frame(void* addr, Frame* frame)
 {
     return addr_is_between(frame->lvars, addr, frame->lvars + frame->mb->max_locals)
-        || addr_is_between(frame->ostack_base, addr, frame->ostack_base + frame->mb->max_stack);
+        or addr_is_between(frame->ostack_base, addr, frame->ostack_base + frame->mb->max_stack);
 }
 
 uint32_t
@@ -113,13 +111,6 @@ RvpMode::do_method_return(int len)
 {
     assert(len == 0 || len == 1 || len == 2);
     assert(not is_priviledged(frame->mb));
-
-    if (frame->mb->is_synchronized()) {
-        MINILOG(r_logger,
-                 "#" << m_core->id() << " (S) is to return from sync method: " << frame->mb);
-        m_core->halt();
-        return;
-    }
 
     //log_when_invoke_return(false, frame->calling_object, frame->prev->mb, m_user, frame->mb);
 
@@ -268,27 +259,24 @@ RvpMode::step()
 void
 RvpMode::destroy_frame(Frame* frame)
 {
-//     MINILOG(p_destroy_frame_logger, "#" << m_core->id()
-//             << " (R) destroy frame for " << *frame->mb);
+    assert(is_rvp_frame(frame));
+    //     MINILOG(p_destroy_frame_logger, "#" << m_core->id()
+    //             << " (R) destroy frame for " << *frame->mb);
 
-    // m_core->m_rvp_buffer.clear(frame->lvars, frame->lvars + frame->mb->max_locals);
-    // m_core->m_rvp_buffer.clear(frame->ostack_base, frame->ostack_base + frame->mb->max_stack);
     m_core->clear_frame_in_rvp_buffer(frame);
 
-    if (is_rvp_frame(frame)) {
-        MINILOG(r_destroy_frame_logger, "#" << m_core->id()
-                << " (R) destroy frame " << frame << " for " << *frame->mb);
-        MINILOG(r_destroy_frame_logger, "#" << m_core->id()
-                << " free rvpframe+" << *frame);
-        // if (frame->xxx == 999)
-        //     cout << "xxx999" << endl;
+    MINILOG(r_destroy_frame_logger, "#" << m_core->id()
+            << " (R) destroy frame " << frame << " for " << *frame->mb);
+    MINILOG(r_destroy_frame_logger, "#" << m_core->id()
+            << " free rvpframe+" << *frame);
+    // if (frame->xxx == 999)
+    //     cout << "xxx999" << endl;
 
-        //{{{ just for debug
-        //assert(frame->c != 23507);
-        //{{{ just for debug
-        //delete frame;
-        Mode::destroy_frame(frame);
-    }
+    //{{{ just for debug
+    //assert(frame->c != 23507);
+    //{{{ just for debug
+    //delete frame;
+    Mode::destroy_frame(frame);
 }
 
 void
@@ -354,9 +342,9 @@ RvpMode::do_execute_method(Object* target_object, MethodBlock *mb, std::vector<u
 {
     MINILOG(step_loop_in_out_logger, "#" << m_core->id()
             << " (R) throw-> to be execute java method: " << *mb);
-    m_core->halt();
 
-    throw NestedStepLoop(m_core->id(), mb);
+    m_core->halt();
+    throw DeepBreak();
 
     return 0;
 }
