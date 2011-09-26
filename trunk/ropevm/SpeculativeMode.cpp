@@ -593,6 +593,13 @@ SpeculativeMode::load_next_task()
     return not m_core->m_is_waiting_for_task;
 }
 
+// refactor
+// 参数为true的话，将标记栈桢，表明栈桢在推测模式下不能被释放。
+// false的话，则不标记栈桢。
+// 目前，推测模式下return将标记栈桢；推测模式下执行完put不会标记栈桢。
+// 重构1：不应当让本函数来承担标记栈桢的工作。应当另设一函数pin_frames来标记栈桢。
+// 推测模式下return的时候，除了快照，还要调用该函数标记栈桢。
+// 重构2：在snapshot中调用freeze
 void
 SpeculativeMode::snapshot(bool shot_frame)
 {

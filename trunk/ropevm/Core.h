@@ -20,6 +20,8 @@ class Message;
 class Snapshot;
 class Group;
 
+// refactor
+// 将Core改名为SpMThread，注意，名字中只有一个T
 class Core {
     friend class Mode;
     friend class CertainMode;
@@ -34,6 +36,9 @@ public:
     uintptr_t* run();
     bool is_halt();
     void halt();
+	// refactor
+	// 从step中拆分出来一个listen。各个模式里也定义一个名为listen的虚函数。
+	// 总而言之，要将关注并处理外部事件与取指令解释指令分开。
     void step();
     void idle();
     void switch_to_certain_mode();
@@ -128,6 +133,11 @@ private:
     std::deque<Message*> m_speculative_tasks;
     std::deque<Snapshot*> m_snapshots_to_be_committed;
     StatesBuffer m_states_buffer;
+
+	// refactor
+	// 该变量将被一个变量和一个函数代替
+	// 变量m_spec_needs_task，表示推测执行需要任务
+	// 函数is_waiting_for_task()，表示当前线程是否正在推测模式下等待任务
     bool m_is_waiting_for_task; // speculative core is waiting for task
     RvpBuffer m_rvp_buffer;
 private:
