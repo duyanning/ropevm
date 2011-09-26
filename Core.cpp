@@ -124,6 +124,8 @@ Core::init()
     m_count_idle = 0;
 }
 
+// refactor
+// 将start改名为wake
 void
 Core::start()
 {
@@ -137,6 +139,9 @@ Core::start()
     }
 }
 
+
+// refactor
+// 将halt改名为sleep
 void
 Core::halt()
 {
