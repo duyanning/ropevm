@@ -18,7 +18,7 @@ uintptr_t* executeJava()
     Thread* this_thread = threadSelf();
 
     uintptr_t* result;
-    result = this_thread->go();
+    result = this_thread->drive_loop();
 
     return result;
 }

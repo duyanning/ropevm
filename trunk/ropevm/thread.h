@@ -82,7 +82,7 @@ public:
     bool create();
     static void* S_threadStart(void *arg);
 
-    uintptr_t* go();
+    uintptr_t* drive_loop();
 
     Group* get_default_group();
     // Core* get_certain_core();

@@ -1191,10 +1191,8 @@ Thread::add_core(Core* core)
     core->set_thread(this);
 }
 
-// refactor
-// ÖØÃüÃûÎªdrive_loop
 uintptr_t*
-Thread::go()
+Thread::drive_loop()
 {
     using namespace std;
 
