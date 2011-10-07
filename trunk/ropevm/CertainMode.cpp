@@ -118,7 +118,7 @@ CertainMode::do_execute_method(Object* target_object,
         target_core->transfer_control(msg);
         executeJava();
         m_core->switch_to_certain_mode();
-        m_core->start();
+        m_core->wakeup();
 
     }
 

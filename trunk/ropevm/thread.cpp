@@ -1173,7 +1173,7 @@ Thread::Thread()
     core->switch_to_certain_mode();
     //core->m_is_waiting_for_task = false;
 
-    core->start();              // need?
+    core->wakeup();              // need?
 
     m_current_core = core;      // need?
 }
