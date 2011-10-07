@@ -10,7 +10,7 @@
 #include "natives.h"
 #include "symbol.h"
 #include "excep.h"
-#include "Core.h"
+#include "SpmtThread.h"
 
 static int pd_offset;
 

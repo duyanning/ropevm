@@ -3,9 +3,9 @@
 
 #include "Group.h"
 
-#include "Core.h"
+#include "SpmtThread.h"
 
-Group::Group(Thread* thread, Object* leader, Core* core)
+Group::Group(Thread* thread, Object* leader, SpmtThread* core)
     :
     m_leader(leader),
     m_thread(thread),
@@ -14,7 +14,7 @@ Group::Group(Thread* thread, Object* leader, Core* core)
     assert(core);
     m_core->set_group(this);
 }
-// Group::Group(Thread* thread, Object* leader, Core* core)
+// Group::Group(Thread* thread, Object* leader, SpmtThread* core)
 //     :
 //     m_thread(thread),
 //     m_leader(leader),

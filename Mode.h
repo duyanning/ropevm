@@ -38,7 +38,7 @@ public:
 
 
     virtual void destroy_frame(Frame* frame) = 0;
-    void set_core(Core* core);
+    void set_core(SpmtThread* core);
 
     virtual uint32_t mode_read(uint32_t* addr) = 0;
     virtual void mode_write(uint32_t* addr, uint32_t value) = 0;
@@ -64,7 +64,7 @@ protected:
     void vmlog(MethodBlock* mb);
     void preload(MethodBlock* mb);
     bool vm_math(MethodBlock* mb);
-    Core* m_core;
+    SpmtThread* m_core;
 private:
     const char* m_name;
 

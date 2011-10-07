@@ -5,7 +5,7 @@
 #include "interp.h"
 #include "excep.h"
 #include "symbol.h"
-#include "Core.h"
+#include "SpmtThread.h"
 #include "RopeVM.h"
 #include "interp-indirect.h"
 #include "Helper.h"

@@ -3,7 +3,7 @@
 
 #include "thread.h"
 #include "Group.h"
-#include "Core.h"
+#include "SpmtThread.h"
 
 Group*
 Object::get_group()

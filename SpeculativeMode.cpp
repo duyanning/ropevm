@@ -1,7 +1,7 @@
 #include "std.h"
 #include "rope.h"
 #include "SpeculativeMode.h"
-#include "Core.h"
+#include "SpmtThread.h"
 
 #include "lock.h"
 
@@ -77,7 +77,7 @@ SpeculativeMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
     if (is_priviledged(new_mb)) {
         MINILOG(s_logger,
                 "#" << m_core->id() << " (S) " << *new_mb << "is native/sync method");
-        m_core->halt();
+        m_core->sleep();
         return;
     }
 
@@ -118,7 +118,7 @@ SpeculativeMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
 
         if (target_group->can_speculate()) {
             // post speculative message
-            Core* target_core = target_group->get_core();
+            SpmtThread* target_core = target_group->get_core();
             MINILOG(s_logger,
                      "#" << m_core->id() << " (S) target object has a core #"
                      << target_core->id());
@@ -171,15 +171,15 @@ SpeculativeMode::do_method_return(int len)
     if (frame->mb->is_synchronized()) {
         MINILOG(s_logger,
                 "#" << m_core->id() << " (S) " << *frame->mb << " is a sync method");
-        m_core->halt();
+        m_core->sleep();
         return;
     }
 
-    // top frame' caller is native code, so we halt
+    // top frame' caller is native code, so we sleep
     if (frame->is_top_frame()) {
         MINILOG(s_logger,
                 "#" << m_core->id() << " (S) " << *frame->mb << " is a top frame");
-        m_core->halt();
+        m_core->sleep();
         return;
     }
 
@@ -228,7 +228,7 @@ SpeculativeMode::before_signal_exception(Class *exception_class)
 {
     MINILOG(s_exception_logger, "#" << m_core->id()
             << " (S) exception detected!!! " << exception_class->name());
-    m_core->halt();
+    m_core->sleep();
     throw DeepBreak();
 }
 
@@ -337,7 +337,7 @@ SpeculativeMode::do_put_field(Object* target_object, FieldBlock* fb,
 
         if (target_group->can_speculate()) {
 
-            Core* target_core = target_group->get_core();
+            SpmtThread* target_core = target_group->get_core();
             sp -= size;
 
             vector<uintptr_t> val;
@@ -447,7 +447,7 @@ SpeculativeMode::do_array_store(Object* array, int index, int type_size)
         snapshot();
 
         if (target_group->can_speculate()) {      // target_object has a core
-            Core* target_core = target_group->get_core();
+            SpmtThread* target_core = target_group->get_core();
 
             sp -= nslots; // pop up value
 
@@ -489,7 +489,7 @@ SpeculativeMode::do_execute_method(Object* target_object,
 {
     MINILOG(step_loop_in_out_logger, "#" << m_core->id()
             << " (S) throw-> to be execute java method: " << *mb);
-    m_core->halt();
+    m_core->sleep();
 
     throw DeepBreak();
 
@@ -507,7 +507,7 @@ SpeculativeMode::load_next_task()
         frame = 0;
         sp = 0;
         m_core->m_is_waiting_for_task = true;
-        m_core->halt();
+        m_core->sleep();
     }
     else {                      // has tasks
         m_core->m_is_waiting_for_task = false;
@@ -538,7 +538,7 @@ SpeculativeMode::load_next_task()
             if (is_priviledged(new_mb)) {
                 MINILOG(s_logger,
                         "#" << m_core->id() << " (S) " << *new_mb << "is native/sync method");
-                m_core->halt();
+                m_core->sleep();
             }
             else {
                 m_core->add_message_to_be_verified(msg);

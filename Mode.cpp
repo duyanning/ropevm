@@ -3,7 +3,7 @@
 #include "Mode.h"
 
 #include "lock.h"
-#include "Core.h"
+#include "SpmtThread.h"
 #include "RopeVM.h"
 #include "DebugScaffold.h"
 #include "Helper.h"
@@ -49,7 +49,7 @@ Mode::is_rvp_mode()
 }
 
 void
-Mode::set_core(Core* core)
+Mode::set_core(SpmtThread* core)
 {
     m_core = core;
 }

@@ -6,7 +6,7 @@
 #include "lock.h"
 #include "symbol.h"
 #include "excep.h"
-#include "Core.h"
+#include "SpmtThread.h"
 
 #define JNI_VERSION JNI_VERSION_1_4
 

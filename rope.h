@@ -340,7 +340,7 @@ typedef struct line_no_table_entry {
 } LineNoTableEntry;
 
 class Class;
-class Core;
+class SpmtThread;
 
 #include "Object.h"
 
@@ -469,7 +469,7 @@ enum GroupingPolicyEnum {
 
 #include "frame.h"
 
-class Core;
+class SpmtThread;
 
 typedef struct prop {
     char *key;

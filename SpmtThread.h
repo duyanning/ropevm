@@ -1,5 +1,5 @@
-#ifndef CORE_H
-#define CORE_H
+#ifndef SPMTTHREAD_H
+#define SPMTTHREAD_H
 
 #include "rope.h"
 
@@ -20,25 +20,20 @@ class Message;
 class Snapshot;
 class Group;
 
-// refactor
-// 将Core改名为SpMThread，注意，名字中只有一个T
-class Core {
+class SpmtThread {
     friend class Mode;
     friend class CertainMode;
     friend class SpeculativeMode;
     friend class RvpMode;
     friend class RopeVM;
 public:
-    ~Core();
+    ~SpmtThread();
     void set_group(Group* group);
     Group* get_group() { return m_group; }
     void set_thread(Thread* thread);
     uintptr_t* run();
     bool is_halt();
-    void halt();
-	// refactor
-	// 从step中拆分出来一个listen。各个模式里也定义一个名为listen的虚函数。
-	// 总而言之，要将关注并处理外部事件与取指令解释指令分开。
+    void sleep();
     void step();
     void idle();
     void switch_to_certain_mode();
@@ -50,7 +45,7 @@ public:
     void restore_original_non_certain_mode();
     Mode* original_uncertain_mode() { return m_old_mode; }
     void init();
-    void start();
+    void wakeup();
     void transfer_control(Message* message);
     Message* get_certain_message();
     void add_speculative_task(Message* message);
@@ -141,7 +136,7 @@ private:
     bool m_is_waiting_for_task; // speculative core is waiting for task
     RvpBuffer m_rvp_buffer;
 private:
-    Core(int id);
+    SpmtThread(int id);
 
     //--------------------------------------------
     // for debugging
@@ -171,7 +166,7 @@ private:
 class DeepBreak {
 };
 
-Core* g_get_current_core();
-void g_set_current_core(Core* current_core);
+SpmtThread* g_get_current_core();
+void g_set_current_core(SpmtThread* current_core);
 
 #endif

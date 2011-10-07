@@ -2,7 +2,7 @@
 #include "rope.h"
 #include "UncertainMode.h"
 #include "Message.h"
-#include "Core.h"
+#include "SpmtThread.h"
 
 UncertainMode::UncertainMode(const char* name)
 :

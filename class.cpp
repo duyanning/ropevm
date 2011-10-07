@@ -10,7 +10,7 @@
 #include "symbol.h"
 #include "excep.h"
 #include "DebugScaffold.h"
-#include "Core.h"
+#include "SpmtThread.h"
 #include "RopeVM.h"
 #include "Group.h"
 
@@ -136,7 +136,7 @@ static void prepareClass(Class *classobj)
     //     int x = 0;
     //     x++;
     // }
-    // Core* current_core = g_current_core();
+    // SpmtThread* current_core = g_current_core();
     // current_core->after_alloc_object(classobj);
 }
 
@@ -651,7 +651,7 @@ Class *defineClass(const char* classname, char *data, int offset, int len, Objec
         int x = 0;
         x++;
     }
-    Core* current_core = g_get_current_core();
+    SpmtThread* current_core = g_get_current_core();
     current_core->after_alloc_object(classobj);
 
     return classobj;
@@ -721,7 +721,7 @@ Class *createArrayClass(const char *classname, Object *class_loader) {
         if(verbose)
             jam_printf("[Created array class %s]\n", classname);
         // dynsearch
-        Core* current_core = g_get_current_core();
+        SpmtThread* current_core = g_get_current_core();
         current_core->after_alloc_object(classobj);
 
         return classobj;
@@ -747,7 +747,7 @@ createPrimClass(const char *classname, int index) {
 
     prepareClass(classobj);
     // dynsearch
-    Core* current_core = g_get_current_core();
+    SpmtThread* current_core = g_get_current_core();
     current_core->after_alloc_object(classobj);
 
 
@@ -1246,7 +1246,7 @@ Class *initClass(Class *classobj)
     {
         // dynsearch
         // std::cout << "ininClass: " << classobj->name() << std::endl;
-        // Core* current_core = g_current_core();
+        // SpmtThread* current_core = g_current_core();
         // current_core->after_alloc_object(classobj);
 
     }
@@ -1479,7 +1479,7 @@ Class *findNonArrayClassFromClassLoader(char *classname, Object *loader) {
 
         {
             Thread* this_thread = threadSelf();
-            Core* this_core = this_thread->get_current_core();
+            SpmtThread* this_core = this_thread->get_current_core();
             MINILOG0_IF(debug_scaffold::java_main_arrived,
                         "#" << this_core->id() << " is to load class: " << dot_name);
         }

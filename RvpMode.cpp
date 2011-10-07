@@ -1,7 +1,7 @@
 #include "std.h"
 #include "rope.h"
 #include "RvpMode.h"
-#include "Core.h"
+#include "SpmtThread.h"
 
 #include "lock.h"
 
@@ -48,7 +48,7 @@ void
 RvpMode::before_alloc_object()
 {
     //MINILOG(r_new_logger, "#" << m_core->id() << " (R) hits NEW " << classobj->name());
-    m_core->halt();
+    m_core->sleep();
     throw DeepBreak();
 }
 
@@ -73,7 +73,7 @@ RvpMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
     if (is_priviledged(new_mb)) {
         MINILOG(r_logger,
                 "#" << m_core->id() << " (R) is to invoke native/sync method: " << *new_mb);
-        m_core->halt();
+        m_core->sleep();
         return;
     }
 
@@ -232,7 +232,7 @@ RvpMode::before_signal_exception(Class *exception_class)
 {
     MINILOG(r_exception_logger, "#" << m_core->id()
             << " (R) exception detected!!! " << exception_class->name());
-    m_core->halt();
+    m_core->sleep();
     throw DeepBreak();
 }
 
@@ -343,7 +343,7 @@ RvpMode::do_execute_method(Object* target_object, MethodBlock *mb, std::vector<u
     MINILOG(step_loop_in_out_logger, "#" << m_core->id()
             << " (R) throw-> to be execute java method: " << *mb);
 
-    m_core->halt();
+    m_core->sleep();
     throw DeepBreak();
 
     return 0;

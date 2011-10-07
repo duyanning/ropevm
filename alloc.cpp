@@ -5,7 +5,7 @@
 #include "lock.h"
 #include "symbol.h"
 #include "excep.h"
-#include "Core.h"
+#include "SpmtThread.h"
 
 /* Trace GC heap mark/sweep phases - useful for debugging heap
  * corruption */
@@ -1859,7 +1859,7 @@ got_it:
 }
 
 Object *allocObject(Class *classobj) {
-    Core* current_core = g_get_current_core();
+    SpmtThread* current_core = g_get_current_core();
     current_core->before_alloc_object();
 
     ClassBlock *cb = CLASS_CB(classobj);
@@ -1891,7 +1891,7 @@ Object *allocObject(Class *classobj) {
 }
 
 Object *allocArray(Class *classobj, int size, int el_size) {
-    Core* current_core = g_get_current_core();
+    SpmtThread* current_core = g_get_current_core();
     current_core->before_alloc_object();
 
     Object *ob;
@@ -2062,7 +2062,7 @@ Object *allocMultiArray(Class *array_class, int dim, intptr_t *count) {
 
 Class *allocClass()
 {
-    Core* current_core = g_get_current_core();
+    SpmtThread* current_core = g_get_current_core();
     current_core->before_alloc_object();
 
     Class *classobj = (Class*)gcMalloc(sizeof(ClassBlock)+sizeof(Class));
@@ -2079,7 +2079,7 @@ Class *allocClass()
 
 Object *cloneObject(Object *ob)
 {
-    Core* current_core = g_get_current_core();
+    SpmtThread* current_core = g_get_current_core();
     current_core->before_alloc_object();
 
     uintptr_t hdr = *HDR_ADDRESS(ob);

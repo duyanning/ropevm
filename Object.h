@@ -2,7 +2,7 @@
 #define OBJECT_H
 
 class Class;
-class Core;
+class SpmtThread;
 class Group;
 
 class Object {
