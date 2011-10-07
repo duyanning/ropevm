@@ -157,7 +157,7 @@ SpmtThread::transfer_control(Message* message)
     assert(is_valid_certain_msg(message));
 
     m_certain_message = message;
-    start();
+    wakeup();
 }
 
 Message*
@@ -318,7 +318,7 @@ SpmtThread::add_speculative_task(Message* message)
     //}}} just for debug
     if (m_halt && m_is_waiting_for_task) {
         MINILOG0("#" << id() << " is waken(sleeping, waiting for task)");
-        start();
+        wakeup();
     }
 }
 
@@ -828,7 +828,7 @@ SpmtThread::handle_verification_success(Message* message, bool self)
         Object* source_object = message->get_source_object();
         Group* source_group = source_object->get_group();
         SpmtThread* source_core = source_group->get_core();
-        source_core->start();
+        source_core->wakeup();
     }
 
 }
@@ -936,7 +936,7 @@ SpmtThread::handle_verification_failure(Message* message, bool self)
         Object* source_object = message->get_source_object();
         Group* source_group = source_object->get_group();
         SpmtThread* source_core = source_group->get_core();
-        source_core->start();
+        source_core->wakeup();
         m_speculative_mode.load_next_task();
 
     }
