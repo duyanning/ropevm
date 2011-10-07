@@ -3,7 +3,7 @@
 #include "lock.h"
 #include "symbol.h"
 #include "excep.h"
-#include "Core.h"
+#include "SpmtThread.h"
 #include "Loggers.h"
 #include "Helper.h"
 #include "Group.h"
@@ -80,7 +80,7 @@ void clearException() {
 }
 
 void signalChainedExceptionClass(Class *exception, const char* message, Object *cause) {
-    Core* current_core = g_get_current_core();
+    SpmtThread* current_core = g_get_current_core();
     std::cout << "error msg: " << message << std::endl;
     current_core->before_signal_exception(exception);
 
@@ -245,7 +245,7 @@ Object *setStackTrace0(int max_depth)
     //assert(false);
     Frame* bottom;
     //Frame* last = ee->last_frame;
-    Core* current_core = threadSelf()->get_current_core();
+    SpmtThread* current_core = threadSelf()->get_current_core();
     Frame* last = current_core->get_current_mode()->frame;
     Object *array, *vmthrwble;
     uintptr_t *data;

@@ -1,7 +1,7 @@
 #include "std.h"
 #include "rope.h"
 #include "thread.h"
-#include "Core.h"
+#include "SpmtThread.h"
 
 using namespace std;
 

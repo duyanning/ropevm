@@ -5,7 +5,7 @@
 #include "lock.h"
 
 #include "Message.h"
-#include "Core.h"
+#include "SpmtThread.h"
 #include "RopeVM.h"
 #include "interp.h"
 #include "Helper.h"
@@ -97,7 +97,7 @@ CertainMode::do_execute_method(Object* target_object,
         assert(m_core->m_mode->is_certain_mode());
     }
     else {
-        Core* target_core = target_group->get_core();
+        SpmtThread* target_core = target_group->get_core();
 
         InvokeMsg* msg =
             new InvokeMsg(target_object, new_mb, dummy, current_object, &jargs[0], dummy->ostack_base, 0);
@@ -113,7 +113,7 @@ CertainMode::do_execute_method(Object* target_object,
 
         //frame->last_pc = pc;
 
-        m_core->halt();
+        m_core->sleep();
         m_core->m_is_waiting_for_task = false;
         target_core->transfer_control(msg);
         executeJava();
@@ -164,7 +164,7 @@ CertainMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
     }
     else {
 
-        Core* target_core = target_group->get_core();
+        SpmtThread* target_core = target_group->get_core();
 
         //transfer certain control to target core
         sp -= new_mb->args_count;
@@ -199,7 +199,7 @@ CertainMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
                 if (is_priviledged(new_mb)) {
                     MINILOG(s_logger,
                             "#" << m_core->id() << " (S) " << *new_mb << "is native/sync method");
-                    m_core->halt();
+                    m_core->sleep();
                     return;
                 }
 
@@ -216,7 +216,7 @@ CertainMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
 
         }
         else {
-            m_core->halt();
+            m_core->sleep();
         }
 
     }
@@ -281,7 +281,7 @@ CertainMode::do_method_return(int len)
     else {
 
         if (not current_frame->is_top_frame()) {
-            Core* target_core = target_group->get_core();
+            SpmtThread* target_core = target_group->get_core();
 
 
             ReturnMsg* msg = new ReturnMsg(current_object, current_frame->mb, current_frame->prev,
@@ -315,7 +315,7 @@ CertainMode::do_method_return(int len)
             }
         }
         else {
-            m_core->halt();
+            m_core->sleep();
         }
 
     }
@@ -570,14 +570,14 @@ CertainMode::do_put_field(Object* target_object, FieldBlock* fb,
 
     if (target_group->can_speculate()) {
 
-        Core* target_core = target_object->get_group()->get_core();
+        SpmtThread* target_core = target_object->get_group()->get_core();
 
         PutMsg* msg = new PutMsg(current_object, target_object, fb, addr, sp, size, is_static);
 
         sp -= is_static ? 0 : 1;
         pc += 3;
 
-        m_core->halt();
+        m_core->sleep();
         target_core->transfer_control(msg);
 
         return;         // avoid sp-=... and pc += ...
@@ -641,14 +641,14 @@ CertainMode::do_array_store(Object* array, int index, int type_size)
 
     if (target_group->can_speculate()) {
 
-        Core* target_core = target_object->get_group()->get_core();
+        SpmtThread* target_core = target_object->get_group()->get_core();
         assert(target_core);
 
         ArrayStoreMsg* msg = new ArrayStoreMsg(current_object, array, index, sp, nslots, type_size);
         sp -= 2;                    // pop up arrayref and index
         pc += 1;
 
-        m_core->halt();
+        m_core->sleep();
         target_core->transfer_control(msg);
 
         return;         // avoid sp-=... and pc += ...

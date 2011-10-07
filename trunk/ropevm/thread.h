@@ -40,7 +40,7 @@ typedef struct monitor {
 
 
 class Group;
-class Core;
+class SpmtThread;
 
 class Thread {
 public:
@@ -67,8 +67,8 @@ public:
     unsigned int notify_id;
 
     Group* m_default_group;
-    //Core* m_certain_core;
-    std::vector<Core*> m_cores;
+    //SpmtThread* m_certain_core;
+    std::vector<SpmtThread*> m_cores;
 
 
     typedef std::map<Object*, Group*> ObjectGroupMap;
@@ -76,7 +76,7 @@ public:
     void register_object_group(Object* object, Group* group);
     Group* group_of(Object* obj);
     Group* assign_group_for(Object* obj, Object* current_object);
-    void add_core(Core* core);
+    void add_core(SpmtThread* core);
     Thread();
     ~Thread();
     bool create();
@@ -85,15 +85,15 @@ public:
     uintptr_t* drive_loop();
 
     Group* get_default_group();
-    // Core* get_certain_core();
-    // void set_certain_core(Core* core);
+    // SpmtThread* get_certain_core();
+    // void set_certain_core(SpmtThread* core);
 
-    Core* get_current_core();
-    void set_current_core(Core* current_core);
+    SpmtThread* get_current_core();
+    void set_current_core(SpmtThread* current_core);
     void scan();
     void scan_cores();
 private:
-    Core* m_current_core;
+    SpmtThread* m_current_core;
 };
 
 class VMThread : public Thread {

@@ -5,7 +5,7 @@
 #include "hash.h"
 #include "symbol.h"
 #include "excep.h"
-#include "Core.h"
+#include "SpmtThread.h"
 #include "RopeVM.h"
 #include "DebugScaffold.h"
 #include "Loggers.h"
@@ -1166,7 +1166,7 @@ Thread::Thread()
 {
     // create the only default group
     m_default_group = RopeVM::instance()->new_group_for(0, this);
-    Core* core = m_default_group->get_core();
+    SpmtThread* core = m_default_group->get_core();
     add_core(core);
 
     //set_certain_core(core);
@@ -1183,7 +1183,7 @@ Thread::~Thread()
 }
 
 void
-Thread::add_core(Core* core)
+Thread::add_core(SpmtThread* core)
 {
     assert(core);
 
@@ -1199,15 +1199,15 @@ Thread::drive_loop()
     for (;;) {
 
         // make a copy of cores vector to avoid modification to m_cores while loop
-        vector<Core*> cores(m_cores);
+        vector<SpmtThread*> cores(m_cores);
 
         //int n = cores.size();   // for debug
 
         //{{{ just for debug
         // {
         //     int n = 0;
-        //     for (vector<Core*>::iterator i = cores.begin(); i != cores.end(); ++i) {
-        //         Core* core = *i;
+        //     for (vector<SpmtThread*>::iterator i = cores.begin(); i != cores.end(); ++i) {
+        //         SpmtThread* core = *i;
         //         if (core->is_certain_mode()) {
         //             n++;
         //         }
@@ -1223,7 +1223,7 @@ Thread::drive_loop()
         //}}} just for debug
 
         int non_idle_total = 0;
-        for (vector<Core*>::iterator i = cores.begin(); i != cores.end(); ++i) {
+        for (vector<SpmtThread*>::iterator i = cores.begin(); i != cores.end(); ++i) {
             m_current_core = *i;
 
             if (m_current_core->is_halt()) {
@@ -1250,14 +1250,14 @@ Thread::drive_loop()
     return 0;
 }
 
-// Core*
+// SpmtThread*
 // Thread::get_certain_core()
 // {
 //     return m_certain_core;
 // }
 
 // void
-// Thread::set_certain_core(Core* core)
+// Thread::set_certain_core(SpmtThread* core)
 // {
 //     m_certain_core = core;
 // }
@@ -1268,14 +1268,14 @@ Thread::get_default_group()
     return m_default_group;
 }
 
-Core*
+SpmtThread*
 Thread::get_current_core()
 {
     return m_current_core;
 }
 
 void
-Thread::set_current_core(Core* current_core)
+Thread::set_current_core(SpmtThread* current_core)
 {
     m_current_core = current_core;
 }
@@ -1285,9 +1285,9 @@ Thread::scan_cores()
 {
     using namespace std;
     // make a copy of cores vector to avoid modification to m_cores while loop
-    vector<Core*> cores(m_cores);
-    for (vector<Core*>::iterator i = cores.begin(); i != cores.end(); ++i) {
-        Core* core = *i;
+    vector<SpmtThread*> cores(m_cores);
+    for (vector<SpmtThread*>::iterator i = cores.begin(); i != cores.end(); ++i) {
+        SpmtThread* core = *i;
         core->scan();
     }
 }

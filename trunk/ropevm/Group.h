@@ -2,22 +2,22 @@
 #define GROUP_H
 
 class Object;
-class Core;
+class SpmtThread;
 class Thread;
 
 class Group {
 public:
-    Group(Thread* thread, Object* leader, Core* core);
+    Group(Thread* thread, Object* leader, SpmtThread* core);
     Object* get_leader();
     void add(Object* obj);
     void remove(Object* obj);
-    Core* get_core();
+    SpmtThread* get_core();
     Thread* get_thread();
     bool can_speculate();
 private:
     Object* m_leader;
     int m_obj_count;                 // refs count
-    Core* m_core;
+    SpmtThread* m_core;
     Thread* m_thread;
 };
 
@@ -36,7 +36,7 @@ Group::get_leader()
 }
 
 inline
-Core*
+SpmtThread*
 Group::get_core()
 {
     return m_core;

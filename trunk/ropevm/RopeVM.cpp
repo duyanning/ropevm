@@ -31,20 +31,20 @@ RopeVM::RopeVM()
 // RopeVM::~RopeVM()
 // {
 //     //    std::cout << "total cores: " << m_cores.size() << std::endl;
-//     for (vector<Core*>::iterator i = m_cores.begin(); i != m_cores.end(); ++i) {
+//     for (vector<SpmtThread*>::iterator i = m_cores.begin(); i != m_cores.end(); ++i) {
 //         delete (*i);
 //         *i = 0;
 //     }
 // }
 
-Core*
+SpmtThread*
 RopeVM::alloc_core()
 {
-    Core* core = 0;
+    SpmtThread* core = 0;
     pthread_mutex_lock(&m_lock);
     if (m_cores.size() < 1000) {
     //if (m_cores.size() < 6) {
-        core = new Core(get_next_core_id());
+        core = new SpmtThread(get_next_core_id());
         m_cores.push_back(core);
         core->init();
     }
@@ -59,7 +59,7 @@ RopeVM::alloc_core()
 Group*
 RopeVM::new_group_for(Object* leader, Thread* thread)
 {
-    Core* core = alloc_core();
+    SpmtThread* core = alloc_core();
     //Thread* thread = threadSelf();
 
     Group* group = new Group(thread, leader, core);
@@ -83,8 +83,8 @@ RopeVM::report_stat(std::ostream& os)
     os << "JVM" << '\t' << "core count" << '\t' << m_cores.size()-4 << '\n';
     os << "JVM" << '\t' << "control transfer" << '\t' << m_count_control_transfer << '\n';
 
-    for (vector<Core*>::iterator i = m_cores.begin(); i != m_cores.end(); ++i) {
-        Core* core = *i;
+    for (vector<SpmtThread*>::iterator i = m_cores.begin(); i != m_cores.end(); ++i) {
+        SpmtThread* core = *i;
         if (1 <= core->id() && core->id() <= 4)
             continue;
         core->report_stat(os);

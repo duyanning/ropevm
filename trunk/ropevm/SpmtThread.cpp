@@ -1,6 +1,6 @@
 #include "std.h"
 #include "rope.h"
-#include "Core.h"
+#include "SpmtThread.h"
 #include "thread.h"
 #include "interp-indirect.h"
 #include "interp.h"
@@ -17,7 +17,7 @@
 
 using namespace std;
 
-Core::Core(int id)
+SpmtThread::SpmtThread(int id)
 :
     m_id(id)
 {
@@ -30,30 +30,30 @@ Core::Core(int id)
     m_mode = &m_certain_mode;
 }
 
-Core::~Core()
+SpmtThread::~SpmtThread()
 {
 }
 
 void
-Core::set_group(Group* group)
+SpmtThread::set_group(Group* group)
 {
     m_group = group;
 }
 
 void
-Core::set_thread(Thread* thread)
+SpmtThread::set_thread(Thread* thread)
 {
     m_thread = thread;
 }
 
 bool
-Core::is_halt()
+SpmtThread::is_halt()
 {
     return m_halt;
 }
 
 void
-Core::step()
+SpmtThread::step()
 {
     // stat
     m_count_step++;
@@ -67,20 +67,20 @@ Core::step()
 }
 
 void
-Core::idle()
+SpmtThread::idle()
 {
     // stat
     m_count_idle++;
 }
 
 void
-Core::change_mode(Mode* new_mode)
+SpmtThread::change_mode(Mode* new_mode)
 {
 	m_mode = new_mode;
 }
 
 void
-Core::record_current_non_certain_mode()
+SpmtThread::record_current_non_certain_mode()
 {
     assert(not m_mode->is_certain_mode());
 
@@ -89,7 +89,7 @@ Core::record_current_non_certain_mode()
 }
 
 void
-Core::restore_original_non_certain_mode()
+SpmtThread::restore_original_non_certain_mode()
 {
     assert(m_mode->is_certain_mode());
 
@@ -98,7 +98,7 @@ Core::restore_original_non_certain_mode()
 }
 
 void
-Core::init()
+SpmtThread::init()
 {
     m_halt = true;
     m_certain_message = 0;
@@ -124,10 +124,8 @@ Core::init()
     m_count_idle = 0;
 }
 
-// refactor
-// 将start改名为wake
 void
-Core::start()
+SpmtThread::wakeup()
 {
     if (m_id == 5) {
         int x = 0;
@@ -140,10 +138,8 @@ Core::start()
 }
 
 
-// refactor
-// 将halt改名为sleep
 void
-Core::halt()
+SpmtThread::sleep()
 {
     //{{{ just for debug
     if (id() == 6) {
@@ -151,12 +147,12 @@ Core::halt()
         x++;
     }
     //}}} just for debug
-    MINILOG0("#" << id() << " (state)halt");
+    MINILOG0("#" << id() << " (state)sleep");
     m_halt = true;
 }
 
 void
-Core::transfer_control(Message* message)
+SpmtThread::transfer_control(Message* message)
 {
     assert(is_valid_certain_msg(message));
 
@@ -165,7 +161,7 @@ Core::transfer_control(Message* message)
 }
 
 Message*
-Core::get_certain_message()
+SpmtThread::get_certain_message()
 {
     Message* msg = 0;
     if (m_certain_message) {
@@ -178,7 +174,7 @@ Core::get_certain_message()
 }
 
 void
-Core::log_when_leave_certain()
+SpmtThread::log_when_leave_certain()
 {
     MINILOG(when_leave_certain_logger,
             "#" << id() << " when leave certain mode");
@@ -207,7 +203,7 @@ Core::log_when_leave_certain()
 }
 
 void
-Core::sync_speculative_with_certain()
+SpmtThread::sync_speculative_with_certain()
 {
     m_speculative_mode.pc = m_certain_mode.pc;
     m_speculative_mode.frame = m_certain_mode.frame;
@@ -215,7 +211,7 @@ Core::sync_speculative_with_certain()
 }
 
 void
-Core::sync_certain_with_speculative()
+SpmtThread::sync_certain_with_speculative()
 {
     m_certain_mode.pc = m_speculative_mode.pc;
     m_certain_mode.frame = m_speculative_mode.frame;
@@ -223,7 +219,7 @@ Core::sync_certain_with_speculative()
 }
 
 void
-Core::sync_certain_with_snapshot(Snapshot* snapshot)
+SpmtThread::sync_certain_with_snapshot(Snapshot* snapshot)
 {
     m_certain_mode.pc = snapshot->pc;
     m_certain_mode.frame = snapshot->frame;
@@ -231,7 +227,7 @@ Core::sync_certain_with_snapshot(Snapshot* snapshot)
 }
 
 void
-Core::on_enter_certain_mode()
+SpmtThread::on_enter_certain_mode()
 {
     assert(not m_mode->is_certain_mode());
 
@@ -278,19 +274,19 @@ Core::on_enter_certain_mode()
 
 
 void
-Core::switch_to_certain_mode()
+SpmtThread::switch_to_certain_mode()
 {
     change_mode(&m_certain_mode);
 }
 
 void
-Core::switch_to_speculative_mode()
+SpmtThread::switch_to_speculative_mode()
 {
     change_mode(&m_speculative_mode);
 }
 
 void
-Core::switch_to_rvp_mode()
+SpmtThread::switch_to_rvp_mode()
 {
     // stat
     m_count_rvp++;
@@ -305,7 +301,7 @@ Core::switch_to_rvp_mode()
 }
 
 void
-Core::add_speculative_task(Message* message)
+SpmtThread::add_speculative_task(Message* message)
 {
     //assert(false);
 
@@ -316,7 +312,7 @@ Core::add_speculative_task(Message* message)
 
     //{{{ just for debug
     // if (m_id == 6) {
-    //     cout << "#6 halt: " << m_halt << endl;
+    //     cout << "#6 sleep: " << m_halt << endl;
     //     cout << "#6 waiting: " << m_is_waiting_for_task << endl;
     // }
     //}}} just for debug
@@ -327,7 +323,7 @@ Core::add_speculative_task(Message* message)
 }
 
 void
-Core::add_message_to_be_verified(Message* message)
+SpmtThread::add_message_to_be_verified(Message* message)
 {
     // stat
     m_count_spec_msgs_used++;
@@ -346,7 +342,7 @@ Core::add_message_to_be_verified(Message* message)
 }
 
 bool
-Core::has_message_to_be_verified()
+SpmtThread::has_message_to_be_verified()
 {
     return not m_messages_to_be_verified.empty();
 }
@@ -388,7 +384,7 @@ private:
 };
 
 void
-Core::collect_inuse_frames(set<Frame*>& frames)
+SpmtThread::collect_inuse_frames(set<Frame*>& frames)
 {
     Mode* mode = original_uncertain_mode();
     if (mode == 0) return;
@@ -420,7 +416,7 @@ Core::collect_inuse_frames(set<Frame*>& frames)
 }
 
 void
-Core::collect_snapshot_frames(set<Frame*>& frames)
+SpmtThread::collect_snapshot_frames(set<Frame*>& frames)
 {
     MINILOG(free_frames_logger,
             "#" << id() << " free no use frames in snapshot, len: " << m_snapshots_to_be_committed.size());
@@ -429,7 +425,7 @@ Core::collect_snapshot_frames(set<Frame*>& frames)
 }
 
 void
-Core::free_discarded_frames(bool only_snapshot)
+SpmtThread::free_discarded_frames(bool only_snapshot)
 {
     set<Frame*> frames;
 
@@ -442,7 +438,7 @@ Core::free_discarded_frames(bool only_snapshot)
 }
 
 void
-Core::reload_speculative_tasks()
+SpmtThread::reload_speculative_tasks()
 {
     //return;
     //assert(false);
@@ -465,7 +461,7 @@ Core::reload_speculative_tasks()
 }
 
 void
-Core::discard_uncertain_execution(bool self)
+SpmtThread::discard_uncertain_execution(bool self)
 {
     MINILOG0_IF(debug_scaffold::java_main_arrived,
                 "#" << id() << " discard uncertain execution");
@@ -488,14 +484,14 @@ Core::discard_uncertain_execution(bool self)
 }
 
 void
-Core::destroy_frame(Frame* frame)
+SpmtThread::destroy_frame(Frame* frame)
 {
     m_mode->destroy_frame(frame);
 }
 
 //{{{ just for debug
 bool
-Core::debug_frame_is_not_in_snapshots(Frame* frame)
+SpmtThread::debug_frame_is_not_in_snapshots(Frame* frame)
 {
     bool found = false;
 
@@ -516,7 +512,7 @@ Core::debug_frame_is_not_in_snapshots(Frame* frame)
 //}}} just for debug
 
 bool
-Core::check_quit_step_loop()
+SpmtThread::check_quit_step_loop()
 {
     bool quit = m_quit_step_loop;
     if (quit) {
@@ -526,7 +522,7 @@ Core::check_quit_step_loop()
 }
 
 void
-Core::signal_quit_step_loop(uintptr_t* result)
+SpmtThread::signal_quit_step_loop(uintptr_t* result)
 {
     assert(m_mode->is_certain_mode());
 
@@ -535,14 +531,14 @@ Core::signal_quit_step_loop(uintptr_t* result)
 }
 
 uintptr_t*
-Core::get_result()
+SpmtThread::get_result()
 {
     return m_result;
 }
 
 //{{{ just for debug
 void
-Core:: show_msgs_to_be_verified()
+SpmtThread:: show_msgs_to_be_verified()
 {
     cout << "msgs to be verified:\n";
     for (deque<Message*>::iterator i = m_messages_to_be_verified.begin();
@@ -552,7 +548,7 @@ Core:: show_msgs_to_be_verified()
 }
 
 bool
-Core::is_correspondence_btw_msgs_and_snapshots_ok()
+SpmtThread::is_correspondence_btw_msgs_and_snapshots_ok()
 {
     if (not m_messages_to_be_verified.empty()) {
         Message* spec_msg = m_messages_to_be_verified.front();
@@ -573,22 +569,22 @@ Core::is_correspondence_btw_msgs_and_snapshots_ok()
 //}}} just for debug
 
 
-Core* g_get_current_core()
+SpmtThread* g_get_current_core()
 {
     Thread* this_thread = threadSelf();
-    Core* this_core = this_thread->get_current_core();
+    SpmtThread* this_core = this_thread->get_current_core();
     return this_core;
 }
 
 void
-g_set_current_core(Core* current_core)
+g_set_current_core(SpmtThread* current_core)
 {
     Thread* this_thread = threadSelf();
     this_thread->set_current_core(current_core);
 }
 
 void
-Core::scan()
+SpmtThread::scan()
 {
     // scan snapshots
     // scan states buffer
@@ -596,21 +592,21 @@ Core::scan()
 }
 
 void
-Core::clear_frame_in_states_buffer(Frame* f)
+SpmtThread::clear_frame_in_states_buffer(Frame* f)
 {
     m_states_buffer.clear(f->lvars, f->lvars + f->mb->max_locals);
     m_states_buffer.clear(f->ostack_base, f->ostack_base + f->mb->max_stack);
 }
 
 void
-Core::clear_frame_in_rvp_buffer(Frame* f)
+SpmtThread::clear_frame_in_rvp_buffer(Frame* f)
 {
     m_rvp_buffer.clear(f->lvars, f->lvars + f->mb->max_locals);
     m_rvp_buffer.clear(f->ostack_base, f->ostack_base + f->mb->max_stack);
 }
 
 void
-Core::mark_frame_certain()
+SpmtThread::mark_frame_certain()
 {
     Frame* f = m_certain_mode.frame;
     assert(f->is_alive());
@@ -625,7 +621,7 @@ Core::mark_frame_certain()
 }
 
 void
-Core::report_stat(ostream& os)
+SpmtThread::report_stat(ostream& os)
 {
     os << '#' << m_id << '\t' << "spec msg sent" << '\t' << m_count_spec_msgs_sent << '\n';
     os << '#' << m_id << '\t' << "spec msg used" << '\t' << m_count_spec_msgs_used << '\n';
@@ -642,7 +638,7 @@ Core::report_stat(ostream& os)
 }
 
 bool
-Core::verify(Message* message)
+SpmtThread::verify(Message* message)
 {
     // stat
     m_count_verify_all++;
@@ -703,7 +699,7 @@ Core::verify(Message* message)
 }
 
 void
-Core::verify_speculation(Message* message, bool self)
+SpmtThread::verify_speculation(Message* message, bool self)
 {
     bool success = verify(message);
 
@@ -724,7 +720,7 @@ Core::verify_speculation(Message* message, bool self)
 }
 
 void
-Core::handle_verification_success(Message* message, bool self)
+SpmtThread::handle_verification_success(Message* message, bool self)
 {
     //bool should_reset_spec_exec = false;
 
@@ -831,14 +827,14 @@ Core::handle_verification_success(Message* message, bool self)
     if (message->get_type() == Message::put or message->get_type() == Message::arraystore) {
         Object* source_object = message->get_source_object();
         Group* source_group = source_object->get_group();
-        Core* source_core = source_group->get_core();
+        SpmtThread* source_core = source_group->get_core();
         source_core->start();
     }
 
 }
 
 void
-Core::reexecute_failed_message(Message* message)
+SpmtThread::reexecute_failed_message(Message* message)
 {
     Message::Type type = message->get_type();
 
@@ -928,7 +924,7 @@ Core::reexecute_failed_message(Message* message)
 }
 
 void
-Core::handle_verification_failure(Message* message, bool self)
+SpmtThread::handle_verification_failure(Message* message, bool self)
 {
     reload_speculative_tasks();
     discard_uncertain_execution(self);
@@ -939,7 +935,7 @@ Core::handle_verification_failure(Message* message, bool self)
 
         Object* source_object = message->get_source_object();
         Group* source_group = source_object->get_group();
-        Core* source_core = source_group->get_core();
+        SpmtThread* source_core = source_group->get_core();
         source_core->start();
         m_speculative_mode.load_next_task();
 
@@ -947,31 +943,31 @@ Core::handle_verification_failure(Message* message, bool self)
 }
 
 void
-Core::before_signal_exception(Class *exception_class)
+SpmtThread::before_signal_exception(Class *exception_class)
 {
     m_mode->before_signal_exception(exception_class);
 }
 
 void
-Core::before_alloc_object()
+SpmtThread::before_alloc_object()
 {
     m_mode->before_alloc_object();
 }
 
 void
-Core:: after_alloc_object(Object* obj)
+SpmtThread::after_alloc_object(Object* obj)
 {
     m_mode->after_alloc_object(obj);
 }
 
 Group*
-Core::assign_group_for(Object* obj)
+SpmtThread::assign_group_for(Object* obj)
 {
     return m_mode->assign_group_for(obj);
 }
 
 Mode*
-Core::get_current_mode()
+SpmtThread::get_current_mode()
 {
     return m_mode;
 }
