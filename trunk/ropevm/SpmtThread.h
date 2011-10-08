@@ -124,9 +124,14 @@ private:
     Message* m_certain_message;
 
     // speculative execution state
-    std::deque<Message*> m_messages_to_be_verified;
-    std::deque<Message*> m_speculative_tasks;
-    std::deque<Snapshot*> m_snapshots_to_be_committed;
+	// refactor {
+	typedef std::deque<Message*> QueueOfSpecMsgs;
+	QueueOfSpecMsgs m_queue_of_spec_msgs; // 推测消息队列：待验证、待处理
+	QueueOfSpecMsgs::iterator msg_to_process; // 指向推测消息队列中的第一个待处理消息
+	// } refactor
+    std::deque<Message*> m_messages_to_be_verified; // refactor: remove
+    std::deque<Message*> m_speculative_tasks; // refactor: remove
+    std::deque<Snapshot*> m_snapshots_to_be_committed; // refactor: remove
     StatesBuffer m_states_buffer;
 
 	// refactor
