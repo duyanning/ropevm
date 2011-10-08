@@ -4,6 +4,7 @@
 class MethodBlock;
 class FieldBlock;
 class Frame;
+class Effect;
 
 class Message {
 public:
@@ -32,6 +33,7 @@ protected:
     Type type;
     Object* m_source_object;
     Object* m_target_object;
+	Effect* m_effect;  // 处理该消息所形成的effect
 };
 
 class Object;
@@ -139,7 +141,8 @@ public:
     /*     CodePntr caller_pc; */
 };
 
-bool operator==(Message& msg1, Message& msg2);
+bool are_the_same_in_content(Message* msg1, Message* msg2); // refactor
+bool operator==(Message& msg1, Message& msg2); // refactor: remove
 std::ostream& operator<<(std::ostream& os, const Message& msg);
 void show_msg_detail(std::ostream& os, int id, Message* msg);
 
