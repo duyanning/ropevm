@@ -14,6 +14,7 @@
 #include "Helper.h"
 #include "frame.h"
 #include "Group.h"
+#include "Effect.h"
 
 using namespace std;
 
@@ -53,7 +54,7 @@ SpeculativeMode::step()
 
         // if (not m_core->from_certain_to_spec)
         //     m_core->snapshot();
-        load_next_task();
+        process_next_spec_msg();
 
         // if (not m_core->m_is_waiting_for_task) {
         //     exec_an_instr();
@@ -81,12 +82,10 @@ SpeculativeMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
         return;
     }
 
-    Object* current_object = frame->get_object();
+    SpmtThread* me = this_spmt_thread();
+    SpmtThread* target_spmt_thread = target_object->get_group()->get_spmt_thread();
 
-    Group* current_group = current_object->get_group();
-    Group* target_group = target_object->get_group();
-
-    if (target_group == current_group) {
+    if (target_spmt_thread == me) {
 
         sp -= new_mb->args_count;
 
@@ -106,9 +105,6 @@ SpeculativeMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
 
     }
     else {
-
-        snapshot();             // yes
-
         sp -= new_mb->args_count;
 
         std::vector<uintptr_t> args;
@@ -116,37 +112,44 @@ SpeculativeMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
             args.push_back(read(&sp[i]));
         }
 
-        if (target_group->can_speculate()) {
-            // post speculative message
-            SpmtThread* target_core = target_group->get_core();
-            MINILOG(s_logger,
-                     "#" << m_core->id() << " (S) target object has a core #"
-                     << target_core->id());
 
-            InvokeMsg* msg =
-                new InvokeMsg(target_object, new_mb, frame, frame->get_object(), &args[0], sp, pc);
+        // MINILOG(s_logger,
+        //         "#" << m_core->id() << " (S) target object has a core #"
+        //         << target_core->id());
 
-            MINILOG(s_logger,
-                     "#" << m_core->id() << " (S) add invoke task to #"
-                    << target_core->id() << ": " << *msg);
 
-            target_core->add_speculative_task(msg);
-        }
-        else {
-            MINILOG(s_logger,
-                    "#" << m_core->id() << " target object is coreless");
-        }
+        // construct speculative message
+        InvokeMsg* msg =
+            new InvokeMsg(target_object, new_mb, frame, frame->get_object(), &args[0], sp, pc);
 
-        MethodBlock* pslice = get_rvp_method(new_mb);
-        MINILOG(s_logger,
-                 "#" << m_core->id() << " (S)calls p-slice: " << *pslice);
+
+        // MINILOG(s_logger,
+        //         "#" << m_core->id() << " (S) add invoke task to #"
+        //         << target_core->id() << ": " << *msg);
+
+
+        // send spec msg to target thread
+        target_spmt_thread->add_speculative_task(msg);
+
+        // record spec msg sent in current effect
+        me->get_current_effect()->add_spec_msg(msg);
+
+
+        snapshot2();
+        pin_frames();
+
+
+        MethodBlock* rvp_method = get_rvp_method(new_mb);
+
+        // MINILOG(s_logger,
+        //          "#" << m_core->id() << " (S)calls p-slice: " << *pslice);
 
         Frame* new_frame =
-            create_frame(target_object, pslice, frame, 0, &args[0], sp, pc);
+            create_frame(target_object, rvp_method, frame, 0, &args[0], sp, pc);
 
         new_frame->is_certain = false;
 
-        m_core->m_rvp_mode.pc = (CodePntr)pslice->code;
+        m_core->m_rvp_mode.pc = (CodePntr)rvp_method->code;
         m_core->m_rvp_mode.frame = new_frame;
         m_core->m_rvp_mode.sp = new_frame->ostack_base;
 
@@ -184,20 +187,21 @@ SpeculativeMode::do_method_return(int len)
     }
 
 
+    SpmtThread* me = this_spmt_thread();
     Object* target_object = frame->calling_object;
-    Object* current_object = frame->get_object();
+    SpmtThread* target_spmt_thread = target_object->get_group()->get_spmt_thread();
 
-    Group* current_group = current_object->get_group();
-    Group* target_group = target_object->get_group();
 
-    if (target_group == current_group) {
+    if (target_spmt_thread == me) {
 
-        //{{{ just for debug
-        if (m_core->id() == 0) {
-            int x = 0;
-            x++;
-        }
-        //}}} just for debug
+        // //{{{ just for debug
+        // if (m_core->id() == 0) {
+        //     int x = 0;
+        //     x++;
+        // }
+        // //}}} just for debug
+
+
         sp -= len;
         uintptr_t* caller_sp = current_frame->caller_sp;
         for (int i = 0; i < len; ++i) {
@@ -215,10 +219,19 @@ SpeculativeMode::do_method_return(int len)
     }
     else {
 
+        // construct speculative message
+        ReturnMsg* msg =0;
+        //new ReturnMsg();
+
+        // record spec msg sent in current effect
+        me->get_current_effect()->add_spec_msg(msg);
+
+
         snapshot();
+
         destroy_frame(current_frame);
 
-        load_next_task();
+        process_next_spec_msg();
 
     }
 }
@@ -241,7 +254,7 @@ SpeculativeMode::do_throw_exception()
 void
 SpeculativeMode::destroy_frame(Frame* frame)
 {
-    if (not frame->snapshoted) {
+    if (not frame->pinned) {
         MINILOG(s_destroy_frame_logger, "#" << m_core->id()
                 << " (S) destroy frame " << frame << " for " << *frame->mb);
         if (m_core->m_id == 5 && strcmp(frame->mb->name, "simulate") == 0) {
@@ -497,7 +510,7 @@ SpeculativeMode::do_execute_method(Object* target_object,
 }
 
 bool
-SpeculativeMode::load_next_task()
+SpeculativeMode::process_next_spec_msg()
 {
     MINILOG(task_load_logger, "#" << m_core->id() << " try to load a task");
 
@@ -565,7 +578,7 @@ SpeculativeMode::load_next_task()
             }
 
             snapshot(false);
-            load_next_task();
+            process_next_spec_msg();
         }
         else if (type == Message::arraystore) {
             ArrayStoreMsg* msg = static_cast<ArrayStoreMsg*>(task_msg);
@@ -583,7 +596,7 @@ SpeculativeMode::load_next_task()
             // }
 
             snapshot(false);
-            load_next_task();
+            process_next_spec_msg();
         }
         else {
             assert(false);
@@ -593,13 +606,72 @@ SpeculativeMode::load_next_task()
     return not m_core->m_is_waiting_for_task;
 }
 
+
+// ä¸è¯¥å‡½æ•°å¯¹åº”çš„åº”å½“è¿˜æœ‰unpin_frames
+void
+SpeculativeMode::pin_frames()
+{
+    Frame* f = this->frame;
+
+    for (;;) {
+        // MINILOG(snapshot_logger,
+        //         "#" << m_core->id() << " snapshot frame(" << f << ")" << " for " << *f->mb);
+
+        if (f->pinned)
+            break;
+
+        f->pinned = true;
+
+        if (f->is_top_frame())
+            break;
+
+        f = f->prev;
+        if (f->calling_object->get_group()->get_spmt_thread() != this_spmt_thread())
+            break;
+
+    }
+}
+
+
 // refactor
-// ²ÎÊıÎªtrueµÄ»°£¬½«±ê¼ÇÕ»èå£¬±íÃ÷Õ»èåÔÚÍÆ²âÄ£Ê½ÏÂ²»ÄÜ±»ÊÍ·Å¡£
-// falseµÄ»°£¬Ôò²»±ê¼ÇÕ»èå¡£
-// Ä¿Ç°£¬ÍÆ²âÄ£Ê½ÏÂreturn½«±ê¼ÇÕ»èå£»ÍÆ²âÄ£Ê½ÏÂÖ´ĞĞÍêput²»»á±ê¼ÇÕ»èå¡£
-// ÖØ¹¹1£º²»Ó¦µ±ÈÃ±¾º¯ÊıÀ´³Ğµ£±ê¼ÇÕ»èåµÄ¹¤×÷¡£Ó¦µ±ÁíÉèÒ»º¯Êıpin_framesÀ´±ê¼ÇÕ»èå¡£
-// ÍÆ²âÄ£Ê½ÏÂreturnµÄÊ±ºò£¬³ıÁË¿ìÕÕ£¬»¹Òªµ÷ÓÃ¸Ãº¯Êı±ê¼ÇÕ»èå¡£
-// ÖØ¹¹2£ºÔÚsnapshotÖĞµ÷ÓÃfreeze
+// ä¸åº”è°ƒç”¨pin_framesï¼Œå› ä¸ºä¸æ˜¯æ‰€æœ‰çš„snapshotéƒ½ä¼´éšpin_frames
+void
+SpeculativeMode::snapshot2()
+{
+    Snapshot* snapshot = new Snapshot;
+
+    SpmtThread* me = this_spmt_thread();
+
+    snapshot->version = me->m_states_buffer.version();
+    me->m_states_buffer.freeze();
+
+    snapshot->pc = this->pc;
+    snapshot->frame = this->frame;
+    snapshot->sp = this->sp;
+
+    get_current_effect()->set_snapshot(snapshot);
+
+
+    // MINILOG(snapshot_logger,
+    //         "#" << m_core->id() << " snapshot, ver(" << snapshot->version << ")" << " is frozen");
+    // if (shot_frame) {
+    //     MINILOG(snapshot_detail_logger,
+    //             "#" << m_core->id() << " details:");
+    //     MINILOGPROC(snapshot_detail_logger, show_snapshot,
+    //                 (os, m_core->id(), snapshot));
+    // }
+
+
+}
+
+
+// refactor
+// å‚æ•°ä¸ºtrueçš„è¯ï¼Œå°†æ ‡è®°æ ˆæ¡¢ï¼Œè¡¨æ˜æ ˆæ¡¢åœ¨æ¨æµ‹æ¨¡å¼ä¸‹ä¸èƒ½è¢«é‡Šæ”¾ã€‚
+// falseçš„è¯ï¼Œåˆ™ä¸æ ‡è®°æ ˆæ¡¢ã€‚
+// ç›®å‰ï¼Œæ¨æµ‹æ¨¡å¼ä¸‹returnå°†æ ‡è®°æ ˆæ¡¢ï¼›æ¨æµ‹æ¨¡å¼ä¸‹æ‰§è¡Œå®Œputä¸ä¼šæ ‡è®°æ ˆæ¡¢ã€‚
+// é‡æ„1ï¼šä¸åº”å½“è®©æœ¬å‡½æ•°æ¥æ‰¿æ‹…æ ‡è®°æ ˆæ¡¢çš„å·¥ä½œã€‚åº”å½“å¦è®¾ä¸€å‡½æ•°pin_framesæ¥æ ‡è®°æ ˆæ¡¢ã€‚
+// æ¨æµ‹æ¨¡å¼ä¸‹returnçš„æ—¶å€™ï¼Œé™¤äº†å¿«ç…§ï¼Œè¿˜è¦è°ƒç”¨è¯¥å‡½æ•°æ ‡è®°æ ˆæ¡¢ã€‚
+// é‡æ„2ï¼šåœ¨snapshotä¸­è°ƒç”¨freeze
 void
 SpeculativeMode::snapshot(bool shot_frame)
 {
@@ -613,8 +685,8 @@ SpeculativeMode::snapshot(bool shot_frame)
                 MINILOG(snapshot_logger,
                         "#" << m_core->id() << " snapshot frame(" << f << ")" << " for " << *f->mb);
 
-                if (f->snapshoted) break;
-                f->snapshoted = true;
+                if (f->pinned) break;
+                f->pinned = true;
 
                 if (f->calling_object->get_group() != get_group())
                     break;

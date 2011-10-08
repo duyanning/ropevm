@@ -11,7 +11,8 @@ public:
     Object* get_leader();
     void add(Object* obj);
     void remove(Object* obj);
-    SpmtThread* get_core();
+    SpmtThread* get_core();     // refactor: remove
+    SpmtThread* get_spmt_thread();
     Thread* get_thread();
     bool can_speculate();
 private:
@@ -38,6 +39,13 @@ Group::get_leader()
 inline
 SpmtThread*
 Group::get_core()
+{
+    return m_core;
+}
+
+inline
+SpmtThread*
+Group::get_spmt_thread()
 {
     return m_core;
 }

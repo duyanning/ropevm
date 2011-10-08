@@ -173,7 +173,7 @@ CertainMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
             new InvokeMsg(target_object, new_mb, frame, current_object, sp, sp, pc);
 
         frame->last_pc = pc;
-        frame->snapshoted = true;
+        frame->pinned = true;
 
         MINILOG0("#" << m_core->id() << " i>>>transfers to #" << target_core->id()
                  // << " " << info(current_object) << " => " << info(target_object)
@@ -311,7 +311,7 @@ CertainMode::do_method_return(int len)
 
                 m_core->sync_speculative_with_certain();
                 m_core->switch_to_speculative_mode();
-                m_core->m_speculative_mode.load_next_task();
+                m_core->m_speculative_mode.process_next_spec_msg();
             }
         }
         else {

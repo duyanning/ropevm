@@ -21,8 +21,9 @@ public:
     const char* _name_;
 
     bool is_task_frame;
-    bool is_certain;
-    bool snapshoted;
+    bool is_certain;            // refactor: remove
+    //    bool snapshoted;            // refactor: rename
+    bool pinned;
     Object* object;
     Object* calling_object;
 

@@ -358,6 +358,21 @@ Mode::get_group()
     return m_core->get_group();
 }
 
+
+SpmtThread*
+Mode::this_spmt_thread()
+{
+    return m_core;
+}
+
+
+Effect*
+Mode::get_current_effect()
+{
+    return this_spmt_thread()->get_current_effect();
+}
+
+
 Group*
 Mode::assign_group_for(Object* obj)
 {

@@ -937,7 +937,7 @@ SpmtThread::handle_verification_failure(Message* message, bool self)
         Group* source_group = source_object->get_group();
         SpmtThread* source_core = source_group->get_core();
         source_core->wakeup();
-        m_speculative_mode.load_next_task();
+        m_speculative_mode.process_next_spec_msg();
 
     }
 }
@@ -970,4 +970,10 @@ Mode*
 SpmtThread::get_current_mode()
 {
     return m_mode;
+}
+
+Effect*
+SpmtThread::get_current_effect()
+{
+    return m_current_effect;
 }

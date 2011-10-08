@@ -4,6 +4,7 @@
 #include "align.h"
 
 class Message;
+class Effect;
 
 class Mode {
 public:
@@ -51,6 +52,9 @@ public:
     bool is_rvp_mode();
 
     Group* get_group();
+    SpmtThread* this_spmt_thread();
+    Effect* get_current_effect();
+
 public:
     //-------------------
     CodePntr pc;

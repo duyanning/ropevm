@@ -6,11 +6,14 @@ class Snapshot;
 
 class Effect {
 public:
-    std::vector<Message*> msgs_sent; // ÆÚ¼ä¶¼¸øË­·¢ËÍÁËÊ²Ã´ÏûÏ¢£¬putÏûÏ¢µÄ»°¿ÉÄÜÓĞ¶à¸ö£¬invokeÏûÏ¢µÄ»°¾ÍÖ»ÓĞÒ»¸ö¡£È·ÈÏÕâĞ©ÏûÏ¢µÄË³ĞòºÜÖØÒª¡£
-	std::vector<Frame*> C; // set of ÍÆ²âÄ£Ê½ÏÂ²úÉúµ«ÉĞÎ´ÊÍ·ÅµÄÕ»èå // effect±»·ñ¶¨Ê±ÊÍ·Å£¬Ïê¼û[[file:frame-management.org]]
-    std::vector<Frame*> R; // set of ÍÆ²âÄ£Ê½ÏÂreturnÁËµ«Î´ÊÍ·ÅµÄÕ»èå // effect±»È·ÈÏÊ±ÊÍ·Å£¬Ïê¼û[[file:frame-management.org]]
+    std::vector<Message*> m_msgs_sent; // æœŸé—´éƒ½ç»™è°å‘é€äº†ä»€ä¹ˆæ¶ˆæ¯ï¼Œputæ¶ˆæ¯çš„è¯å¯èƒ½æœ‰å¤šä¸ªï¼Œinvokeæ¶ˆæ¯çš„è¯å°±åªæœ‰ä¸€ä¸ªã€‚ç¡®è®¤è¿™äº›æ¶ˆæ¯çš„é¡ºåºå¾ˆé‡è¦ã€‚
+	std::vector<Frame*> m_C; // set of æ¨æµ‹æ¨¡å¼ä¸‹äº§ç”Ÿä½†å°šæœªé‡Šæ”¾çš„æ ˆæ¡¢ // effectè¢«å¦å®šæ—¶é‡Šæ”¾ï¼Œè¯¦è§[[file:frame-management.org]]
+    std::vector<Frame*> m_R; // set of æ¨æµ‹æ¨¡å¼ä¸‹returnäº†ä½†æœªé‡Šæ”¾çš„æ ˆæ¡¢ // effectè¢«ç¡®è®¤æ—¶é‡Šæ”¾ï¼Œè¯¦è§[[file:frame-management.org]]
 
-	Snapshot* snapshot; // Èç¹ûÉĞÎ´²úÉú¿ìÕÕ£¬ÔòÉèÎª0
+	Snapshot* snapshot; // å¦‚æœå°šæœªäº§ç”Ÿå¿«ç…§ï¼Œåˆ™è®¾ä¸º0
+
+    void add_spec_msg(Message* msg);
+    void set_snapshot(Snapshot* snapshot);
 
 };
 
