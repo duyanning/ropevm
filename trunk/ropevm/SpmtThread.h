@@ -126,18 +126,21 @@ private:
     // speculative execution state
 	// refactor {
 	typedef std::deque<Message*> QueueOfSpecMsgs;
-	QueueOfSpecMsgs m_queue_of_spec_msgs; // ÍÆ²âÏûÏ¢¶ÓÁĞ£º´ıÑéÖ¤¡¢´ı´¦Àí
-	QueueOfSpecMsgs::iterator msg_to_process; // Ö¸ÏòÍÆ²âÏûÏ¢¶ÓÁĞÖĞµÄµÚÒ»¸ö´ı´¦ÀíÏûÏ¢
+	QueueOfSpecMsgs m_queue_of_spec_msgs; // æ¨æµ‹æ¶ˆæ¯é˜Ÿåˆ—ï¼šå¾…éªŒè¯ã€å¾…å¤„ç†
+	QueueOfSpecMsgs::iterator m_msg_to_process; // æŒ‡å‘æ¨æµ‹æ¶ˆæ¯é˜Ÿåˆ—ä¸­çš„ç¬¬ä¸€ä¸ªå¾…å¤„ç†æ¶ˆæ¯
+    Effect* m_current_effect; // æ­£åœ¨å¤„ç†çš„æ¶ˆæ¯æ‰€å½¢æˆçš„effect
+
+    Effect* get_current_effect();
 	// } refactor
     std::deque<Message*> m_messages_to_be_verified; // refactor: remove
     std::deque<Message*> m_speculative_tasks; // refactor: remove
     std::deque<Snapshot*> m_snapshots_to_be_committed; // refactor: remove
-    StatesBuffer m_states_buffer;
+    StatesBuffer m_states_buffer; // refactor: state bufferï¼Œä¸è¦é‚£ä¸ªs
 
 	// refactor
-	// ¸Ã±äÁ¿½«±»Ò»¸ö±äÁ¿ºÍÒ»¸öº¯Êı´úÌæ
-	// ±äÁ¿m_spec_needs_task£¬±íÊ¾ÍÆ²âÖ´ĞĞĞèÒªÈÎÎñ
-	// º¯Êıis_waiting_for_task()£¬±íÊ¾µ±Ç°Ïß³ÌÊÇ·ñÕıÔÚÍÆ²âÄ£Ê½ÏÂµÈ´ıÈÎÎñ
+	// è¯¥å˜é‡å°†è¢«ä¸€ä¸ªå˜é‡å’Œä¸€ä¸ªå‡½æ•°ä»£æ›¿
+	// å˜é‡m_spec_needs_taskï¼Œè¡¨ç¤ºæ¨æµ‹æ‰§è¡Œéœ€è¦ä»»åŠ¡
+	// å‡½æ•°is_waiting_for_task()ï¼Œè¡¨ç¤ºå½“å‰çº¿ç¨‹æ˜¯å¦æ­£åœ¨æ¨æµ‹æ¨¡å¼ä¸‹ç­‰å¾…ä»»åŠ¡
     bool m_is_waiting_for_task; // speculative core is waiting for task
     RvpBuffer m_rvp_buffer;
 private:

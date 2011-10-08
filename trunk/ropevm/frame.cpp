@@ -69,7 +69,7 @@ Frame::Frame(int lvars_size, int ostack_size)
     object = 0;
     calling_object = 0;
     lrefs = 0;
-    snapshoted = false;
+    pinned = false;
     is_task_frame = false;
     is_certain = true;
     caller_sp = 0;

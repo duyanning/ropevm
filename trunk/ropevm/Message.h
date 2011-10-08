@@ -33,7 +33,7 @@ protected:
     Type type;
     Object* m_source_object;
     Object* m_target_object;
-	Effect* m_effect;  // 处理该消息所形成的effect
+	Effect* m_effect;  // 澶勭悊璇ユ秷鎭墍褰㈡垚鐨別ffect
 };
 
 class Object;

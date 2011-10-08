@@ -30,9 +30,10 @@ public:
     virtual void mode_write(uint32_t* addr, uint32_t value);
     virtual void step();
 
-    bool load_next_task();
-    void snapshot(bool shot_frame = true);
-
+    bool process_next_spec_msg();
+    void snapshot(bool shot_frame = true); // refactor: remove
+    void snapshot2();
+    void pin_frames();
 private:
     // for logging
 private:
