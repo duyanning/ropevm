@@ -607,7 +607,6 @@ SpeculativeMode::process_next_spec_msg()
 }
 
 
-// 与该函数对应的应当还有unpin_frames
 void
 SpeculativeMode::pin_frames()
 {
