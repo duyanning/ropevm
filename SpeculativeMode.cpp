@@ -123,6 +123,9 @@ SpeculativeMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
             new InvokeMsg(target_object, new_mb, frame, frame->get_object(), &args[0], sp, pc);
 
 
+        m_core->m_current_effect->msg_sent = msg;
+
+
         // MINILOG(s_logger,
         //         "#" << m_core->id() << " (S) add invoke task to #"
         //         << target_core->id() << ": " << *msg);

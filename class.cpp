@@ -70,7 +70,7 @@ static Class *prim_classes[MAX_PRIM_CLASSES];
 
 /* Bytecode for stub abstract method.  If it is invoked
    we'll get an abstract method error. */
-static char abstract_method[] = {OPC_ABSTRACT_METHOD_ERROR};
+static char abstract_method[] = {(char)OPC_ABSTRACT_METHOD_ERROR};
 
 static Class *addClassToHash(Class *classobj, Object *class_loader) {
     HashTable *table;

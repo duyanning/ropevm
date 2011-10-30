@@ -6,29 +6,23 @@ class FieldBlock;
 class Frame;
 class Effect;
 
+enum class MsgType {
+    INVOKE, RETURN,
+    GET, GET_RETURN,
+    PUT, PUT_RETURN,
+    LOAD, LOAD_RETURN,
+    STORE, STORE_RETURN
+};
+
 class Message {
 public:
-    enum Type {
-        invoke, ret,
-        get, put,
-        //ack,
-        arrayload, arraystore//,
-        //arraylength
-    };
-    Message(Type t, Object* source_object, Object* target_ojbect);
-    Type get_type();
+    Message(MsgType t, Object* source_object, Object* target_ojbect);
+    MsgType get_type();
     virtual ~Message();
-    bool is_equal_to(Message& msg);
     virtual void show(std::ostream& os) const = 0;
     virtual void show_detail(std::ostream& os, int id) const = 0;
     Object* get_source_object() { return m_source_object; }
     Object* get_target_object() { return m_target_object; }
-private:
-    virtual bool equal(Message& msg) = 0;
-public:
-    /*     int src_id; // just for debug */
-    /*     int dst_id; // just for debug */
-    int c; // just for debug
 protected:
     Type type;
     Object* m_source_object;
@@ -41,9 +35,8 @@ class Object;
 class InvokeMsg : public Message {
 public:
     InvokeMsg(Object* object, MethodBlock* mb, Frame* prev, Object* calling_object, uintptr_t* args, uintptr_t* caller_sp, CodePntr caller_pc, Object* calling_owner = 0);
-    virtual bool equal(Message& msg);
-    void show(std::ostream& os) const;
-    virtual void show_detail(std::ostream& os, int id) const;
+    // void show(std::ostream& os) const;
+    // virtual void show_detail(std::ostream& os, int id) const;
     MethodBlock* mb;
     std::vector<uintptr_t> parameters;
     Frame* caller_frame;
@@ -55,16 +48,13 @@ public:
 class ReturnMsg : public Message {
 public:
     ReturnMsg(Object* object, MethodBlock* mb, Frame* caller_frame, Object* calling_object, uintptr_t* rv, int len, uintptr_t* caller_sp, CodePntr caller_pc);
-    virtual bool equal(Message& msg);
-    void show(std::ostream& os) const;
-    virtual void show_detail(std::ostream& os, int id) const;
-    // private:
+    // virtual bool equal(Message& msg);
+    // void show(std::ostream& os) const;
+    // virtual void show_detail(std::ostream& os, int id) const;
     std::vector<uintptr_t> retval;
     Frame* caller_frame;
     uintptr_t* caller_sp;
     CodePntr caller_pc;
-
-    //Frame* frame;
 
     // for debug
     MethodBlock* mb;
