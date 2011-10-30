@@ -125,7 +125,8 @@ private:
 
     // speculative execution state
 	// refactor {
-	typedef std::deque<Message*> QueueOfSpecMsgs;
+
+	typedef std::list<Message*> QueueOfSpecMsgs;
 	QueueOfSpecMsgs m_queue_of_spec_msgs; // 推测消息队列：待验证、待处理
 	QueueOfSpecMsgs::iterator m_msg_to_process; // 指向推测消息队列中的第一个待处理消息
     Effect* m_current_effect; // 正在处理的消息所形成的effect
