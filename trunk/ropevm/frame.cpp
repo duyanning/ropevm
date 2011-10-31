@@ -158,7 +158,7 @@ create_dummy_frame(Frame* caller_frame)
 }
 
 Frame*
-create_frame(Object* object, MethodBlock* new_mb, Frame* caller_prev, Object* calling_object, uintptr_t* args, uintptr_t* caller_sp, CodePntr caller_pc)
+g_create_frame(Object* object, MethodBlock* new_mb, Frame* caller_prev, Object* calling_object, uintptr_t* args, uintptr_t* caller_sp, CodePntr caller_pc)
 {
     assert(new_mb);
 

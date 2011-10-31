@@ -47,15 +47,24 @@ public:
     Mode* original_uncertain_mode() { return m_old_mode; }
     void init();
     void wakeup();
-    void transfer_control(Message* message);
+    void transfer_control(Message* message); // refactor: to remove
     void send_certain_msg(SpmtThread* target_thread, Message* msg);
     void set_certain_msg(Message* msg);
+    Message* get_certain_msg();
     void add_speculative_task(Message* message); // refactor: to remove
     void send_spec_msg(SpmtThread* target_thread, Message* msg);
     void add_spec_msg(Message* msg);
     void reload_speculative_tasks();
     void on_enter_certain_mode();
     void leave_certain_mode(Message* msg);
+
+    void process_next_spec_msg();
+    void process_spec_msg(Message* msg);
+    bool is_waiting_for_spec_msg();
+
+    void snapshot_old(bool shot_frame = true); // refactor: remove
+    void snapshot(bool pin);
+    void pin_frames();
 
     void verify_speculation(Message* message, bool self = true);
     bool verify(Message* message);
@@ -102,7 +111,7 @@ private:
     void sync_certain_with_snapshot(Snapshot* snapshot);
 
     CertainMode* get_certain_mode() { return &m_certain_mode; }
-    SpeculativeMode* get_speculative_mode() { return &m_speculative_mode; }
+    SpeculativeMode* get_spec_mode() { return &m_spec_mode; }
     RvpMode* get_rvp_mode() { return &m_rvp_mode; }
 
     void clear_frame_in_states_buffer(Frame* f);
@@ -119,7 +128,7 @@ private:
     uintptr_t* m_result;
 
 private:
-    SpeculativeMode m_speculative_mode;
+    SpeculativeMode m_spec_mode;
     CertainMode m_certain_mode;
     RvpMode m_rvp_mode;
     Mode* m_mode;
@@ -128,19 +137,18 @@ private:
     Message* m_certain_message;
 
     // speculative execution state
-	SpecMsgQueue m_spec_msg_queue; // 推测消息队列
+	SpecMsgQueue m_spec_msg_queue;
+    StatesBuffer m_state_buffer;
+    RvpBuffer m_rvp_buffer;
+    bool m_need_spec_msg;
+
+
 
     std::deque<Message*> m_messages_to_be_verified; // refactor: remove
     std::deque<Message*> m_speculative_tasks; // refactor: remove
     std::deque<Snapshot*> m_snapshots_to_be_committed; // refactor: remove
-    StatesBuffer m_states_buffer; // refactor: state buffer，不要那个s
+    bool m_is_waiting_for_task; // refactor: to remove
 
-	// refactor
-	// 该变量将被一个变量和一个函数代替
-	// 变量m_spec_needs_task，表示推测执行需要任务
-	// 函数is_waiting_for_task()，表示当前线程是否正在推测模式下等待任务
-    bool m_is_waiting_for_task; // speculative core is waiting for task
-    RvpBuffer m_rvp_buffer;
 private:
     SpmtThread(int id);
 

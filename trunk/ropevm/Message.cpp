@@ -14,10 +14,6 @@ Message::Message(Type t, Object* source_object, Object* target_object)
     m_target_object(target_object)
 {
     type = t;
-    //{{{ just for debug
-    msg_count++;
-    c = msg_count;
-    //}}} just for debug
 }
 
 Message::~Message()
@@ -30,17 +26,17 @@ Message::get_type()
     return type;
 }
 
-bool
-Message::is_equal_to(Message& msg)
-{
-    if (type != msg.type)
-        return false;
-    // if (m_source_object != msg.m_source_object)
-    //     return false;
-    // if (m_target_object != msg.m_target_object)
-    //     return false;
-    return equal(msg);
-}
+// bool
+// Message::is_equal_to(Message& msg)
+// {
+//     if (type != msg.type)
+//         return false;
+//     // if (m_source_object != msg.m_source_object)
+//     //     return false;
+//     // if (m_target_object != msg.m_target_object)
+//     //     return false;
+//     return equal(msg);
+// }
 
 //------------------------------------------------
 InvokeMsg::InvokeMsg(Object* object, MethodBlock* mb, Frame* caller_frame, Object* calling_object, uintptr_t* args, uintptr_t* caller_sp, CodePntr caller_pc, Object* calling_owner)

@@ -26,7 +26,7 @@ SpmtThread::SpmtThread(int id)
     m_halt = false;
 
     m_certain_mode.set_core(this);
-    m_speculative_mode.set_core(this);
+    m_spec_mode.set_core(this);
     m_rvp_mode.set_core(this);
     m_mode = &m_certain_mode;
 }
@@ -103,7 +103,7 @@ SpmtThread::init()
 {
     m_halt = true;
     m_certain_message = 0;
-    m_mode = &m_speculative_mode;
+    m_mode = &m_spec_mode;
 
     m_is_waiting_for_task = true;
 
@@ -170,7 +170,7 @@ SpmtThread::set_certain_msg(Message* msg)
 }
 
 Message*
-SpmtThread::get_certain_message()
+SpmtThread::get_certain_msg()
 {
     Message* msg = 0;
     if (m_certain_message) {
@@ -190,14 +190,14 @@ SpmtThread::log_when_leave_certain()
     MINILOG(when_leave_certain_logger,
             "#" << id() << " ---------------------------");
     MINILOG(when_leave_certain_logger,
-            "#" << id() << " now use cache ver(" << m_states_buffer.version() << ")");
+            "#" << id() << " now use cache ver(" << m_state_buffer.version() << ")");
     MINILOG(when_leave_certain_logger,
             "#" << id() << " SPEC details:");
     // MINILOGPROC(when_leave_certain_logger,
     //             show_triple,
     //             (os, id(),
-    //              m_speculative_mode.frame, m_speculative_mode.sp, m_speculative_mode.pc,
-    //              m_speculative_mode.m_user,
+    //              m_spec_mode.frame, m_spec_mode.sp, m_spec_mode.pc,
+    //              m_spec_mode.m_user,
     //              true));
 
     MINILOG(when_leave_certain_logger,
@@ -214,17 +214,17 @@ SpmtThread::log_when_leave_certain()
 void
 SpmtThread::sync_speculative_with_certain()
 {
-    m_speculative_mode.pc = m_certain_mode.pc;
-    m_speculative_mode.frame = m_certain_mode.frame;
-    m_speculative_mode.sp = m_certain_mode.sp;
+    m_spec_mode.pc = m_certain_mode.pc;
+    m_spec_mode.frame = m_certain_mode.frame;
+    m_spec_mode.sp = m_certain_mode.sp;
 }
 
 void
 SpmtThread::sync_certain_with_speculative()
 {
-    m_certain_mode.pc = m_speculative_mode.pc;
-    m_certain_mode.frame = m_speculative_mode.frame;
-    m_certain_mode.sp = m_speculative_mode.sp;
+    m_certain_mode.pc = m_spec_mode.pc;
+    m_certain_mode.frame = m_spec_mode.frame;
+    m_certain_mode.sp = m_spec_mode.sp;
 }
 
 void
@@ -252,7 +252,7 @@ SpmtThread::on_enter_certain_mode()
     MINILOG(when_enter_certain_logger,
             "#" << id() << " ---------------------------");
     MINILOG(when_enter_certain_logger,
-            "#" << id() << " cache ver(" << m_states_buffer.version() << ")");
+            "#" << id() << " cache ver(" << m_state_buffer.version() << ")");
 
     MINILOG(when_enter_certain_logger,
             "#" << id() << " ---------------------------");
@@ -264,8 +264,8 @@ SpmtThread::on_enter_certain_mode()
         // MINILOGPROC(when_enter_certain_logger,
         //             show_triple,
         //             (os, id(),
-        //              m_speculative_mode.frame, m_speculative_mode.sp, m_speculative_mode.pc,
-        //              m_speculative_mode.m_user));
+        //              m_spec_mode.frame, m_spec_mode.sp, m_spec_mode.pc,
+        //              m_spec_mode.m_user));
     }
     else {
 
@@ -291,7 +291,7 @@ SpmtThread::switch_to_certain_mode()
 void
 SpmtThread::switch_to_speculative_mode()
 {
-    change_mode(&m_speculative_mode);
+    change_mode(&m_spec_mode);
 }
 
 void
@@ -302,9 +302,9 @@ SpmtThread::switch_to_rvp_mode()
 
     MINILOG0("#" << id() << " enter RVP mode");
 
-//     m_rvp_mode.pc = m_speculative_mode.pc;
-//     m_rvp_mode.frame = m_speculative_mode.frame;
-//     m_rvp_mode.ostack = m_speculative_mode.ostack;
+//     m_rvp_mode.pc = m_spec_mode.pc;
+//     m_rvp_mode.frame = m_spec_mode.frame;
+//     m_rvp_mode.ostack = m_spec_mode.ostack;
 
     change_mode(&m_rvp_mode);
 }
@@ -501,7 +501,7 @@ SpmtThread::discard_uncertain_execution(bool self)
     for_each(m_snapshots_to_be_committed.begin(), m_snapshots_to_be_committed.end(), Delete());
     m_snapshots_to_be_committed.clear();
 
-    m_states_buffer.reset();
+    m_state_buffer.reset();
     m_rvp_buffer.clear();
 
     m_is_waiting_for_task = false;
@@ -618,8 +618,8 @@ SpmtThread::scan()
 void
 SpmtThread::clear_frame_in_states_buffer(Frame* f)
 {
-    m_states_buffer.clear(f->lvars, f->lvars + f->mb->max_locals);
-    m_states_buffer.clear(f->ostack_base, f->ostack_base + f->mb->max_stack);
+    m_state_buffer.clear(f->lvars, f->lvars + f->mb->max_locals);
+    m_state_buffer.clear(f->ostack_base, f->ostack_base + f->mb->max_stack);
 }
 
 void
@@ -759,19 +759,19 @@ SpmtThread::handle_verification_success(Message* message, bool self)
 
         MINILOG(commit_logger,
                 "#" << id()
-                << " commit to latest, ver(" << m_states_buffer.version() << ")");
+                << " commit to latest, ver(" << m_state_buffer.version() << ")");
         //{{{ just for debug
         MINILOG(cache_logger,
                 "#" << id() << " ostack base: " << m_certain_mode.frame->ostack_base);
         MINILOGPROC(cache_logger, show_buffer,
-                    (os, id(), m_states_buffer, false));
+                    (os, id(), m_state_buffer, false));
         //}}} just for debug
-        m_states_buffer.commit(m_states_buffer.version());
+        m_state_buffer.commit(m_state_buffer.version());
         //{{{ just for debug
         MINILOG(cache_logger,
                 "#" << id() << " ostack base: " << m_certain_mode.frame->ostack_base);
         MINILOGPROC(cache_logger, show_buffer,
-                    (os, id(), m_states_buffer, false));
+                    (os, id(), m_state_buffer, false));
         //}}} just for debug
 
         // because has commited to latest version, cache should restart from ver 0
@@ -808,17 +808,17 @@ SpmtThread::handle_verification_success(Message* message, bool self)
         MINILOG(cache_logger,
                 "#" << id() << " ostack base: " << m_certain_mode.frame->ostack_base);
         MINILOGPROC(cache_logger, show_buffer,
-                    (os, id(), m_states_buffer, false));
+                    (os, id(), m_state_buffer, false));
         //}}} just for debug
-        m_states_buffer.commit(snapshot->version);
+        m_state_buffer.commit(snapshot->version);
         //{{{ just for debug
         MINILOG(cache_logger,
                 "#" << id() << " ostack base: " << m_certain_mode.frame->ostack_base);
         MINILOGPROC(cache_logger, show_buffer,
-                    (os, id(), m_states_buffer, false));
+                    (os, id(), m_state_buffer, false));
         //}}} just for debug
 
-        // if (snapshot->version == m_core->m_states_buffer.prev_version()) {
+        // if (snapshot->version == m_core->m_state_buffer.prev_version()) {
         //     //{{{ just for debug
         //     int x = 0;
         //     x++;
@@ -961,7 +961,7 @@ SpmtThread::handle_verification_failure(Message* message, bool self)
         Group* source_group = source_object->get_group();
         SpmtThread* source_core = source_group->get_core();
         source_core->wakeup();
-        m_speculative_mode.process_next_spec_msg();
+        process_next_spec_msg();
 
     }
 }
@@ -996,3 +996,204 @@ SpmtThread::get_current_mode()
     return m_mode;
 }
 
+
+void
+SpmtThread::process_spec_msg(Message* spec_msg)
+{
+    m_is_waiting_for_task = false;
+
+    MINILOG(task_load_logger, "#" << id() << " spec msg loaded: " << *spec_msg);
+
+    Message::Type type = spec_msg->get_type();
+    assert(type == Message::invoke
+           or type == Message::put
+           or type == Message::get
+           or type == Message::arraystore
+           or type == Message::arrayload);
+
+    if (type == Message::invoke) {
+
+        InvokeMsg* msg = static_cast<InvokeMsg*>(spec_msg);
+        MethodBlock* new_mb = msg->mb;
+
+        m_state_buffer.freeze();
+
+        Frame* new_frame = m_spec_mode.create_frame(msg->get_target_object(),
+                                                    new_mb,
+                                                    msg->caller_frame,
+                                                    msg->get_source_object(),
+                                                    &msg->parameters[0],
+                                                    msg->caller_sp,
+                                                    msg->caller_pc);
+
+
+        m_spec_mode.sp = (uintptr_t*)new_frame->ostack_base;
+        m_spec_mode.frame = new_frame;
+        m_spec_mode.pc = (CodePntr)new_mb->code;
+    }
+    else if (type == Message::put) {
+        PutMsg* msg = static_cast<PutMsg*>(spec_msg);
+
+        for (int i = 0; i < msg->val.size(); ++i) {
+            m_spec_mode.write(msg->addr + i, msg->val[i]);
+        }
+
+        snapshot(false);
+        process_next_spec_msg();
+    }
+    else if (type == Message::arraystore) {
+        ArrayStoreMsg* msg = static_cast<ArrayStoreMsg*>(spec_msg);
+
+        Object* array = msg->get_target_object();
+        int index = msg->index;
+        int type_size = msg->type_size;
+
+        void* addr = array_elem_addr(array, index, type_size);
+        m_spec_mode.store_array_from_no_cache_mem(&msg->slots[0], addr, type_size);
+
+        // for (int i = 0; i < msg->val.size(); ++i) {
+        //     m_spec_mode.write(addr + i, msg->val[i]);
+        // }
+
+        snapshot(false);
+        process_next_spec_msg();
+    }
+
+}
+
+
+void
+SpmtThread::process_next_spec_msg()
+{
+    MINILOG(task_load_logger, "#" << id() << " try to load a spec msg");
+
+    Message* msg = m_spec_msg_queue.begin_process_next_msg();
+    if (msg == nullptr) {
+        MINILOG(task_load_logger, "#" << id() << " no spec msg, waiting for spec msg");
+        m_spec_mode.pc = 0;
+        m_spec_mode.frame = 0;
+        m_spec_mode.sp = 0;
+        m_need_spec_msg = true;
+        sleep();
+        return;
+    }
+
+    snapshot(false);
+    process_spec_msg(msg);
+}
+
+
+void
+SpmtThread::pin_frames()
+{
+    Frame* f = m_spec_mode.frame;
+
+    for (;;) {
+        // MINILOG(snapshot_logger,
+        //         "#" << m_spmt_thread->id() << " snapshot frame(" << f << ")" << " for " << *f->mb);
+
+        if (f->pinned)
+            break;
+
+        f->pinned = true;
+
+        if (f->is_top_frame())
+            break;
+
+        f = f->prev;
+        if (f->calling_object->get_group()->get_spmt_thread() != this)
+            break;
+
+    }
+}
+
+
+void
+SpmtThread::snapshot(bool pin)
+{
+    Snapshot* snapshot = new Snapshot;
+
+    snapshot->version = m_state_buffer.version();
+    m_state_buffer.freeze();
+
+    snapshot->pc = m_spec_mode.pc;
+    snapshot->frame = m_spec_mode.frame;
+    snapshot->sp = m_spec_mode.sp;
+
+    Effect* current_effect = m_spec_msg_queue.current_msg()->get_effect();
+    current_effect->snapshot = snapshot;
+
+    if (pin)
+        pin_frames();
+
+}
+
+
+// void
+// SpmtThread::snapshot_old(bool shot_frame)
+// {
+//     if (shot_frame) {
+//         Frame* f = this->frame;
+//         //assert(f == 0 || m_spmt_thread->is_owner_enclosure(f->get_object()));
+
+
+//         if (f) {
+//             for (;;) {
+//                 MINILOG(snapshot_logger,
+//                         "#" << m_spmt_thread->id() << " snapshot frame(" << f << ")" << " for " << *f->mb);
+
+//                 if (f->pinned) break;
+//                 f->pinned = true;
+
+//                 if (f->calling_object->get_group() != get_group())
+//                     break;
+
+//                 //if (f == m_spmt_thread->m_certain_mode.frame) break;
+//                 if (f->is_task_frame) break;
+//                 if (f->is_top_frame()) break;
+
+//                 f = f->prev;
+//             }
+//         }
+//     }
+
+//     Snapshot* snapshot = new Snapshot;
+
+//     snapshot->version = m_spmt_thread->m_state_buffer.version();
+//     //m_spmt_thread->m_states_buffer.freeze();
+
+//     // //{{{ just for debug
+//     // MINILOG_IF(m_spmt_thread->id() == 5,
+//     //            cache_logger,
+//     //            "#" << m_spmt_thread->id() << " ostack base: " << frame->ostack_base);
+//     // MINILOGPROC_IF(m_spmt_thread->id() == 5,
+//     //                cache_logger, show_cache,
+//     //                (os, m_spmt_thread->id(), m_spmt_thread->m_states_buffer, false));
+//     // //}}} just for debug
+//     //snapshot->user = this->m_user;
+//     snapshot->pc = this->pc;
+//     snapshot->frame = shot_frame ? this->frame : 0;
+//     snapshot->sp = this->sp;
+
+//     //{{{ just for debug
+//     assert(m_spmt_thread->has_message_to_be_verified());
+//     snapshot->spec_msg = m_spmt_thread->m_messages_to_be_verified.back();
+//     MINILOG0("#" << m_spmt_thread->id() << " shot spec: " << *snapshot->spec_msg);
+//     //}}} just for debug
+
+
+//     MINILOG(snapshot_logger,
+//             "#" << m_spmt_thread->id() << " snapshot, ver(" << snapshot->version << ")" << " is frozen");
+//     if (shot_frame) {
+//         MINILOG(snapshot_detail_logger,
+//                 "#" << m_spmt_thread->id() << " details:");
+//         MINILOGPROC(snapshot_detail_logger, show_snapshot,
+//                     (os, m_spmt_thread->id(), snapshot));
+//     }
+
+//     if (shot_frame) {
+//         assert(snapshot->frame == 0 || is_sp_ok(snapshot->sp, snapshot->frame));
+//     }
+
+//     m_spmt_thread->m_snapshots_to_be_committed.push_back(snapshot);
+// }

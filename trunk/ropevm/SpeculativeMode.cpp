@@ -28,13 +28,13 @@ SpeculativeMode::SpeculativeMode()
 uint32_t
 SpeculativeMode::mode_read(uint32_t* addr)
 {
-    return m_spmt_thread->m_states_buffer.read(addr);
+    return m_spmt_thread->m_state_buffer.read(addr);
 }
 
 void
 SpeculativeMode::mode_write(uint32_t* addr, uint32_t value)
 {
-    m_spmt_thread->m_states_buffer.write(addr, value);
+    m_spmt_thread->m_state_buffer.write(addr, value);
 }
 
 void
@@ -42,7 +42,7 @@ SpeculativeMode::step()
 {
     assert(RopeVM::do_spec);
 
-    Message* msg = m_spmt_thread->get_certain_message();
+    Message* msg = m_spmt_thread->get_certain_msg();
     if (msg) {
         process_certain_message(msg);
         return;
@@ -54,7 +54,7 @@ SpeculativeMode::step()
 
         // if (not m_spmt_thread->from_certain_to_spec)
         //     m_spmt_thread->snapshot();
-        process_next_spec_msg();
+        m_spmt_thread->process_next_spec_msg();
 
         // if (not m_spmt_thread->m_is_waiting_for_task) {
         //     exec_an_instr();
@@ -184,12 +184,12 @@ SpeculativeMode::do_method_return(int len)
     }
 
 
-    SpmtThread* me = m_spmt_thread;
+
     Object* target_object = frame->calling_object;
     SpmtThread* target_spmt_thread = target_object->get_group()->get_spmt_thread();
 
 
-    if (target_spmt_thread == me) {
+    if (target_spmt_thread == m_spmt_thread) {
 
         // //{{{ just for debug
         // if (m_spmt_thread->id() == 0) {
@@ -217,18 +217,14 @@ SpeculativeMode::do_method_return(int len)
     else {
 
         // construct speculative message
-        ReturnMsg* msg =0;
-        //new ReturnMsg();
+        ReturnMsg* msg = 0;//new ReturnMsg();
 
         // record spec msg sent in current effect
-        me->m_spec_msg_queue.current_msg()->get_effect()->msg_sent = msg;
-
-
-        snapshot();
+        m_spmt_thread->m_spec_msg_queue.current_msg()->get_effect()->msg_sent = msg;
 
         destroy_frame(current_frame);
 
-        process_next_spec_msg();
+        m_spmt_thread->process_next_spec_msg();
 
     }
 }
@@ -252,7 +248,7 @@ SpeculativeMode::do_throw_exception()
 Frame*
 SpeculativeMode::create_frame(Object* object, MethodBlock* new_mb, Frame* caller_prev, Object* calling_object, uintptr_t* args, uintptr_t* caller_sp, CodePntr caller_pc)
 {
-    Frame* new_frame = ::create_frame(object, new_mb, caller_prev, calling_object, args, caller_sp, caller_pc);
+    Frame* new_frame = g_create_frame(object, new_mb, caller_prev, calling_object, args, caller_sp, caller_pc);
     // record new_frame in effect
     return new_frame;
 }
@@ -303,7 +299,7 @@ SpeculativeMode::do_get_field(Object* source_object, FieldBlock* fb, uintptr_t* 
     }
     else {
 
-        snapshot();
+        m_spmt_thread->snapshot(1==1);
 
         // read all at one time, to avoid data change between two reading.
         vector<uintptr_t> val;
@@ -353,7 +349,7 @@ SpeculativeMode::do_put_field(Object* target_object, FieldBlock* fb,
     }
     else {
 
-        snapshot();
+        m_spmt_thread->snapshot(1==1);
 
         if (target_group->can_speculate()) {
 
@@ -417,7 +413,7 @@ SpeculativeMode::do_array_load(Object* array, int index, int type_size)
     }
     else {
 
-        snapshot();
+        m_spmt_thread->snapshot(1==1);
 
         // read all at one time, to avoid data change between two reading.
         uint8_t val[8]; // longest value is 8 bytes
@@ -464,7 +460,7 @@ SpeculativeMode::do_array_store(Object* array, int index, int type_size)
     }
     else {
 
-        snapshot();
+        m_spmt_thread->snapshot(true);
 
         if (target_group->can_speculate()) {      // target_object has a core
             SpmtThread* target_core = target_group->get_core();
@@ -516,236 +512,8 @@ SpeculativeMode::do_execute_method(Object* target_object,
     return 0;
 }
 
-bool
-SpeculativeMode::process_next_spec_msg()
-{
-    MINILOG(task_load_logger, "#" << m_spmt_thread->id() << " try to load a task");
-
-    if (m_spmt_thread->m_speculative_tasks.empty()) { // there are NO tasks
-        MINILOG(task_load_logger, "#" << m_spmt_thread->id() << " no task, waiting for task");
-        pc = 0;
-        frame = 0;
-        sp = 0;
-        m_spmt_thread->m_is_waiting_for_task = true;
-        m_spmt_thread->sleep();
-    }
-    else {                      // has tasks
-        m_spmt_thread->m_is_waiting_for_task = false;
-        Message* task_msg = m_spmt_thread->m_speculative_tasks.front();
-        m_spmt_thread->m_speculative_tasks.pop_front();
-
-        MINILOG(task_load_logger, "#" << m_spmt_thread->id() << " task loaded: " << *task_msg);
-
-        Message::Type type = task_msg->get_type();
-        assert(
-               type == Message::invoke
-               or type == Message::put
-               or type == Message::arraystore
-               );
-
-        if (type == Message::invoke) {
-
-            InvokeMsg* msg = static_cast<InvokeMsg*>(task_msg);
-
-            //{{{ just for debug
-            if (m_spmt_thread->id() == 7 && strcmp("hasMoreElements", msg->mb->name) == 0) {
-                int x = 0;
-                x++;
-            }
-            //}}} just for debug
-            MethodBlock* new_mb = msg->mb;
-
-            if (is_priviledged(new_mb)) {
-                MINILOG(s_logger,
-                        "#" << m_spmt_thread->id() << " (S) " << *new_mb << "is native/sync method");
-                m_spmt_thread->sleep();
-            }
-            else {
-                m_spmt_thread->add_message_to_be_verified(msg);
-                m_spmt_thread->m_states_buffer.freeze();
-
-                Frame* new_frame =
-                    create_frame(msg->get_target_object(), new_mb, msg->caller_frame, msg->get_source_object(),
-                                 &msg->parameters[0], msg->caller_sp, msg->caller_pc);
-                new_frame->is_certain = false;
-                new_frame->is_task_frame = true;
-
-                sp = (uintptr_t*)new_frame->ostack_base;
-
-                frame = new_frame;
-                pc = (CodePntr)new_mb->code;
-            }
-        }
-        else if (type == Message::put) {
-            PutMsg* msg = static_cast<PutMsg*>(task_msg);
-            m_spmt_thread->add_message_to_be_verified(msg);
-
-            for (int i = 0; i < msg->val.size(); ++i) {
-                write(msg->addr + i, msg->val[i]);
-            }
-
-            snapshot(false);
-            process_next_spec_msg();
-        }
-        else if (type == Message::arraystore) {
-            ArrayStoreMsg* msg = static_cast<ArrayStoreMsg*>(task_msg);
-            m_spmt_thread->add_message_to_be_verified(msg);
-
-            Object* array = msg->get_target_object();
-            int index = msg->index;
-            int type_size = msg->type_size;
-
-            void* addr = array_elem_addr(array, index, type_size);
-            store_array_from_no_cache_mem(&msg->slots[0], addr, type_size);
-
-            // for (int i = 0; i < msg->val.size(); ++i) {
-            //     m_speculative_mode.write(addr + i, msg->val[i]);
-            // }
-
-            snapshot(false);
-            process_next_spec_msg();
-        }
-        else {
-            assert(false);
-        }
-    }
-
-    return not m_spmt_thread->m_is_waiting_for_task;
-}
 
 
-void
-SpeculativeMode::pin_frames()
-{
-    Frame* f = this->frame;
-
-    for (;;) {
-        // MINILOG(snapshot_logger,
-        //         "#" << m_spmt_thread->id() << " snapshot frame(" << f << ")" << " for " << *f->mb);
-
-        if (f->pinned)
-            break;
-
-        f->pinned = true;
-
-        if (f->is_top_frame())
-            break;
-
-        f = f->prev;
-        if (f->calling_object->get_group()->get_spmt_thread() != m_spmt_thread)
-            break;
-
-    }
-}
-
-
-// refactor
-// 不应调用pin_frames，因为不是所有的snapshot都伴随pin_frames
-void
-SpeculativeMode::snapshot2()
-{
-    Snapshot* snapshot = new Snapshot;
-
-    SpmtThread* me = m_spmt_thread;
-
-    snapshot->version = me->m_states_buffer.version();
-    me->m_states_buffer.freeze();
-
-    snapshot->pc = this->pc;
-    snapshot->frame = this->frame;
-    snapshot->sp = this->sp;
-
-    //get_current_effect()->snapshot = snapshot;
-
-
-    // MINILOG(snapshot_logger,
-    //         "#" << m_spmt_thread->id() << " snapshot, ver(" << snapshot->version << ")" << " is frozen");
-    // if (shot_frame) {
-    //     MINILOG(snapshot_detail_logger,
-    //             "#" << m_spmt_thread->id() << " details:");
-    //     MINILOGPROC(snapshot_detail_logger, show_snapshot,
-    //                 (os, m_spmt_thread->id(), snapshot));
-    // }
-
-
-}
-
-
-// refactor
-// 参数为true的话，将标记栈桢，表明栈桢在推测模式下不能被释放。
-// false的话，则不标记栈桢。
-// 目前，推测模式下return将标记栈桢；推测模式下执行完put不会标记栈桢。
-// 重构1：不应当让本函数来承担标记栈桢的工作。应当另设一函数pin_frames来标记栈桢。
-// 推测模式下return的时候，除了快照，还要调用该函数标记栈桢。
-// 重构2：在snapshot中调用freeze
-void
-SpeculativeMode::snapshot(bool shot_frame)
-{
-    if (shot_frame) {
-        Frame* f = this->frame;
-        //assert(f == 0 || m_spmt_thread->is_owner_enclosure(f->get_object()));
-
-
-        if (f) {
-            for (;;) {
-                MINILOG(snapshot_logger,
-                        "#" << m_spmt_thread->id() << " snapshot frame(" << f << ")" << " for " << *f->mb);
-
-                if (f->pinned) break;
-                f->pinned = true;
-
-                if (f->calling_object->get_group() != get_group())
-                    break;
-
-                //if (f == m_spmt_thread->m_certain_mode.frame) break;
-                if (f->is_task_frame) break;
-                if (f->is_top_frame()) break;
-
-                f = f->prev;
-            }
-        }
-    }
-
-    Snapshot* snapshot = new Snapshot;
-
-    snapshot->version = m_spmt_thread->m_states_buffer.version();
-    //m_spmt_thread->m_states_buffer.freeze();
-
-    // //{{{ just for debug
-    // MINILOG_IF(m_spmt_thread->id() == 5,
-    //            cache_logger,
-    //            "#" << m_spmt_thread->id() << " ostack base: " << frame->ostack_base);
-    // MINILOGPROC_IF(m_spmt_thread->id() == 5,
-    //                cache_logger, show_cache,
-    //                (os, m_spmt_thread->id(), m_spmt_thread->m_states_buffer, false));
-    // //}}} just for debug
-    //snapshot->user = this->m_user;
-    snapshot->pc = this->pc;
-    snapshot->frame = shot_frame ? this->frame : 0;
-    snapshot->sp = this->sp;
-
-    //{{{ just for debug
-    assert(m_spmt_thread->has_message_to_be_verified());
-    snapshot->spec_msg = m_spmt_thread->m_messages_to_be_verified.back();
-    MINILOG0("#" << m_spmt_thread->id() << " shot spec: " << *snapshot->spec_msg);
-    //}}} just for debug
-
-
-    MINILOG(snapshot_logger,
-            "#" << m_spmt_thread->id() << " snapshot, ver(" << snapshot->version << ")" << " is frozen");
-    if (shot_frame) {
-        MINILOG(snapshot_detail_logger,
-                "#" << m_spmt_thread->id() << " details:");
-        MINILOGPROC(snapshot_detail_logger, show_snapshot,
-                    (os, m_spmt_thread->id(), snapshot));
-    }
-
-    if (shot_frame) {
-        assert(snapshot->frame == 0 || is_sp_ok(snapshot->sp, snapshot->frame));
-    }
-
-    m_spmt_thread->m_snapshots_to_be_committed.push_back(snapshot);
-}
 
 void
 SpeculativeMode::log_when_invoke_return(bool is_invoke, Object* caller, MethodBlock* caller_mb,
