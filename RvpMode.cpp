@@ -169,7 +169,7 @@ RvpMode::do_method_return(int len)
         uintptr_t* caller_sp = frame->caller_sp;
 
         for (int i = 0; i < len; ++i) {
-            m_spmt_thread->m_speculative_mode.write(caller_sp++, read(&sp[i]));
+            m_spmt_thread->m_spec_mode.write(caller_sp++, read(&sp[i]));
             rv.push_back(read(&sp[i]));
         }
 
@@ -193,9 +193,9 @@ RvpMode::do_method_return(int len)
 
         MINILOG0("#" << m_spmt_thread->id() << " leave RVP mode");
 
-        m_spmt_thread->m_speculative_mode.pc = pc;
-        m_spmt_thread->m_speculative_mode.frame = frame;
-        m_spmt_thread->m_speculative_mode.sp = sp;
+        m_spmt_thread->m_spec_mode.pc = pc;
+        m_spmt_thread->m_spec_mode.frame = frame;
+        m_spmt_thread->m_spec_mode.sp = sp;
 
         m_spmt_thread->switch_to_speculative_mode();
 
@@ -245,7 +245,7 @@ RvpMode::do_throw_exception()
 void
 RvpMode::step()
 {
-    Message* msg = m_spmt_thread->get_certain_message();
+    Message* msg = m_spmt_thread->get_certain_msg();
     if (msg) {
         // m_spmt_thread->enter_certain_mode();
         // m_spmt_thread->verify_and_commit(msg);
@@ -260,7 +260,7 @@ RvpMode::step()
 Frame*
 RvpMode::create_frame(Object* object, MethodBlock* new_mb, Frame* caller_prev, Object* calling_object, uintptr_t* args, uintptr_t* caller_sp, CodePntr caller_pc)
 {
-    Frame* new_frame = ::create_frame(object, new_mb, caller_prev, calling_object, args, caller_sp, caller_pc);
+    Frame* new_frame = g_create_frame(object, new_mb, caller_prev, calling_object, args, caller_sp, caller_pc);
     // record new_frame in V of effect
     return new_frame;
 }

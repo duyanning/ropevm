@@ -45,7 +45,7 @@ CertainMode::step()
     }
     //}}} just for debug
 
-    Message* msg = m_spmt_thread->get_certain_message();
+    Message* msg = m_spmt_thread->get_certain_msg();
     if (msg) {
         process_certain_message(msg);
         return;
@@ -166,7 +166,7 @@ CertainMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
 
         // construct certain msg
         InvokeMsg* msg =
-            new InvokeMsg(target_object, new_mb, frame, current_object, sp, sp, pc);
+            new InvokeMsg(target_object, new_mb, frame, frame->get_object(), sp, sp, pc);
 
         frame->last_pc = pc;
 
@@ -178,13 +178,12 @@ CertainMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
                  // << "("  << frame << ")"
                  );
 
-        target_spmt_thread->send_certain_msg(msg);
+        target_spmt_thread->send_certain_msg(target_spmt_thread, msg);
 
 
         MethodBlock* rvp_method = get_rvp_method(new_mb);
-        MINILOG0("#" << m_spmt_thread->id() << " (S)calls rvp-method: " << *rvp_method);
-        Frame* rvp_frame = create_frame(target_object, rvp_method, frame, 0, sp, sp, pc);
-        rvp_frame->is_certain = false;
+        MINILOG0("#" << m_spmt_thread->id() << " (S)invokes rvp-method: " << *rvp_method);
+        Frame* rvp_frame = m_spmt_thread->m_rvp_mode.create_frame(target_object, rvp_method, frame, 0, sp, sp, pc);
 
         m_spmt_thread->m_rvp_mode.pc = (CodePntr)rvp_method->code;
         m_spmt_thread->m_rvp_mode.frame = rvp_frame;
@@ -284,7 +283,7 @@ CertainMode::do_method_return(int len)
 
                 m_spmt_thread->sync_speculative_with_certain();
                 m_spmt_thread->switch_to_speculative_mode();
-                m_spmt_thread->m_speculative_mode.process_next_spec_msg();
+                m_spmt_thread->process_next_spec_msg();
             }
         }
         else {
@@ -440,7 +439,7 @@ CertainMode::do_throw_exception()
 Frame*
 CertainMode::create_frame(Object* object, MethodBlock* new_mb, Frame* caller_prev, Object* calling_object, uintptr_t* args, uintptr_t* caller_sp, CodePntr caller_pc)
 {
-    Frame* new_frame = ::create_frame(object, new_mb, caller_prev, calling_object, args, caller_sp, caller_pc);
+    Frame* new_frame = g_create_frame(object, new_mb, caller_prev, calling_object, args, caller_sp, caller_pc);
     return new_frame;
 }
 

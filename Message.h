@@ -1,6 +1,7 @@
 #ifndef MESSAGE_H
 #define MESSAGE_H
 
+class Object;
 class MethodBlock;
 class FieldBlock;
 class Frame;
@@ -39,7 +40,7 @@ protected:
 	Effect* m_effect;  // 处理该消息所形成的effect
 };
 
-class Object;
+
 
 class InvokeMsg : public Message {
 public:
@@ -53,6 +54,7 @@ public:
     CodePntr caller_pc;
     Object* calling_owner;
 };
+
 
 class ReturnMsg : public Message {
 public:
@@ -69,6 +71,7 @@ public:
     MethodBlock* mb;
 };
 
+
 class GetMsg : public Message {
 public:
     GetMsg(Object* source_object, Object* target_object, FieldBlock* fb, uintptr_t* addr, int size, Frame* caller_frame, uintptr_t* caller_sp, CodePntr caller_pc);
@@ -83,6 +86,16 @@ public:
     uintptr_t* caller_sp;
     CodePntr caller_pc;
 };
+
+
+class GetReturnMsg : public Message {
+public:
+    GetReturnMsg();
+    virtual bool equal(Message& msg);
+    void show(std::ostream& os) const;
+    virtual void show_detail(std::ostream& os, int id) const;
+};
+
 
 class PutMsg : public Message {
 public:
@@ -100,13 +113,14 @@ public:
     bool is_static;
 };
 
-// class AckMsg : public Message {
-// public:
-//     AckMsg();
-//     virtual bool equal(Message& msg);
-//     void show(std::ostream& os) const;
-//     virtual void show_detail(std::ostream& os, int id) const;
-// };
+
+class PutReturnMsg : public Message {
+public:
+    PutReturnMsg();
+    virtual bool equal(Message& msg);
+    void show(std::ostream& os) const;
+    virtual void show_detail(std::ostream& os, int id) const;
+};
 
 
 class ArrayLoadMsg : public Message {
@@ -125,6 +139,16 @@ public:
     CodePntr caller_pc;
 };
 
+
+class ArrayLoadReturnMsg : public Message {
+public:
+    ArrayLoadReturnMsg();
+    virtual bool equal(Message& msg);
+    void show(std::ostream& os) const;
+    virtual void show_detail(std::ostream& os, int id) const;
+};
+
+
 class ArrayStoreMsg : public Message {
 public:
     ArrayStoreMsg(Object* source_object, Object* array, int index, uintptr_t* slots, int nslots, int type_size);
@@ -140,8 +164,20 @@ public:
     /*     CodePntr caller_pc; */
 };
 
+
+class ArrayStoreReturnMsg : public Message {
+public:
+    ArrayStoreReturnMsg();
+    virtual bool equal(Message& msg);
+    void show(std::ostream& os) const;
+    virtual void show_detail(std::ostream& os, int id) const;
+};
+
+
 bool are_the_same_in_content(Message* msg1, Message* msg2); // refactor
 bool operator==(Message& msg1, Message& msg2); // refactor: remove
+
+
 std::ostream& operator<<(std::ostream& os, const Message& msg);
 void show_msg_detail(std::ostream& os, int id, Message* msg);
 
