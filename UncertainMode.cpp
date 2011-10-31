@@ -20,13 +20,13 @@ UncertainMode::process_certain_message(Message* msg)
         //|| msg->get_type() == Message::ack
         ) {
 
-        m_core->on_enter_certain_mode();
-        m_core->verify_speculation(msg, false);
+        m_spmt_thread->on_enter_certain_mode();
+        m_spmt_thread->verify_speculation(msg, false);
         return;
     }
     // else if (msg->get_type() == Message::ack) {
-    //     m_core->enter_certain_mode();
-    //     m_core->start();
+    //     m_spmt_thread->enter_certain_mode();
+    //     m_spmt_thread->start();
     //     return;
     // }
     else {

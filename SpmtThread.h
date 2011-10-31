@@ -7,6 +7,7 @@
 #include "SpeculativeMode.h"
 #include "RvpMode.h"
 
+#include "SpecMsgQueue.h"
 #include "StatesBuffer.h"
 #include "RvpBuffer.h"
 
@@ -47,8 +48,11 @@ public:
     void init();
     void wakeup();
     void transfer_control(Message* message);
-    Message* get_certain_message();
-    void add_speculative_task(Message* message);
+    void send_certain_msg(SpmtThread* target_thread, Message* msg);
+    void set_certain_msg(Message* msg);
+    void add_speculative_task(Message* message); // refactor: to remove
+    void send_spec_msg(SpmtThread* target_thread, Message* msg);
+    void add_spec_msg(Message* msg);
     void reload_speculative_tasks();
     void on_enter_certain_mode();
     void leave_certain_mode(Message* msg);
@@ -124,15 +128,8 @@ private:
     Message* m_certain_message;
 
     // speculative execution state
-	// refactor {
+	SpecMsgQueue m_spec_msg_queue; // 推测消息队列
 
-	typedef std::list<Message*> QueueOfSpecMsgs;
-	QueueOfSpecMsgs m_queue_of_spec_msgs; // 推测消息队列：待验证、待处理
-	QueueOfSpecMsgs::iterator m_msg_to_process; // 指向推测消息队列中的第一个待处理消息
-    Effect* m_current_effect; // 正在处理的消息所形成的effect
-
-    Effect* get_current_effect();
-	// } refactor
     std::deque<Message*> m_messages_to_be_verified; // refactor: remove
     std::deque<Message*> m_speculative_tasks; // refactor: remove
     std::deque<Snapshot*> m_snapshots_to_be_committed; // refactor: remove

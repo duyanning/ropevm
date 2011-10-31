@@ -12,6 +12,9 @@ public:
 
 	Snapshot* snapshot; // 如果尚未产生快照，则设为0
 
+    void commit();
+    void discard();
+
 };
 
 #endif  // EFFECT_H

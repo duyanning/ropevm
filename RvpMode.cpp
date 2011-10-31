@@ -35,20 +35,20 @@ bool addr_is_in_frame(void* addr, Frame* frame)
 uint32_t
 RvpMode::mode_read(uint32_t* addr)
 {
-    return m_core->m_rvp_buffer.read(addr);
+    return m_spmt_thread->m_rvp_buffer.read(addr);
 }
 
 void
 RvpMode::mode_write(uint32_t* addr, uint32_t value)
 {
-    m_core->m_rvp_buffer.write(addr, value);
+    m_spmt_thread->m_rvp_buffer.write(addr, value);
 }
 
 void
 RvpMode::before_alloc_object()
 {
-    //MINILOG(r_new_logger, "#" << m_core->id() << " (R) hits NEW " << classobj->name());
-    m_core->sleep();
+    //MINILOG(r_new_logger, "#" << m_spmt_thread->id() << " (R) hits NEW " << classobj->name());
+    m_spmt_thread->sleep();
     throw DeepBreak();
 }
 
@@ -72,8 +72,8 @@ RvpMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
 
     if (is_priviledged(new_mb)) {
         MINILOG(r_logger,
-                "#" << m_core->id() << " (R) is to invoke native/sync method: " << *new_mb);
-        m_core->sleep();
+                "#" << m_spmt_thread->id() << " (R) is to invoke native/sync method: " << *new_mb);
+        m_spmt_thread->sleep();
         return;
     }
 
@@ -93,7 +93,7 @@ RvpMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
 
     MINILOG_IF(debug_scaffold::java_main_arrived,
                r_frame_logger,
-               "#" << m_core->id()
+               "#" << m_spmt_thread->id()
                << " (R) enter "
                << new_frame->mb->full_name()
                << "  <---  "
@@ -116,7 +116,7 @@ RvpMode::do_method_return(int len)
 
     MINILOG_IF(debug_scaffold::java_main_arrived,
                r_frame_logger,
-               "#" << m_core->id()
+               "#" << m_spmt_thread->id()
                << " (R) leave "
                << frame->mb->full_name()
                << "  --->  "
@@ -124,7 +124,7 @@ RvpMode::do_method_return(int len)
                );
 
     //{{{ just for debug
-    if (m_core->m_id == 6 && strcmp(frame->mb->name, "_p_slice_for_makeUniqueNeighbors") == 0) {
+    if (m_spmt_thread->m_id == 6 && strcmp(frame->mb->name, "_p_slice_for_makeUniqueNeighbors") == 0) {
         int x = 0;
         x++;
     }
@@ -155,7 +155,7 @@ RvpMode::do_method_return(int len)
     else { // should quit RVP mode
 
         //{{{ just for debug
-        if (m_core->m_id == 0
+        if (m_spmt_thread->m_id == 0
             && strcmp(frame->mb->name, "createVillage") == 0
             && strcmp(frame->prev->mb->name, "main") == 0) {
             int x = 0;
@@ -169,7 +169,7 @@ RvpMode::do_method_return(int len)
         uintptr_t* caller_sp = frame->caller_sp;
 
         for (int i = 0; i < len; ++i) {
-            m_core->m_speculative_mode.write(caller_sp++, read(&sp[i]));
+            m_spmt_thread->m_speculative_mode.write(caller_sp++, read(&sp[i]));
             rv.push_back(read(&sp[i]));
         }
 
@@ -177,7 +177,7 @@ RvpMode::do_method_return(int len)
                                        frame->calling_object, &rv[0], len,
                                        frame->caller_sp, frame->caller_pc);
 
-        m_core->add_message_to_be_verified(msg);
+        m_spmt_thread->add_message_to_be_verified(msg);
 
         Frame* current_frame = frame;
         frame = frame->prev;
@@ -188,16 +188,16 @@ RvpMode::do_method_return(int len)
         assert(is_sp_ok(sp, frame));
         assert(is_pc_ok(pc, frame->mb));
 
-        //m_core->leave_rvp_mode(target_object);
+        //m_spmt_thread->leave_rvp_mode(target_object);
 
 
-        MINILOG0("#" << m_core->id() << " leave RVP mode");
+        MINILOG0("#" << m_spmt_thread->id() << " leave RVP mode");
 
-        m_core->m_speculative_mode.pc = pc;
-        m_core->m_speculative_mode.frame = frame;
-        m_core->m_speculative_mode.sp = sp;
+        m_spmt_thread->m_speculative_mode.pc = pc;
+        m_spmt_thread->m_speculative_mode.frame = frame;
+        m_spmt_thread->m_speculative_mode.sp = sp;
 
-        m_core->switch_to_speculative_mode();
+        m_spmt_thread->switch_to_speculative_mode();
 
         // MINILOG(when_leave_rvp_logger,
         //         "#" << id() << " when leave rvp mode");
@@ -217,10 +217,10 @@ RvpMode::do_method_return(int len)
         // MINILOG(when_leave_rvp_logger,
         //         "#" << id() << " ---------------------------");
 
-        m_core->m_rvp_buffer.clear();
+        m_spmt_thread->m_rvp_buffer.clear();
 
 
-        // MINILOG(r_destroy_frame_logger, "#" << m_core->id()
+        // MINILOG(r_destroy_frame_logger, "#" << m_spmt_thread->id()
         //         << " free rvpframe" << *current_frame);
 
         destroy_frame(current_frame);
@@ -230,9 +230,9 @@ RvpMode::do_method_return(int len)
 void
 RvpMode::before_signal_exception(Class *exception_class)
 {
-    MINILOG(r_exception_logger, "#" << m_core->id()
+    MINILOG(r_exception_logger, "#" << m_spmt_thread->id()
             << " (R) exception detected!!! " << exception_class->name());
-    m_core->sleep();
+    m_spmt_thread->sleep();
     throw DeepBreak();
 }
 
@@ -245,10 +245,10 @@ RvpMode::do_throw_exception()
 void
 RvpMode::step()
 {
-    Message* msg = m_core->get_certain_message();
+    Message* msg = m_spmt_thread->get_certain_message();
     if (msg) {
-        // m_core->enter_certain_mode();
-        // m_core->verify_and_commit(msg);
+        // m_spmt_thread->enter_certain_mode();
+        // m_spmt_thread->verify_and_commit(msg);
         process_certain_message(msg);
         return;
     }
@@ -256,18 +256,28 @@ RvpMode::step()
     exec_an_instr();
 }
 
+
+Frame*
+RvpMode::create_frame(Object* object, MethodBlock* new_mb, Frame* caller_prev, Object* calling_object, uintptr_t* args, uintptr_t* caller_sp, CodePntr caller_pc)
+{
+    Frame* new_frame = ::create_frame(object, new_mb, caller_prev, calling_object, args, caller_sp, caller_pc);
+    // record new_frame in V of effect
+    return new_frame;
+}
+
+
 void
 RvpMode::destroy_frame(Frame* frame)
 {
     assert(is_rvp_frame(frame));
-    //     MINILOG(p_destroy_frame_logger, "#" << m_core->id()
+    //     MINILOG(p_destroy_frame_logger, "#" << m_spmt_thread->id()
     //             << " (R) destroy frame for " << *frame->mb);
 
-    m_core->clear_frame_in_rvp_buffer(frame);
+    m_spmt_thread->clear_frame_in_rvp_buffer(frame);
 
-    MINILOG(r_destroy_frame_logger, "#" << m_core->id()
+    MINILOG(r_destroy_frame_logger, "#" << m_spmt_thread->id()
             << " (R) destroy frame " << frame << " for " << *frame->mb);
-    MINILOG(r_destroy_frame_logger, "#" << m_core->id()
+    MINILOG(r_destroy_frame_logger, "#" << m_spmt_thread->id()
             << " free rvpframe+" << *frame);
     // if (frame->xxx == 999)
     //     cout << "xxx999" << endl;
@@ -340,10 +350,10 @@ RvpMode::do_array_store(Object* array, int index, int type_size)
 void*
 RvpMode::do_execute_method(Object* target_object, MethodBlock *mb, std::vector<uintptr_t>& jargs)
 {
-    MINILOG(step_loop_in_out_logger, "#" << m_core->id()
+    MINILOG(step_loop_in_out_logger, "#" << m_spmt_thread->id()
             << " (R) throw-> to be execute java method: " << *mb);
 
-    m_core->sleep();
+    m_spmt_thread->sleep();
     throw DeepBreak();
 
     return 0;
@@ -353,6 +363,6 @@ void
 RvpMode::log_when_invoke_return(bool is_invoke, Object* caller, MethodBlock* caller_mb,
                       Object* callee, MethodBlock* callee_mb)
 {
-    log_invoke_return(r_invoke_return_logger, is_invoke, m_core->id(), "(R)",
+    log_invoke_return(r_invoke_return_logger, is_invoke, m_spmt_thread->id(), "(R)",
                       caller, caller_mb, callee, callee_mb);
 }

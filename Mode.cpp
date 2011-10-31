@@ -51,7 +51,7 @@ Mode::is_rvp_mode()
 void
 Mode::set_core(SpmtThread* core)
 {
-    m_core = core;
+    m_spmt_thread = core;
 }
 
 void
@@ -79,7 +79,7 @@ Mode::vmlog(MethodBlock* mb)
 
     jstring javastr = (jstring*)read(sp-1);
     char* str = String2Utf8((Object*)javastr);
-    cout << "vmlog: " << "#" << m_core->m_id << " " << tag() << " "
+    cout << "vmlog: " << "#" << m_spmt_thread->m_id << " " << tag() << " "
          << str
          << endl;
     sysFree(str);
@@ -187,9 +187,9 @@ Mode::do_array_store(Object* array, int index, int type_size)
 void
 Mode::destroy_frame(Frame* frame)
 {
-    //assert(m_core->frame_is_not_in_snapshots(frame));
+    //assert(m_spmt_thread->frame_is_not_in_snapshots(frame));
 
-    MINILOG(delete_frame_logger, "#" << m_core->id() << " delete frame: " << info(frame) << frame);
+    MINILOG(delete_frame_logger, "#" << m_spmt_thread->id() << " delete frame: " << info(frame) << frame);
     delete frame;
     //frame->magic = 2009; // only mark dead, do not delete for debug purpose
 }
@@ -355,21 +355,7 @@ Mode::store_array_from_no_cache_mem(uintptr_t* sp, void* elem_addr, int type_siz
 Group*
 Mode::get_group()
 {
-    return m_core->get_group();
-}
-
-
-SpmtThread*
-Mode::this_spmt_thread()
-{
-    return m_core;
-}
-
-
-Effect*
-Mode::get_current_effect()
-{
-    return this_spmt_thread()->get_current_effect();
+    return m_spmt_thread->get_group();
 }
 
 
@@ -447,7 +433,7 @@ Mode::assign_group_for(Object* obj)
 
         MINILOG_IF(debug_scaffold::java_main_arrived,
                    (is_certain_mode() ? c_new_main_logger : s_new_main_logger),
-                   "#" << m_core->id() << " " << tag() << " new main "
+                   "#" << m_spmt_thread->id() << " " << tag() << " new main "
                    << (is_class_obj(obj) ? static_cast<Class*>(obj)->name() : obj->classobj->name()));
 
     }
@@ -455,7 +441,7 @@ Mode::assign_group_for(Object* obj)
 
         // MINILOG_IF(debug_scaffold::java_main_arrived,
         //            (is_certain_mode() ? c_new_main_logger : s_new_main_logger),
-        //            "#" << m_core->id() << " " << tag() << " new sub "
+        //            "#" << m_spmt_thread->id() << " " << tag() << " new sub "
         //            << (is_class_obj(obj) ? static_cast<Class*>(obj)->name() : obj->classobj->name()));
     }
     else if (final_policy == GP_NO_GROUP) {

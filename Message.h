@@ -6,18 +6,27 @@ class FieldBlock;
 class Frame;
 class Effect;
 
-enum class MsgType {
-    INVOKE, RETURN,
-    GET, GET_RETURN,
-    PUT, PUT_RETURN,
-    LOAD, LOAD_RETURN,
-    STORE, STORE_RETURN
-};
+// enum class MsgType {
+//     INVOKE, RETURN,
+//     GET, GET_RETURN,
+//     PUT, PUT_RETURN,
+//     LOAD, LOAD_RETURN,
+//     STORE, STORE_RETURN
+// };
+
 
 class Message {
 public:
-    Message(MsgType t, Object* source_object, Object* target_ojbect);
-    MsgType get_type();
+    enum Type {
+        invoke, ret,
+        get, get_return,
+        put, put_return,
+        arrayload, arrayload_return,
+        arraystore, arraystore_return
+    };
+    Message(Type t, Object* source_object, Object* target_ojbect);
+    Type get_type();
+    Effect* get_effect();
     virtual ~Message();
     virtual void show(std::ostream& os) const = 0;
     virtual void show_detail(std::ostream& os, int id) const = 0;
@@ -35,8 +44,8 @@ class Object;
 class InvokeMsg : public Message {
 public:
     InvokeMsg(Object* object, MethodBlock* mb, Frame* prev, Object* calling_object, uintptr_t* args, uintptr_t* caller_sp, CodePntr caller_pc, Object* calling_owner = 0);
-    // void show(std::ostream& os) const;
-    // virtual void show_detail(std::ostream& os, int id) const;
+    void show(std::ostream& os) const;
+    virtual void show_detail(std::ostream& os, int id) const;
     MethodBlock* mb;
     std::vector<uintptr_t> parameters;
     Frame* caller_frame;
@@ -49,8 +58,8 @@ class ReturnMsg : public Message {
 public:
     ReturnMsg(Object* object, MethodBlock* mb, Frame* caller_frame, Object* calling_object, uintptr_t* rv, int len, uintptr_t* caller_sp, CodePntr caller_pc);
     // virtual bool equal(Message& msg);
-    // void show(std::ostream& os) const;
-    // virtual void show_detail(std::ostream& os, int id) const;
+    void show(std::ostream& os) const;
+    virtual void show_detail(std::ostream& os, int id) const;
     std::vector<uintptr_t> retval;
     Frame* caller_frame;
     uintptr_t* caller_sp;
