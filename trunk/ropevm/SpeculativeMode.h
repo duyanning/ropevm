@@ -21,6 +21,7 @@ public:
     virtual void do_array_load(Object* array, int index, int type_size);
     virtual void do_array_store(Object* array, int index, int type_size);
 
+    virtual Frame* create_frame(Object* object, MethodBlock* new_mb, Frame* caller_prev, Object* calling_object, uintptr_t* args, uintptr_t* caller_sp, CodePntr caller_pc);
     virtual void destroy_frame(Frame* frame);
 
     void get_my_field(Object* obj, uintptr_t* addr, int size);

@@ -14,6 +14,7 @@
 #include "Helper.h"
 #include "Group.h"
 #include "lock.h"
+#include "Effect.h"
 
 using namespace std;
 
@@ -151,12 +152,20 @@ SpmtThread::sleep()
     m_halt = true;
 }
 
-void
-SpmtThread::transfer_control(Message* message)
-{
-    assert(is_valid_certain_msg(message));
 
-    m_certain_message = message;
+void
+SpmtThread::send_certain_msg(SpmtThread* target_thread, Message* msg)
+{
+    target_thread->set_certain_msg(msg);
+}
+
+
+void
+SpmtThread::set_certain_msg(Message* msg)
+{
+    assert(is_valid_certain_msg(msg));
+
+    m_certain_message = msg;
     wakeup();
 }
 
@@ -300,15 +309,29 @@ SpmtThread::switch_to_rvp_mode()
     change_mode(&m_rvp_mode);
 }
 
+
 void
-SpmtThread::add_speculative_task(Message* message)
+SpmtThread::send_spec_msg(SpmtThread* target_thread, Message* msg)
 {
-    //assert(false);
+    target_thread->add_spec_msg(msg);
 
+    Effect* current_effect = m_spec_msg_queue.current_msg()->get_effect();
+    current_effect->msg_sent = msg;
+
+    // MINILOG(s_logger,
+    //         "#" << this->id() << " (S) add invoke task to #"
+    //         << target_thread->id() << ": " << *msg);
+
+}
+
+
+void
+SpmtThread::add_spec_msg(Message* msg)
+{
     // stat
-    m_count_spec_msgs_sent++;
+    // m_count_spec_msgs_sent++;
 
-    m_speculative_tasks.push_back(message);
+    m_spec_msg_queue.add(msg);
 
     //{{{ just for debug
     // if (m_id == 6) {
@@ -321,6 +344,7 @@ SpmtThread::add_speculative_task(Message* message)
         wakeup();
     }
 }
+
 
 void
 SpmtThread::add_message_to_be_verified(Message* message)
@@ -972,8 +996,3 @@ SpmtThread::get_current_mode()
     return m_mode;
 }
 
-Effect*
-SpmtThread::get_current_effect()
-{
-    return m_current_effect;
-}

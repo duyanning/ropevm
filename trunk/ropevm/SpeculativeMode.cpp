@@ -28,13 +28,13 @@ SpeculativeMode::SpeculativeMode()
 uint32_t
 SpeculativeMode::mode_read(uint32_t* addr)
 {
-    return m_core->m_states_buffer.read(addr);
+    return m_spmt_thread->m_states_buffer.read(addr);
 }
 
 void
 SpeculativeMode::mode_write(uint32_t* addr, uint32_t value)
 {
-    m_core->m_states_buffer.write(addr, value);
+    m_spmt_thread->m_states_buffer.write(addr, value);
 }
 
 void
@@ -42,26 +42,26 @@ SpeculativeMode::step()
 {
     assert(RopeVM::do_spec);
 
-    Message* msg = m_core->get_certain_message();
+    Message* msg = m_spmt_thread->get_certain_message();
     if (msg) {
         process_certain_message(msg);
         return;
     }
 
-    if (m_core->m_is_waiting_for_task) {
-        MINILOG(task_load_logger, "#" << m_core->id() << " is waiting for task");
+    if (m_spmt_thread->m_is_waiting_for_task) {
+        MINILOG(task_load_logger, "#" << m_spmt_thread->id() << " is waiting for task");
         //assert(false);
 
-        // if (not m_core->from_certain_to_spec)
-        //     m_core->snapshot();
+        // if (not m_spmt_thread->from_certain_to_spec)
+        //     m_spmt_thread->snapshot();
         process_next_spec_msg();
 
-        // if (not m_core->m_is_waiting_for_task) {
+        // if (not m_spmt_thread->m_is_waiting_for_task) {
         //     exec_an_instr();
         // }
     }
 
-    if (not m_core->is_halt())
+    if (not m_spmt_thread->is_halt())
         exec_an_instr();
 }
 
@@ -73,19 +73,18 @@ SpeculativeMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
     //log_when_invoke_return(true, m_user, frame->mb, target_object, new_mb);
 
     MINILOG(s_logger,
-            "#" << m_core->id() << " (S) is to invoke method: " << *new_mb);
+            "#" << m_spmt_thread->id() << " (S) is to invoke method: " << *new_mb);
 
     if (is_priviledged(new_mb)) {
         MINILOG(s_logger,
-                "#" << m_core->id() << " (S) " << *new_mb << "is native/sync method");
-        m_core->sleep();
+                "#" << m_spmt_thread->id() << " (S) " << *new_mb << "is native/sync method");
+        m_spmt_thread->sleep();
         return;
     }
 
-    SpmtThread* me = this_spmt_thread();
     SpmtThread* target_spmt_thread = target_object->get_group()->get_spmt_thread();
 
-    if (target_spmt_thread == me) {
+    if (target_spmt_thread == m_spmt_thread) {
 
         sp -= new_mb->args_count;
 
@@ -95,7 +94,6 @@ SpeculativeMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
         }
 
         Frame* new_frame = create_frame(target_object, new_mb, frame, frame->get_object(), &args[0], sp, pc);
-        new_frame->is_certain = false;
 
         frame->last_pc = pc;
 
@@ -105,6 +103,8 @@ SpeculativeMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
 
     }
     else {
+
+        // pop up arguments
         sp -= new_mb->args_count;
 
         std::vector<uintptr_t> args;
@@ -114,49 +114,43 @@ SpeculativeMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
 
 
         // MINILOG(s_logger,
-        //         "#" << m_core->id() << " (S) target object has a core #"
+        //         "#" << m_spmt_thread->id() << " (S) target thread is #"
         //         << target_core->id());
 
 
-        // construct speculative message
-        InvokeMsg* msg =
-            new InvokeMsg(target_object, new_mb, frame, frame->get_object(), &args[0], sp, pc);
+        // construct speculative message and send
+        InvokeMsg* msg = new InvokeMsg(target_object,
+                                       new_mb,
+                                       frame,
+                                       frame->get_object(),
+                                       &args[0],
+                                       sp,
+                                       pc);
+
+        m_spmt_thread->send_spec_msg(target_spmt_thread, msg);
 
 
-        m_core->m_current_effect->msg_sent = msg;
 
 
-        // MINILOG(s_logger,
-        //         "#" << m_core->id() << " (S) add invoke task to #"
-        //         << target_core->id() << ": " << *msg);
-
-
-        // send spec msg to target thread
-        target_spmt_thread->add_speculative_task(msg);
-
-        // record spec msg sent in current effect
-        me->get_current_effect()->add_spec_msg(msg);
-
-
-        snapshot2();
-        pin_frames();
-
-
-        MethodBlock* rvp_method = get_rvp_method(new_mb);
+        // invoke rvp-method
+        MethodBlock* rvp_method = ::get_rvp_method(new_mb);
 
         // MINILOG(s_logger,
-        //          "#" << m_core->id() << " (S)calls p-slice: " << *pslice);
+        //          "#" << m_spmt_thread->id() << " (S)invokes rvp-method: " << *rvp_method);
 
-        Frame* new_frame =
-            create_frame(target_object, rvp_method, frame, 0, &args[0], sp, pc);
+        Frame* rvp_frame = m_spmt_thread->m_rvp_mode.create_frame(target_object,
+                                                                  rvp_method,
+                                                                  frame,
+                                                                  0,
+                                                                  &args[0],
+                                                                  sp,
+                                                                  pc);
 
-        new_frame->is_certain = false;
+        m_spmt_thread->m_rvp_mode.pc = (CodePntr)rvp_method->code;
+        m_spmt_thread->m_rvp_mode.frame = rvp_frame;
+        m_spmt_thread->m_rvp_mode.sp = rvp_frame->ostack_base;
 
-        m_core->m_rvp_mode.pc = (CodePntr)rvp_method->code;
-        m_core->m_rvp_mode.frame = new_frame;
-        m_core->m_rvp_mode.sp = new_frame->ostack_base;
-
-        m_core->switch_to_rvp_mode();
+        m_spmt_thread->switch_to_rvp_mode();
 
     }
 }
@@ -170,27 +164,27 @@ SpeculativeMode::do_method_return(int len)
     Frame* current_frame = frame;
 
     MINILOG(s_logger,
-            // "#" << m_core->id() << " (S) is to return from method: " << *frame->mb
+            // "#" << m_spmt_thread->id() << " (S) is to return from method: " << *frame->mb
             // << " frame: " << frame);
-            "#" << m_core->id() << " (S) is to return from " << *frame);
+            "#" << m_spmt_thread->id() << " (S) is to return from " << *frame);
 
     if (frame->mb->is_synchronized()) {
         MINILOG(s_logger,
-                "#" << m_core->id() << " (S) " << *frame->mb << " is a sync method");
-        m_core->sleep();
+                "#" << m_spmt_thread->id() << " (S) " << *frame->mb << " is a sync method");
+        m_spmt_thread->sleep();
         return;
     }
 
     // top frame' caller is native code, so we sleep
     if (frame->is_top_frame()) {
         MINILOG(s_logger,
-                "#" << m_core->id() << " (S) " << *frame->mb << " is a top frame");
-        m_core->sleep();
+                "#" << m_spmt_thread->id() << " (S) " << *frame->mb << " is a top frame");
+        m_spmt_thread->sleep();
         return;
     }
 
 
-    SpmtThread* me = this_spmt_thread();
+    SpmtThread* me = m_spmt_thread;
     Object* target_object = frame->calling_object;
     SpmtThread* target_spmt_thread = target_object->get_group()->get_spmt_thread();
 
@@ -198,7 +192,7 @@ SpeculativeMode::do_method_return(int len)
     if (target_spmt_thread == me) {
 
         // //{{{ just for debug
-        // if (m_core->id() == 0) {
+        // if (m_spmt_thread->id() == 0) {
         //     int x = 0;
         //     x++;
         // }
@@ -227,7 +221,7 @@ SpeculativeMode::do_method_return(int len)
         //new ReturnMsg();
 
         // record spec msg sent in current effect
-        me->get_current_effect()->add_spec_msg(msg);
+        me->m_spec_msg_queue.current_msg()->get_effect()->msg_sent = msg;
 
 
         snapshot();
@@ -242,9 +236,9 @@ SpeculativeMode::do_method_return(int len)
 void
 SpeculativeMode::before_signal_exception(Class *exception_class)
 {
-    MINILOG(s_exception_logger, "#" << m_core->id()
+    MINILOG(s_exception_logger, "#" << m_spmt_thread->id()
             << " (S) exception detected!!! " << exception_class->name());
-    m_core->sleep();
+    m_spmt_thread->sleep();
     throw DeepBreak();
 }
 
@@ -254,19 +248,29 @@ SpeculativeMode::do_throw_exception()
     assert(false);
 }
 
+
+Frame*
+SpeculativeMode::create_frame(Object* object, MethodBlock* new_mb, Frame* caller_prev, Object* calling_object, uintptr_t* args, uintptr_t* caller_sp, CodePntr caller_pc)
+{
+    Frame* new_frame = ::create_frame(object, new_mb, caller_prev, calling_object, args, caller_sp, caller_pc);
+    // record new_frame in effect
+    return new_frame;
+}
+
+
 void
 SpeculativeMode::destroy_frame(Frame* frame)
 {
     if (not frame->pinned) {
-        MINILOG(s_destroy_frame_logger, "#" << m_core->id()
+        MINILOG(s_destroy_frame_logger, "#" << m_spmt_thread->id()
                 << " (S) destroy frame " << frame << " for " << *frame->mb);
-        if (m_core->m_id == 5 && strcmp(frame->mb->name, "simulate") == 0) {
+        if (m_spmt_thread->m_id == 5 && strcmp(frame->mb->name, "simulate") == 0) {
             int x = 0;
             x++;
         }
-        // m_core->m_states_buffer.clear(frame->lvars, frame->lvars + frame->mb->max_locals);
-        // m_core->m_states_buffer.clear(frame->ostack_base, frame->ostack_base + frame->mb->max_stack);
-        m_core->clear_frame_in_states_buffer(frame);
+        // m_spmt_thread->m_states_buffer.clear(frame->lvars, frame->lvars + frame->mb->max_locals);
+        // m_spmt_thread->m_states_buffer.clear(frame->ostack_base, frame->ostack_base + frame->mb->max_stack);
+        m_spmt_thread->clear_frame_in_states_buffer(frame);
         //delete frame;
         Mode::destroy_frame(frame);
     }
@@ -278,7 +282,7 @@ SpeculativeMode::do_get_field(Object* source_object, FieldBlock* fb, uintptr_t* 
     assert(size == 1 || size == 2);
 
     MINILOG(s_logger,
-            "#" << m_core->id() << " (S) is to getfield: " << *fb
+            "#" << m_spmt_thread->id() << " (S) is to getfield: " << *fb
             //            << " of " << static_cast<void*>(target_object));
             << " of " << source_object);
 
@@ -310,7 +314,7 @@ SpeculativeMode::do_get_field(Object* source_object, FieldBlock* fb, uintptr_t* 
         sp -= is_static ? 0 : 1;
 
         GetMsg* msg = new GetMsg(source_object, current_object, fb, &val[0], size, frame, sp, pc);
-        m_core->add_message_to_be_verified(msg);
+        m_spmt_thread->add_message_to_be_verified(msg);
 
         for (int i = 0; i < size; ++i) {
             write(sp, val[i]);
@@ -329,7 +333,7 @@ SpeculativeMode::do_put_field(Object* target_object, FieldBlock* fb,
     assert(size == 1 || size == 2);
 
     MINILOG(s_logger,
-            "#" << m_core->id() << " (S) is to putfield: " << *fb);
+            "#" << m_spmt_thread->id() << " (S) is to putfield: " << *fb);
 
 
     Object* current_object = frame->get_object();
@@ -365,13 +369,13 @@ SpeculativeMode::do_put_field(Object* target_object, FieldBlock* fb,
             pc += 3;
 
             MINILOG(s_logger,
-                     "#" << m_core->id() << " (S) target object has a core #"
+                     "#" << m_spmt_thread->id() << " (S) target object has a core #"
                      << target_core->id());
 
             PutMsg* msg = new PutMsg(current_object, target_object, fb, addr, &val[0], size, is_static);
 
             MINILOG(s_logger,
-                     "#" << m_core->id() << " (S) add putfield task to #"
+                     "#" << m_spmt_thread->id() << " (S) add putfield task to #"
                     << target_core->id() << ": " << *msg);
 
             target_core->add_speculative_task(msg);
@@ -379,7 +383,7 @@ SpeculativeMode::do_put_field(Object* target_object, FieldBlock* fb,
         else {
 
             MINILOG(s_logger,
-                    "#" << m_core->id() << " target object is coreless");
+                    "#" << m_spmt_thread->id() << " target object is coreless");
         }
 
     }
@@ -391,7 +395,7 @@ SpeculativeMode::do_array_load(Object* array, int index, int type_size)
     //assert(size == 1 || size == 2);
 
     MINILOG(s_logger,
-            "#" << m_core->id() << " (S) is to load from array");
+            "#" << m_spmt_thread->id() << " (S) is to load from array");
 
     void* addr = array_elem_addr(array, index, type_size);
     int nslots = type_size > 4 ? 2 : 1; // number of slots for value
@@ -422,7 +426,7 @@ SpeculativeMode::do_array_load(Object* array, int index, int type_size)
         sp -= 2;
 
         ArrayLoadMsg* msg = new ArrayLoadMsg(array, current_object, index, &val[0], type_size, frame, sp, pc);
-        m_core->add_message_to_be_verified(msg);
+        m_spmt_thread->add_message_to_be_verified(msg);
 
         load_array_from_no_cache_mem(sp, &val[0], type_size);
         sp += nslots;
@@ -438,7 +442,7 @@ SpeculativeMode::do_array_store(Object* array, int index, int type_size)
     //assert(size == 1 || size == 2);
 
     MINILOG(s_logger,
-            "#" << m_core->id() << " (S) is to store to array");
+            "#" << m_spmt_thread->id() << " (S) is to store to array");
 
     void* addr = array_elem_addr(array, index, type_size);
     int nslots = type_size > 4 ? 2 : 1; // number of slots for value
@@ -476,25 +480,25 @@ SpeculativeMode::do_array_store(Object* array, int index, int type_size)
             pc += 1;
 
             MINILOG(s_logger,
-                     "#" << m_core->id() << " (S) target object has a core #"
+                     "#" << m_spmt_thread->id() << " (S) target object has a core #"
                      << target_core->id());
 
             ArrayStoreMsg* msg =
                 new ArrayStoreMsg(current_object, target_object, index, &val[0], nslots, type_size);
 
             MINILOG(s_logger,
-                     "#" << m_core->id() << " (S) add arraystore task to #"
+                     "#" << m_spmt_thread->id() << " (S) add arraystore task to #"
                     << target_core->id() << ": " << *msg);
 
             target_core->add_speculative_task(msg);
         }
         else {                  // target_object is a coreless object
             MINILOG(s_logger,
-                    "#" << m_core->id() << " target object is coreless");
+                    "#" << m_spmt_thread->id() << " target object is coreless");
         }
 
         // AckMsg* ack = new AckMsg;
-        // m_core->add_message_to_be_verified(ack);
+        // m_spmt_thread->add_message_to_be_verified(ack);
     }
 }
 
@@ -503,9 +507,9 @@ SpeculativeMode::do_execute_method(Object* target_object,
                                    MethodBlock *mb,
                                    std::vector<uintptr_t>& jargs)
 {
-    MINILOG(step_loop_in_out_logger, "#" << m_core->id()
+    MINILOG(step_loop_in_out_logger, "#" << m_spmt_thread->id()
             << " (S) throw-> to be execute java method: " << *mb);
-    m_core->sleep();
+    m_spmt_thread->sleep();
 
     throw DeepBreak();
 
@@ -515,22 +519,22 @@ SpeculativeMode::do_execute_method(Object* target_object,
 bool
 SpeculativeMode::process_next_spec_msg()
 {
-    MINILOG(task_load_logger, "#" << m_core->id() << " try to load a task");
+    MINILOG(task_load_logger, "#" << m_spmt_thread->id() << " try to load a task");
 
-    if (m_core->m_speculative_tasks.empty()) { // there are NO tasks
-        MINILOG(task_load_logger, "#" << m_core->id() << " no task, waiting for task");
+    if (m_spmt_thread->m_speculative_tasks.empty()) { // there are NO tasks
+        MINILOG(task_load_logger, "#" << m_spmt_thread->id() << " no task, waiting for task");
         pc = 0;
         frame = 0;
         sp = 0;
-        m_core->m_is_waiting_for_task = true;
-        m_core->sleep();
+        m_spmt_thread->m_is_waiting_for_task = true;
+        m_spmt_thread->sleep();
     }
     else {                      // has tasks
-        m_core->m_is_waiting_for_task = false;
-        Message* task_msg = m_core->m_speculative_tasks.front();
-        m_core->m_speculative_tasks.pop_front();
+        m_spmt_thread->m_is_waiting_for_task = false;
+        Message* task_msg = m_spmt_thread->m_speculative_tasks.front();
+        m_spmt_thread->m_speculative_tasks.pop_front();
 
-        MINILOG(task_load_logger, "#" << m_core->id() << " task loaded: " << *task_msg);
+        MINILOG(task_load_logger, "#" << m_spmt_thread->id() << " task loaded: " << *task_msg);
 
         Message::Type type = task_msg->get_type();
         assert(
@@ -544,7 +548,7 @@ SpeculativeMode::process_next_spec_msg()
             InvokeMsg* msg = static_cast<InvokeMsg*>(task_msg);
 
             //{{{ just for debug
-            if (m_core->id() == 7 && strcmp("hasMoreElements", msg->mb->name) == 0) {
+            if (m_spmt_thread->id() == 7 && strcmp("hasMoreElements", msg->mb->name) == 0) {
                 int x = 0;
                 x++;
             }
@@ -553,12 +557,12 @@ SpeculativeMode::process_next_spec_msg()
 
             if (is_priviledged(new_mb)) {
                 MINILOG(s_logger,
-                        "#" << m_core->id() << " (S) " << *new_mb << "is native/sync method");
-                m_core->sleep();
+                        "#" << m_spmt_thread->id() << " (S) " << *new_mb << "is native/sync method");
+                m_spmt_thread->sleep();
             }
             else {
-                m_core->add_message_to_be_verified(msg);
-                m_core->m_states_buffer.freeze();
+                m_spmt_thread->add_message_to_be_verified(msg);
+                m_spmt_thread->m_states_buffer.freeze();
 
                 Frame* new_frame =
                     create_frame(msg->get_target_object(), new_mb, msg->caller_frame, msg->get_source_object(),
@@ -574,7 +578,7 @@ SpeculativeMode::process_next_spec_msg()
         }
         else if (type == Message::put) {
             PutMsg* msg = static_cast<PutMsg*>(task_msg);
-            m_core->add_message_to_be_verified(msg);
+            m_spmt_thread->add_message_to_be_verified(msg);
 
             for (int i = 0; i < msg->val.size(); ++i) {
                 write(msg->addr + i, msg->val[i]);
@@ -585,7 +589,7 @@ SpeculativeMode::process_next_spec_msg()
         }
         else if (type == Message::arraystore) {
             ArrayStoreMsg* msg = static_cast<ArrayStoreMsg*>(task_msg);
-            m_core->add_message_to_be_verified(msg);
+            m_spmt_thread->add_message_to_be_verified(msg);
 
             Object* array = msg->get_target_object();
             int index = msg->index;
@@ -606,7 +610,7 @@ SpeculativeMode::process_next_spec_msg()
         }
     }
 
-    return not m_core->m_is_waiting_for_task;
+    return not m_spmt_thread->m_is_waiting_for_task;
 }
 
 
@@ -617,7 +621,7 @@ SpeculativeMode::pin_frames()
 
     for (;;) {
         // MINILOG(snapshot_logger,
-        //         "#" << m_core->id() << " snapshot frame(" << f << ")" << " for " << *f->mb);
+        //         "#" << m_spmt_thread->id() << " snapshot frame(" << f << ")" << " for " << *f->mb);
 
         if (f->pinned)
             break;
@@ -628,7 +632,7 @@ SpeculativeMode::pin_frames()
             break;
 
         f = f->prev;
-        if (f->calling_object->get_group()->get_spmt_thread() != this_spmt_thread())
+        if (f->calling_object->get_group()->get_spmt_thread() != m_spmt_thread)
             break;
 
     }
@@ -642,7 +646,7 @@ SpeculativeMode::snapshot2()
 {
     Snapshot* snapshot = new Snapshot;
 
-    SpmtThread* me = this_spmt_thread();
+    SpmtThread* me = m_spmt_thread;
 
     snapshot->version = me->m_states_buffer.version();
     me->m_states_buffer.freeze();
@@ -651,16 +655,16 @@ SpeculativeMode::snapshot2()
     snapshot->frame = this->frame;
     snapshot->sp = this->sp;
 
-    get_current_effect()->set_snapshot(snapshot);
+    //get_current_effect()->snapshot = snapshot;
 
 
     // MINILOG(snapshot_logger,
-    //         "#" << m_core->id() << " snapshot, ver(" << snapshot->version << ")" << " is frozen");
+    //         "#" << m_spmt_thread->id() << " snapshot, ver(" << snapshot->version << ")" << " is frozen");
     // if (shot_frame) {
     //     MINILOG(snapshot_detail_logger,
-    //             "#" << m_core->id() << " details:");
+    //             "#" << m_spmt_thread->id() << " details:");
     //     MINILOGPROC(snapshot_detail_logger, show_snapshot,
-    //                 (os, m_core->id(), snapshot));
+    //                 (os, m_spmt_thread->id(), snapshot));
     // }
 
 
@@ -679,13 +683,13 @@ SpeculativeMode::snapshot(bool shot_frame)
 {
     if (shot_frame) {
         Frame* f = this->frame;
-        //assert(f == 0 || m_core->is_owner_enclosure(f->get_object()));
+        //assert(f == 0 || m_spmt_thread->is_owner_enclosure(f->get_object()));
 
 
         if (f) {
             for (;;) {
                 MINILOG(snapshot_logger,
-                        "#" << m_core->id() << " snapshot frame(" << f << ")" << " for " << *f->mb);
+                        "#" << m_spmt_thread->id() << " snapshot frame(" << f << ")" << " for " << *f->mb);
 
                 if (f->pinned) break;
                 f->pinned = true;
@@ -693,7 +697,7 @@ SpeculativeMode::snapshot(bool shot_frame)
                 if (f->calling_object->get_group() != get_group())
                     break;
 
-                //if (f == m_core->m_certain_mode.frame) break;
+                //if (f == m_spmt_thread->m_certain_mode.frame) break;
                 if (f->is_task_frame) break;
                 if (f->is_top_frame()) break;
 
@@ -704,16 +708,16 @@ SpeculativeMode::snapshot(bool shot_frame)
 
     Snapshot* snapshot = new Snapshot;
 
-    snapshot->version = m_core->m_states_buffer.version();
-    //m_core->m_states_buffer.freeze();
+    snapshot->version = m_spmt_thread->m_states_buffer.version();
+    //m_spmt_thread->m_states_buffer.freeze();
 
     // //{{{ just for debug
-    // MINILOG_IF(m_core->id() == 5,
+    // MINILOG_IF(m_spmt_thread->id() == 5,
     //            cache_logger,
-    //            "#" << m_core->id() << " ostack base: " << frame->ostack_base);
-    // MINILOGPROC_IF(m_core->id() == 5,
+    //            "#" << m_spmt_thread->id() << " ostack base: " << frame->ostack_base);
+    // MINILOGPROC_IF(m_spmt_thread->id() == 5,
     //                cache_logger, show_cache,
-    //                (os, m_core->id(), m_core->m_states_buffer, false));
+    //                (os, m_spmt_thread->id(), m_spmt_thread->m_states_buffer, false));
     // //}}} just for debug
     //snapshot->user = this->m_user;
     snapshot->pc = this->pc;
@@ -721,32 +725,32 @@ SpeculativeMode::snapshot(bool shot_frame)
     snapshot->sp = this->sp;
 
     //{{{ just for debug
-    assert(m_core->has_message_to_be_verified());
-    snapshot->spec_msg = m_core->m_messages_to_be_verified.back();
-    MINILOG0("#" << m_core->id() << " shot spec: " << *snapshot->spec_msg);
+    assert(m_spmt_thread->has_message_to_be_verified());
+    snapshot->spec_msg = m_spmt_thread->m_messages_to_be_verified.back();
+    MINILOG0("#" << m_spmt_thread->id() << " shot spec: " << *snapshot->spec_msg);
     //}}} just for debug
 
 
     MINILOG(snapshot_logger,
-            "#" << m_core->id() << " snapshot, ver(" << snapshot->version << ")" << " is frozen");
+            "#" << m_spmt_thread->id() << " snapshot, ver(" << snapshot->version << ")" << " is frozen");
     if (shot_frame) {
         MINILOG(snapshot_detail_logger,
-                "#" << m_core->id() << " details:");
+                "#" << m_spmt_thread->id() << " details:");
         MINILOGPROC(snapshot_detail_logger, show_snapshot,
-                    (os, m_core->id(), snapshot));
+                    (os, m_spmt_thread->id(), snapshot));
     }
 
     if (shot_frame) {
         assert(snapshot->frame == 0 || is_sp_ok(snapshot->sp, snapshot->frame));
     }
 
-    m_core->m_snapshots_to_be_committed.push_back(snapshot);
+    m_spmt_thread->m_snapshots_to_be_committed.push_back(snapshot);
 }
 
 void
 SpeculativeMode::log_when_invoke_return(bool is_invoke, Object* caller, MethodBlock* caller_mb,
                       Object* callee, MethodBlock* callee_mb)
 {
-    log_invoke_return(s_invoke_return_logger, is_invoke, m_core->id(), "(S)",
+    log_invoke_return(s_invoke_return_logger, is_invoke, m_spmt_thread->id(), "(S)",
                       caller, caller_mb, callee, callee_mb);
 }

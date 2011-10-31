@@ -39,13 +39,13 @@ void
 CertainMode::step()
 {
     //{{{ just for debug
-    if (m_core->m_id == 0) {
+    if (m_spmt_thread->m_id == 0) {
         int x = 0;
         x++;
     }
     //}}} just for debug
 
-    Message* msg = m_core->get_certain_message();
+    Message* msg = m_spmt_thread->get_certain_message();
     if (msg) {
         process_certain_message(msg);
         return;
@@ -94,7 +94,7 @@ CertainMode::do_execute_method(Object* target_object,
         void* ret2;
         ret2 = executeJava();
         //assert(ret == ret2);
-        assert(m_core->m_mode->is_certain_mode());
+        assert(m_spmt_thread->m_mode->is_certain_mode());
     }
     else {
         SpmtThread* target_core = target_group->get_core();
@@ -102,7 +102,7 @@ CertainMode::do_execute_method(Object* target_object,
         InvokeMsg* msg =
             new InvokeMsg(target_object, new_mb, dummy, current_object, &jargs[0], dummy->ostack_base, 0);
 
-        MINILOG0("#" << m_core->id() << " e>>>transfers to #" << target_core->id()
+        MINILOG0("#" << m_spmt_thread->id() << " e>>>transfers to #" << target_core->id()
                  // << " " << info(current_object) << " => " << info(target_object)
                  // << " (" << current_object << "=>" << target_object << ")"
                  << " because: " << *msg
@@ -113,12 +113,12 @@ CertainMode::do_execute_method(Object* target_object,
 
         //frame->last_pc = pc;
 
-        m_core->sleep();
-        m_core->m_is_waiting_for_task = false;
+        m_spmt_thread->sleep();
+        m_spmt_thread->m_is_waiting_for_task = false;
         target_core->transfer_control(msg);
         executeJava();
-        m_core->switch_to_certain_mode();
-        m_core->wakeup();
+        m_spmt_thread->switch_to_certain_mode();
+        m_spmt_thread->wakeup();
 
     }
 
@@ -127,7 +127,7 @@ CertainMode::do_execute_method(Object* target_object,
     frame = old_frame;
     sp = old_sp;
 
-    g_set_current_core(m_core); // executeJava will change current core
+    g_set_current_core(m_spmt_thread); // executeJava will change current core
 
     return ret;
 }
@@ -147,14 +147,11 @@ CertainMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
 
     assert(target_object);
 
-    Object* current_object = frame->get_object();
-    assert(current_object);
+    SpmtThread* target_spmt_thread = target_object->get_group()->get_spmt_thread();
 
-    Group* current_group = current_object->get_group();
-    Group* target_group = target_object->get_group();
+    assert(target_spmt_thread->m_thread == m_spmt_thread->m_thread);
 
-    assert(target_group->get_thread() == threadSelf());
-    if (target_group == current_group) {
+    if (target_spmt_thread == m_spmt_thread) {
 
         sp -= new_mb->args_count;
         invoke_to_my_method(target_object, new_mb, sp,
@@ -164,18 +161,16 @@ CertainMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
     }
     else {
 
-        SpmtThread* target_core = target_group->get_core();
-
-        //transfer certain control to target core
+        // pop up arguments
         sp -= new_mb->args_count;
 
+        // construct certain msg
         InvokeMsg* msg =
             new InvokeMsg(target_object, new_mb, frame, current_object, sp, sp, pc);
 
         frame->last_pc = pc;
-        frame->pinned = true;
 
-        MINILOG0("#" << m_core->id() << " i>>>transfers to #" << target_core->id()
+        MINILOG0("#" << m_spmt_thread->id() << " i>>>transfers to #" << target_spmt_thread->id()
                  // << " " << info(current_object) << " => " << info(target_object)
                  // << " (" << current_object << "=>" << target_object << ")"
                  << " because: " << *msg
@@ -183,41 +178,19 @@ CertainMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
                  // << "("  << frame << ")"
                  );
 
-        target_core->transfer_control(msg);
+        target_spmt_thread->send_certain_msg(msg);
 
-        if (current_group->can_speculate()) {
 
-            if (not m_core->m_messages_to_be_verified.empty()) {
-                MINILOG0("#" << m_core->id() << " resume speculative execution");
-                m_core->restore_original_non_certain_mode();
-            }
-            else {
-                MINILOG0("#" << m_core->id() << " start speculative execution");
+        MethodBlock* rvp_method = get_rvp_method(new_mb);
+        MINILOG0("#" << m_spmt_thread->id() << " (S)calls rvp-method: " << *rvp_method);
+        Frame* rvp_frame = create_frame(target_object, rvp_method, frame, 0, sp, sp, pc);
+        rvp_frame->is_certain = false;
 
-                m_core->m_is_waiting_for_task = false;
-                m_core->switch_to_speculative_mode();
-                if (is_priviledged(new_mb)) {
-                    MINILOG(s_logger,
-                            "#" << m_core->id() << " (S) " << *new_mb << "is native/sync method");
-                    m_core->sleep();
-                    return;
-                }
+        m_spmt_thread->m_rvp_mode.pc = (CodePntr)rvp_method->code;
+        m_spmt_thread->m_rvp_mode.frame = rvp_frame;
+        m_spmt_thread->m_rvp_mode.sp = rvp_frame->ostack_base;
+        m_spmt_thread->switch_to_rvp_mode();
 
-                MethodBlock* rvp_method = get_rvp_method(new_mb);
-                MINILOG0("#" << m_core->id() << " (S)calls rvp-method: " << *rvp_method);
-                Frame* rvp_frame = create_frame(target_object, rvp_method, frame, 0, sp, sp, pc);
-                rvp_frame->is_certain = false;
-
-                m_core->m_rvp_mode.pc = (CodePntr)rvp_method->code;
-                m_core->m_rvp_mode.frame = rvp_frame;
-                m_core->m_rvp_mode.sp = rvp_frame->ostack_base;
-                m_core->switch_to_rvp_mode();
-            }
-
-        }
-        else {
-            m_core->sleep();
-        }
 
     }
 
@@ -227,7 +200,7 @@ void
 CertainMode::do_method_return(int len)
 {
 //     if (is_application_class(frame->mb->classobj)) {
-//         MINILOG0("#" << m_core->id() << " (C)return from " << *frame->mb);
+//         MINILOG0("#" << m_spmt_thread->id() << " (C)return from " << *frame->mb);
 //     }
     //log_when_invoke_return(false, frame->calling_object, frame->prev->mb, m_user, frame->mb);
 
@@ -256,7 +229,7 @@ CertainMode::do_method_return(int len)
 
     if (current_frame->is_top_frame()) {
 
-        // MINILOG0("#" << m_core->id() << " t<<<transfers to #" << target_core->id()
+        // MINILOG0("#" << m_spmt_thread->id() << " t<<<transfers to #" << target_core->id()
         //          << " in: "  << info(frame)
         //          << "because top frame return"
         //          );
@@ -267,7 +240,7 @@ CertainMode::do_method_return(int len)
             *caller_sp++ = rv[i];
         }
 
-        m_core->signal_quit_step_loop(current_frame->prev->ostack_base);
+        m_spmt_thread->signal_quit_step_loop(current_frame->prev->ostack_base);
 
     }
 
@@ -287,7 +260,7 @@ CertainMode::do_method_return(int len)
             ReturnMsg* msg = new ReturnMsg(current_object, current_frame->mb, current_frame->prev,
                                            target_object, rv, len,
                                            current_frame->caller_sp, current_frame->caller_pc);
-            MINILOG0("#" << m_core->id() << " r<<<transfers to #" << target_core->id()
+            MINILOG0("#" << m_spmt_thread->id() << " r<<<transfers to #" << target_core->id()
                      // << " " << info(current_object) << " => " << info(target_object)
                      // << " (" << current_object << "=>" << target_object << ")"
                      << " because: " << *msg
@@ -300,22 +273,22 @@ CertainMode::do_method_return(int len)
 
 
         if (current_group->can_speculate()) {
-            m_core->clear_frame_in_states_buffer(current_frame);
+            m_spmt_thread->clear_frame_in_states_buffer(current_frame);
 
-            if (not m_core->m_messages_to_be_verified.empty()) {
-                MINILOG0("#" << m_core->id() << " resume speculative execution");
-                m_core->restore_original_non_certain_mode();
+            if (not m_spmt_thread->m_messages_to_be_verified.empty()) {
+                MINILOG0("#" << m_spmt_thread->id() << " resume speculative execution");
+                m_spmt_thread->restore_original_non_certain_mode();
             }
             else {
-                MINILOG0("#" << m_core->id() << " start speculative execution");
+                MINILOG0("#" << m_spmt_thread->id() << " start speculative execution");
 
-                m_core->sync_speculative_with_certain();
-                m_core->switch_to_speculative_mode();
-                m_core->m_speculative_mode.process_next_spec_msg();
+                m_spmt_thread->sync_speculative_with_certain();
+                m_spmt_thread->switch_to_speculative_mode();
+                m_spmt_thread->m_speculative_mode.process_next_spec_msg();
             }
         }
         else {
-            m_core->sleep();
+            m_spmt_thread->sleep();
         }
 
     }
@@ -404,7 +377,7 @@ CertainMode::return_to_my_method(uintptr_t* rv, int len, CodePntr caller_pc, Fra
 void
 CertainMode::before_signal_exception(Class *exception_class)
 {
-    MINILOG(c_exception_logger, "#" << m_core->id() << " (C) before signal exception "
+    MINILOG(c_exception_logger, "#" << m_spmt_thread->id() << " (C) before signal exception "
             << exception_class->name() << " in: " << info(frame));
     // do nothing
 }
@@ -412,12 +385,12 @@ CertainMode::before_signal_exception(Class *exception_class)
 void
 CertainMode::do_throw_exception()
 {
-    MINILOG(c_exception_logger, "#" << m_core->id() << " (C) throw exception"
+    MINILOG(c_exception_logger, "#" << m_spmt_thread->id() << " (C) throw exception"
             << " in: " << info(frame)
             << " on: #" << frame->get_object()->get_group()->get_core()->id()
             );
     //{{{ just for debug
-    if (debug_scaffold::java_main_arrived && m_core->id() == 7) {
+    if (debug_scaffold::java_main_arrived && m_spmt_thread->id() == 7) {
         int x = 0;
         x++;
     }
@@ -429,7 +402,7 @@ CertainMode::do_throw_exception()
 
     CodePntr old_pc = pc;      // for debug
     pc = findCatchBlock(excep->classobj);
-    MINILOG(c_exception_logger, "#" << m_core->id() << " (C) handler found"
+    MINILOG(c_exception_logger, "#" << m_spmt_thread->id() << " (C) handler found"
             << " in: " << info(frame)
             << " on: #" << frame->get_object()->get_group()->get_core()->id()
             );
@@ -440,12 +413,12 @@ CertainMode::do_throw_exception()
         //assert(false);          // when uncaughed exception ocurr, we get here
         exception = excep;
         //{{{ just for debug
-        if (m_core->id() == 7) {
+        if (m_spmt_thread->id() == 7) {
             int x = 0;
             x++;
         }
         //}}} just for debug
-        m_core->signal_quit_step_loop(0);
+        m_spmt_thread->signal_quit_step_loop(0);
         return;
     }
 
@@ -463,11 +436,19 @@ CertainMode::do_throw_exception()
     *sp++ = (uintptr_t)excep;
 }
 
+
+Frame*
+CertainMode::create_frame(Object* object, MethodBlock* new_mb, Frame* caller_prev, Object* calling_object, uintptr_t* args, uintptr_t* caller_sp, CodePntr caller_pc)
+{
+    Frame* new_frame = ::create_frame(object, new_mb, caller_prev, calling_object, args, caller_sp, caller_pc);
+    return new_frame;
+}
+
 void
 CertainMode::destroy_frame(Frame* frame)
 {
     MINILOG_IF(debug_scaffold::java_main_arrived && is_app_obj(frame->mb->classobj),
-               c_destroy_frame_logger, "#" << m_core->id()
+               c_destroy_frame_logger, "#" << m_spmt_thread->id()
                << " (C) destroy frame " << *frame);
 
     //{{{ just for debug
@@ -517,10 +498,10 @@ CertainMode::do_get_field(Object* source_object, FieldBlock* fb,
 
     sp -= is_static ? 0 : 1;
 
-    if (current_group->can_speculate() and m_core->has_message_to_be_verified()) {
+    if (current_group->can_speculate() and m_spmt_thread->has_message_to_be_verified()) {
 
         GetMsg* msg = new GetMsg(source_object, current_object, fb, addr, size, frame, sp, pc);
-        m_core->verify_speculation(msg);
+        m_spmt_thread->verify_speculation(msg);
         return;
 
     }
@@ -577,7 +558,7 @@ CertainMode::do_put_field(Object* target_object, FieldBlock* fb,
         sp -= is_static ? 0 : 1;
         pc += 3;
 
-        m_core->sleep();
+        m_spmt_thread->sleep();
         target_core->transfer_control(msg);
 
         return;         // avoid sp-=... and pc += ...
@@ -608,11 +589,11 @@ CertainMode::do_array_load(Object* array, int index, int type_size)
     void* addr = array_elem_addr(array, index, type_size);
     int nslots = type_size > 4 ? 2 : 1; // number of slots for value
 
-    if (current_group->can_speculate() and m_core->has_message_to_be_verified()) {
+    if (current_group->can_speculate() and m_spmt_thread->has_message_to_be_verified()) {
 
         ArrayLoadMsg* msg =
             new ArrayLoadMsg(array, current_object, index, (uint8_t*)addr, type_size, frame, sp, pc);
-        m_core->verify_speculation(msg);
+        m_spmt_thread->verify_speculation(msg);
         return;
 
     }
@@ -648,7 +629,7 @@ CertainMode::do_array_store(Object* array, int index, int type_size)
         sp -= 2;                    // pop up arrayref and index
         pc += 1;
 
-        m_core->sleep();
+        m_spmt_thread->sleep();
         target_core->transfer_control(msg);
 
         return;         // avoid sp-=... and pc += ...
@@ -669,7 +650,7 @@ void
 CertainMode::log_when_invoke_return(bool is_invoke, Object* caller, MethodBlock* caller_mb,
                       Object* callee, MethodBlock* callee_mb)
 {
-    log_invoke_return(c_invoke_return_logger, is_invoke, m_core->id(), "(C)",
+    log_invoke_return(c_invoke_return_logger, is_invoke, m_spmt_thread->id(), "(C)",
                       caller, caller_mb, callee, callee_mb);
 }
 
@@ -683,5 +664,5 @@ CertainMode::process_certain_message(Message* msg)
            //|| msg->get_type() == Message::ack
            );
 
-    m_core->reexecute_failed_message(msg);
+    m_spmt_thread->reexecute_failed_message(msg);
 }

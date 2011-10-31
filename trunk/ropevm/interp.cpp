@@ -43,7 +43,7 @@ Mode::exec_an_instr()
     // speculative (pc, frame, sp) only serves owner
     assert(is_speculative_mode() ? (frame->get_object()->get_group() == get_group()) : true);
     // rvp (pc, frame, sp) only serves others
-    //assert(is_rvp_mode() ? frame->get_object() != m_core->m_owner : true);
+    //assert(is_rvp_mode() ? frame->get_object() != m_spmt_thread->m_owner : true);
 
     MethodBlock* new_mb;
     Class *new_class;
@@ -64,7 +64,7 @@ Mode::exec_an_instr()
         && is_certain_mode()
         && is_app_obj(mb->classobj)
         ) {
-        m_core->m_count_certain_instr++;
+        m_spmt_thread->m_count_certain_instr++;
         Statistic::instance()->probe_instr_exec(*pc);
     }
 
@@ -72,20 +72,20 @@ Mode::exec_an_instr()
         && is_speculative_mode()
         && is_app_obj(mb->classobj)
         ) {
-        m_core->m_count_spec_instr++;
+        m_spmt_thread->m_count_spec_instr++;
     }
 
     if (debug_scaffold::java_main_arrived
         && is_rvp_mode()
         && is_app_obj(mb->classobj)
         ) {
-        m_core->m_count_rvp_instr++;
+        m_spmt_thread->m_count_rvp_instr++;
     }
     //}}} statistic
 
     //{{{ just for debug
     if (debug_scaffold::java_main_arrived
-        && m_core->id() == 7
+        && m_spmt_thread->id() == 7
         //&& strcmp(frame->mb->name, "computeNewValue") == 0
         ) {
         int x = 0;
@@ -94,7 +94,7 @@ Mode::exec_an_instr()
     //{{{ just for debug
 
     //{{{ just for debug
-    if (m_core->m_id == 0) {
+    if (m_spmt_thread->m_id == 0) {
         int x = 0;
         x++;
     }

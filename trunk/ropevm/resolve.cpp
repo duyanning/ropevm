@@ -375,7 +375,8 @@ MethodBlock *lookupVirtualMethod(Object *ob, MethodBlock *mb) {
     return mb;
 }
 
-MethodBlock* get_rvp_method(MethodBlock* complete)
+MethodBlock*
+get_rvp_method(MethodBlock* complete)
 {
     using namespace std;
 

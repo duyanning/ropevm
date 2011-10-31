@@ -38,7 +38,10 @@ public:
     void store_array_from_no_cache_mem(uintptr_t* sp, void* elem_addr, int type_size);
 
 
+    virtual Frame* create_frame(Object* object, MethodBlock* new_mb, Frame* caller_prev, Object* calling_object, uintptr_t* args, uintptr_t* caller_sp, CodePntr caller_pc) = 0;
     virtual void destroy_frame(Frame* frame) = 0;
+
+
     void set_core(SpmtThread* core);
 
     virtual uint32_t mode_read(uint32_t* addr) = 0;
@@ -52,8 +55,6 @@ public:
     bool is_rvp_mode();
 
     Group* get_group();
-    SpmtThread* this_spmt_thread();
-    Effect* get_current_effect();
 
 public:
     //-------------------
@@ -68,7 +69,7 @@ protected:
     void vmlog(MethodBlock* mb);
     void preload(MethodBlock* mb);
     bool vm_math(MethodBlock* mb);
-    SpmtThread* m_core;
+    SpmtThread* m_spmt_thread;
 private:
     const char* m_name;
 
