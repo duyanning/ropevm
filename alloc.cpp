@@ -367,7 +367,7 @@ Thread::scan()
 
     /* Mark any pending exception raised on this thread */
     //markConservativeRoot(ee->exception);
-    markConservativeRoot(threadSelf()->get_current_core()->get_current_mode()->exception);
+    markConservativeRoot(threadSelf()->get_current_spmt_thread()->get_current_mode()->exception);
 
     /* Scan the thread's C stack and mark all references */
     slot = (uintptr_t*)getStackTop(this);
@@ -386,7 +386,7 @@ Thread::scan()
     //     frame = frame->prev;
     // }
 
-    scan_cores();
+    scan_spmt_threads();
 }
 
 void scanThread(Thread *thread) {
@@ -1859,7 +1859,7 @@ got_it:
 }
 
 Object *allocObject(Class *classobj) {
-    SpmtThread* current_core = g_get_current_core();
+    SpmtThread* current_core = g_get_current_spmt_thread();
     current_core->before_alloc_object();
 
     ClassBlock *cb = CLASS_CB(classobj);
@@ -1891,7 +1891,7 @@ Object *allocObject(Class *classobj) {
 }
 
 Object *allocArray(Class *classobj, int size, int el_size) {
-    SpmtThread* current_core = g_get_current_core();
+    SpmtThread* current_core = g_get_current_spmt_thread();
     current_core->before_alloc_object();
 
     Object *ob;
@@ -2062,7 +2062,7 @@ Object *allocMultiArray(Class *array_class, int dim, intptr_t *count) {
 
 Class *allocClass()
 {
-    SpmtThread* current_core = g_get_current_core();
+    SpmtThread* current_core = g_get_current_spmt_thread();
     current_core->before_alloc_object();
 
     Class *classobj = (Class*)gcMalloc(sizeof(ClassBlock)+sizeof(Class));
@@ -2079,7 +2079,7 @@ Class *allocClass()
 
 Object *cloneObject(Object *ob)
 {
-    SpmtThread* current_core = g_get_current_core();
+    SpmtThread* current_core = g_get_current_spmt_thread();
     current_core->before_alloc_object();
 
     uintptr_t hdr = *HDR_ADDRESS(ob);

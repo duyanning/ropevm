@@ -20,7 +20,7 @@ Object::get_group()
         return group;
 
     // first time seen by this Java thread
-    group = thread->get_current_core()->assign_group_for(this);
+    group = thread->get_current_spmt_thread()->assign_group_for(this);
     join_group_in_other_threads(group);
 
     return group;

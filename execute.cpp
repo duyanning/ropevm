@@ -69,7 +69,7 @@ void *executeMethodVaList(Object *ob, Class *classobj, MethodBlock *mb, va_list 
     void *ret;
 
     Thread* this_thread = threadSelf();
-    SpmtThread* this_core = this_thread->get_current_core();
+    SpmtThread* this_core = this_thread->get_current_spmt_thread();
 
 //     int args_count = ob ? mb->args_count - 1 : mb->args_count;
 //     std::vector<uintptr_t> args(args_count);
@@ -92,7 +92,7 @@ void *executeMethodList(Object *ob, Class *classobj, MethodBlock *mb, u8 *jargs)
     void *ret;
 
     Thread* this_thread = threadSelf();
-    SpmtThread* this_core = this_thread->get_current_core();
+    SpmtThread* this_core = this_thread->get_current_spmt_thread();
 
 //     int args_count = ob ? mb->args_count - 1 : mb->args_count;
 //     std::vector<uintptr_t> args(args_count);

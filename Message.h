@@ -26,6 +26,7 @@ public:
         arraystore, arraystore_return
     };
     Message(Type t, Object* source_object, Object* target_ojbect);
+    virtual bool equal(Message& msg);
     Type get_type();
     Effect* get_effect();
     virtual ~Message();
@@ -44,31 +45,43 @@ protected:
 
 class InvokeMsg : public Message {
 public:
-    InvokeMsg(Object* object, MethodBlock* mb, Frame* prev, Object* calling_object, uintptr_t* args, uintptr_t* caller_sp, CodePntr caller_pc, Object* calling_owner = 0);
+    // refactor:
+    InvokeMsg(Object* source_obj, Object* target_obj, MethodBlock* mb, uintptr_t* args);
+    //InvokeMsg(Object* object, MethodBlock* mb, Frame* prev, Object* calling_object, uintptr_t* args, uintptr_t* caller_sp, CodePntr caller_pc);
+
+    virtual bool equal(Message& msg);
     void show(std::ostream& os) const;
     virtual void show_detail(std::ostream& os, int id) const;
+
     MethodBlock* mb;
     std::vector<uintptr_t> parameters;
-    Frame* caller_frame;
-    uintptr_t* caller_sp;
-    CodePntr caller_pc;
-    Object* calling_owner;
+
+
+    // Frame* caller_frame;        // refactor: to remove
+    // uintptr_t* caller_sp;       // refactor: to remove
+    // CodePntr caller_pc;         // refactor: to remove
 };
 
 
 class ReturnMsg : public Message {
 public:
-    ReturnMsg(Object* object, MethodBlock* mb, Frame* caller_frame, Object* calling_object, uintptr_t* rv, int len, uintptr_t* caller_sp, CodePntr caller_pc);
-    // virtual bool equal(Message& msg);
+    // refactor:
+    ReturnMsg(Object* source_obj, Object* target_obj, uintptr_t* rv, int len);
+    //ReturnMsg(Object* object, MethodBlock* mb, Frame* caller_frame, Object* calling_object, uintptr_t* rv, int len, uintptr_t* caller_sp, CodePntr caller_pc);
+
+    virtual bool equal(Message& msg);
     void show(std::ostream& os) const;
     virtual void show_detail(std::ostream& os, int id) const;
-    std::vector<uintptr_t> retval;
-    Frame* caller_frame;
-    uintptr_t* caller_sp;
-    CodePntr caller_pc;
 
-    // for debug
-    MethodBlock* mb;
+    std::vector<uintptr_t> retval;
+
+
+    // Frame* caller_frame;        // refactor: to remove
+    // uintptr_t* caller_sp;       // refactor: to remove
+    // CodePntr caller_pc;         // refactor: to remove
+
+    // // for debug
+    // MethodBlock* mb;
 };
 
 
@@ -174,12 +187,14 @@ public:
 };
 
 
-bool are_the_same_in_content(Message* msg1, Message* msg2); // refactor
+bool g_equal_msg_content(Message* msg1, Message* msg2); // refactor
 bool operator==(Message& msg1, Message& msg2); // refactor: remove
 
 
 std::ostream& operator<<(std::ostream& os, const Message& msg);
 void show_msg_detail(std::ostream& os, int id, Message* msg);
+
+bool g_is_async_msg(Message* msg);
 
 //-----------------------------------
 bool is_valid_certain_msg(Message* msg);

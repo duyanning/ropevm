@@ -270,8 +270,8 @@ void initialiseJavaStack(Thread* thread) {
     top->mb = mb;
 
     //thread->ee->last_frame = top;
-    assert(*thread->get_current_core()->get_current_mode()->get_name() == 'C');
-    thread->get_current_core()->get_current_mode()->frame = top;
+    assert(*thread->get_current_spmt_thread()->get_current_mode()->get_name() == 'C');
+    thread->get_current_spmt_thread()->get_current_mode()->frame = top;
 }
 
 long long javaThreadId(Thread *thread) {
@@ -874,7 +874,7 @@ void dumpThreadsLoop(Thread *self) {
             int daemon = thr_data[daemon_offset];
             assert(false);
             //Frame *last = thread->ee->last_frame;
-            Frame* last = threadSelf()->get_current_core()->get_current_mode()->frame;
+            Frame* last = threadSelf()->get_current_spmt_thread()->get_current_mode()->frame;
 
             /* Get thread name; we don't use String2Cstr(), as this mallocs memory
                and may deadlock with a thread suspended in malloc/realloc/free */
@@ -1175,7 +1175,7 @@ Thread::Thread()
 
     core->wakeup();              // need?
 
-    m_current_core = core;      // need?
+    m_current_spmt_thread = core;      // need?
 }
 
 Thread::~Thread()
@@ -1187,9 +1187,37 @@ Thread::add_core(SpmtThread* core)
 {
     assert(core);
 
-    m_cores.push_back(core);
+    m_spmt_threads.push_back(core);
     core->set_thread(this);
 }
+
+
+// bool
+// Thread::unique_certain_spmt_thread()
+// {
+//        //int n = cores.size();   // for debug
+
+//         //{{{ just for debug
+//         // {
+//         //     int n = 0;
+//         //     for (vector<SpmtThread*>::iterator i = cores.begin(); i != cores.end(); ++i) {
+//         //         SpmtThread* core = *i;
+//         //         if (core->is_certain_mode()) {
+//         //             n++;
+//         //         }
+//         //     }
+
+//         //     if (not (n == 0 || n == 1)) {
+//         //         MINILOG0("num of certain cores: " << n);
+//         //     }
+
+//         //     assert(n == 0 || n == 1);
+
+//         // }
+//         //}}} just for debug
+
+// }
+
 
 uintptr_t*
 Thread::drive_loop()
@@ -1198,48 +1226,27 @@ Thread::drive_loop()
 
     for (;;) {
 
-        // make a copy of cores vector to avoid modification to m_cores while loop
-        vector<SpmtThread*> cores(m_cores);
-
-        //int n = cores.size();   // for debug
-
-        //{{{ just for debug
-        // {
-        //     int n = 0;
-        //     for (vector<SpmtThread*>::iterator i = cores.begin(); i != cores.end(); ++i) {
-        //         SpmtThread* core = *i;
-        //         if (core->is_certain_mode()) {
-        //             n++;
-        //         }
-        //     }
-
-        //     if (not (n == 0 || n == 1)) {
-        //         MINILOG0("num of certain cores: " << n);
-        //     }
-
-        //     assert(n == 0 || n == 1);
-
-        // }
-        //}}} just for debug
+        // make a copy to avoid modification to m_spmt_threads while looping
+        vector<SpmtThread*> spmt_threads(m_spmt_threads);
 
         int non_idle_total = 0;
-        for (vector<SpmtThread*>::iterator i = cores.begin(); i != cores.end(); ++i) {
-            m_current_core = *i;
+        for (auto st : spmt_threads) {
+            m_current_spmt_thread = st;
 
-            if (m_current_core->is_halt()) {
-                m_current_core->idle();
+            if (m_current_spmt_thread->is_halt()) {
+                m_current_spmt_thread->idle();
                 continue;
             }
-            //if (m_current_core->is_busy()) continue;
 
             non_idle_total++;
-            m_current_core->step();
 
-            //                 MINILOG_IF(ret && debug_scaffold::java_main_arrived, step_loop_in_out_logger,
-            //                            "#" << m_current_core->id() << " jump out of a step-loop");
-            bool quit = m_current_core->check_quit_step_loop();
+
+            m_current_spmt_thread->step();
+
+
+            bool quit = m_current_spmt_thread->check_quit_step_loop();
             if (quit) {
-                uintptr_t* result = m_current_core->get_result();
+                uintptr_t* result = m_current_spmt_thread->get_result();
                 return result;
             }
 
@@ -1247,6 +1254,7 @@ Thread::drive_loop()
 
         assert(non_idle_total > 0);
     }
+
     return 0;
 }
 
@@ -1269,26 +1277,26 @@ Thread::get_default_group()
 }
 
 SpmtThread*
-Thread::get_current_core()
+Thread::get_current_spmt_thread()
 {
-    return m_current_core;
+    return m_current_spmt_thread;
 }
 
 void
-Thread::set_current_core(SpmtThread* current_core)
+Thread::set_current_spmt_thread(SpmtThread* st)
 {
-    m_current_core = current_core;
+    m_current_spmt_thread = st;
 }
 
 void
-Thread::scan_cores()
+Thread::scan_spmt_threads()
 {
     using namespace std;
     // make a copy of cores vector to avoid modification to m_cores while loop
-    vector<SpmtThread*> cores(m_cores);
+    vector<SpmtThread*> cores(m_spmt_threads);
     for (vector<SpmtThread*>::iterator i = cores.begin(); i != cores.end(); ++i) {
-        SpmtThread* core = *i;
-        core->scan();
+        SpmtThread* spmt_thread = *i;
+        spmt_thread->scan();
     }
 }
 

@@ -4,7 +4,6 @@
 
 using namespace std;
 
-//#define EQMORE
 
 int msg_count = 0;              // just for debug
 
@@ -39,19 +38,20 @@ Message::get_type()
 // }
 
 //------------------------------------------------
-InvokeMsg::InvokeMsg(Object* object, MethodBlock* mb, Frame* caller_frame, Object* calling_object, uintptr_t* args, uintptr_t* caller_sp, CodePntr caller_pc, Object* calling_owner)
+
+// InvokeMsg::InvokeMsg(Object* object, MethodBlock* mb, Frame* caller_frame, Object* calling_object, uintptr_t* args, uintptr_t* caller_sp, CodePntr caller_pc)
+InvokeMsg::InvokeMsg(Object* source_obj, Object* target_obj, MethodBlock* mb, uintptr_t* args)
 :
-    Message(Message::invoke, calling_object, object)
+    Message(Message::invoke, source_obj, target_obj)
 {
     this->mb = mb;
-    this->caller_frame = caller_frame;
+    //this->caller_frame = caller_frame;
 
     for (int i = 0; i < mb->args_count; ++i) {
         parameters.push_back(args[i]);
     }
-    this->caller_sp = caller_sp;
-    this->caller_pc = caller_pc;
-    this->calling_owner = calling_owner;
+    // this->caller_sp = caller_sp;
+    // this->caller_pc = caller_pc;
 }
 
 bool
@@ -63,14 +63,13 @@ InvokeMsg::equal(Message& msg)
     if (parameters != m.parameters)
         return false;
 
-    //#ifdef EQMORE
-    if (caller_frame != m.caller_frame)
-        return false;
-    if (caller_pc != m.caller_pc)
-        return false;
-    if (caller_sp != m.caller_sp)
-        return false;
-    //#endif
+    // if (caller_frame != m.caller_frame)
+    //     return false;
+    // if (caller_pc != m.caller_pc)
+    //     return false;
+    // if (caller_sp != m.caller_sp)
+    //     return false;
+
 
     return true;
 }
@@ -89,17 +88,18 @@ InvokeMsg::show_detail(std::ostream& os, int id) const
 }
 
 //------------------------------------------------
-ReturnMsg::ReturnMsg(Object* object, MethodBlock* mb, Frame* caller_frame, Object* calling_object, uintptr_t* rv, int len, uintptr_t* caller_sp, CodePntr caller_pc)
+// ReturnMsg::ReturnMsg(Object* object, MethodBlock* mb, Frame* caller_frame, Object* calling_object, uintptr_t* rv, int len, uintptr_t* caller_sp, CodePntr caller_pc)
+ReturnMsg::ReturnMsg(Object* source_obj, Object* target_obj, uintptr_t* rv, int len)
 :
-    Message(Message::ret, object, calling_object)
+    Message(Message::ret, source_obj, target_obj)
 {
-    this->mb = mb;
-    this->caller_frame = caller_frame;
+    //this->mb = mb;
+    // this->caller_frame = caller_frame;
     for (int i = 0; i < len; ++i) {
         retval.push_back(rv[i]);
     }
-    this->caller_sp = caller_sp;
-    this->caller_pc = caller_pc;
+    // this->caller_sp = caller_sp;
+    // this->caller_pc = caller_pc;
 
     //this->frame = frame;
 }
@@ -137,15 +137,15 @@ ReturnMsg::show(ostream& os) const
         os << "ret64 " << hex << *((long*)&retval[0]) << dec;
     }
 
-    os << " from " << mb->classobj->name() << '.' << mb->name << ':' << mb->type;
+    //os << " from " << mb->classobj->name() << '.' << mb->name << ':' << mb->type;
 }
 
 void
 ReturnMsg::show_detail(std::ostream& os, int id) const
 {
-    os << "#" << id << " caller frame:\t" << (void*)caller_frame << "\n";
-    os << "#" << id << " caller pc:\t" << (void*)caller_pc << "\n";
-    os << "#" << id << " caller sp:\t" << (void*)caller_sp << "\n";
+    // os << "#" << id << " caller frame:\t" << (void*)caller_frame << "\n";
+    // os << "#" << id << " caller pc:\t" << (void*)caller_pc << "\n";
+    // os << "#" << id << " caller sp:\t" << (void*)caller_sp << "\n";
 }
 
 //-----------------------------------------------
@@ -400,7 +400,7 @@ ArrayStoreMsg::show_detail(std::ostream& os, int id) const
 
 bool operator==(Message& msg1, Message& msg2)
 {
-    return msg1.is_equal_to(msg2);
+    return msg1.equal(msg2);
 }
 
 ostream& operator<<(ostream& os, const Message& msg)
@@ -416,17 +416,17 @@ show_msg_detail(ostream& os, int id, Message* msg)
     msg->show_detail(os, id);
 }
 
-//----------------------------------------------
+
 bool
-is_valid_certain_msg(Message* msg)
+g_is_async_msg(Message* msg)
 {
-    if (msg->get_type() == Message::invoke
-        || msg->get_type() == Message::ret
-        || msg->get_type() == Message::put
-        || msg->get_type() == Message::arraystore
-        //|| msg->get_type() == Message::ack
-        )
+    Message::Type type = msg->get_type();
+    if (type == Message::invoke
+        or type == Message::put
+        or type == Message::get
+        or type == Message::arraystore
+        or type == Message::arrayload)
         return true;
-    else
-        return false;
+
+    return false;
 }

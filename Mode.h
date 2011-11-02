@@ -59,10 +59,10 @@ public:
 public:
     //-------------------
     CodePntr pc;
-    Frame *frame;
-    uintptr_t *sp;
+    Frame* frame;
+    uintptr_t* sp;
     //------------------
-    Object *exception;          // state?
+    Object* exception;          // state?
 
 protected:
     bool intercept_vm_backdoor(Object* objectref, MethodBlock* mb);

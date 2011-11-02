@@ -68,7 +68,8 @@ public:
 
     Group* m_default_group;
     //SpmtThread* m_certain_core;
-    std::vector<SpmtThread*> m_cores;
+    //std::vector<SpmtThread*> m_cores;
+    std::vector<SpmtThread*> m_spmt_threads;
 
 
     typedef std::map<Object*, Group*> ObjectGroupMap;
@@ -88,12 +89,12 @@ public:
     // SpmtThread* get_certain_core();
     // void set_certain_core(SpmtThread* core);
 
-    SpmtThread* get_current_core();
-    void set_current_core(SpmtThread* current_core);
+    SpmtThread* get_current_spmt_thread();
+    void set_current_spmt_thread(SpmtThread* st);
     void scan();
-    void scan_cores();
+    void scan_spmt_threads();
 private:
-    SpmtThread* m_current_core;
+    SpmtThread* m_current_spmt_thread;
 };
 
 class VMThread : public Thread {

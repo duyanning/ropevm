@@ -753,7 +753,7 @@ extern void initialiseException();
 
 /* interp */
 
-extern uintptr_t *executeJava();
+extern uintptr_t* g_drive_loop();
 extern void initialiseInterpreter(InitArgs *args);
 
 /* String */
