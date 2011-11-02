@@ -9,6 +9,7 @@ class UncertainMode : public Mode {
 public:
     UncertainMode(const char* name);
     void process_certain_message(Message* messge);
+    virtual void step();
 };
 
 

@@ -30,7 +30,7 @@ public:
     virtual Frame* create_frame(Object* object, MethodBlock* new_mb, Frame* caller_prev, Object* calling_object, uintptr_t* args, uintptr_t* caller_sp, CodePntr caller_pc);
     virtual void destroy_frame(Frame* frame);
 
-    virtual void step();
+    //virtual void step();
     // for logging
 private:
     void log_when_invoke_return(bool is_invoke, Object* caller, MethodBlock* caller_mb, Object* callee, MethodBlock* callee_mb);

@@ -163,9 +163,8 @@ SpmtThread::send_certain_msg(SpmtThread* target_thread, Message* msg)
 void
 SpmtThread::set_certain_msg(Message* msg)
 {
-    assert(is_valid_certain_msg(msg));
-
     m_certain_message = msg;
+
     wakeup();
 }
 
@@ -315,7 +314,7 @@ SpmtThread::send_spec_msg(SpmtThread* target_thread, Message* msg)
 {
     target_thread->add_spec_msg(msg);
 
-    Effect* current_effect = m_spec_msg_queue.current_msg()->get_effect();
+    Effect* current_effect = current_spec_msg()->get_effect();
     current_effect->msg_sent = msg;
 
     // MINILOG(s_logger,
@@ -331,7 +330,8 @@ SpmtThread::add_spec_msg(Message* msg)
     // stat
     // m_count_spec_msgs_sent++;
 
-    m_spec_msg_queue.add(msg);
+    m_spec_msg_queue.push_back(msg);
+
 
     //{{{ just for debug
     // if (m_id == 6) {
@@ -379,133 +379,6 @@ struct Delete {
     }
 };
 
-struct Collect_delayed_frame {
-public:
-    Collect_delayed_frame(set<Frame*>& frames)
-        : m_frames(frames)
-    {
-    }
-
-    void operator()(Snapshot* s)
-    {
-        Frame* f = s->frame;
-        if (f == 0) return;
-        assert(f);              // todo: f maybe non null
-        assert(f->is_alive());
-        for (;;) {
-            if (f->is_certain) break;
-            MINILOG(free_frames_logger,
-                    "#" << g_get_current_core()->id() << " free frame in snapshot " << *f);
-            m_frames.insert(f);
-            if (f->is_task_frame) break;
-            f = f->prev;
-        }
-    }
-
-private:
-    set<Frame*>& m_frames;
-    Frame* m_certain_frame;
-};
-
-void
-SpmtThread::collect_inuse_frames(set<Frame*>& frames)
-{
-    Mode* mode = original_uncertain_mode();
-    if (mode == 0) return;
-
-    assert(not mode->is_certain_mode());
-
-    MINILOG(free_frames_logger,
-            "#" << id() << " free no use frames, " << mode->get_name());
-
-    Frame* f = mode->frame;
-    if (f) {
-        if (f->mb) {
-            cout << "inuse " << f->mb->name << endl;
-        }
-        assert(f->mb);
-        //cout << "i am " << *f->mb << endl;
-
-        for (;;) {
-            if (f->is_certain) break;
-            MINILOG(free_frames_logger,
-                    "#" << id() << " free " << (is_rvp_frame(f) ? "rvp" : "spec") << "frame " << *f);
-            // if (f->xxx == 999)
-            //     cout << "xxx999" << endl;
-            frames.insert(f);
-            if (f->is_task_frame) break;
-            f = f->prev;
-        }
-    }
-}
-
-void
-SpmtThread::collect_snapshot_frames(set<Frame*>& frames)
-{
-    MINILOG(free_frames_logger,
-            "#" << id() << " free no use frames in snapshot, len: " << m_snapshots_to_be_committed.size());
-    Collect_delayed_frame cdf(frames);
-    for_each(m_snapshots_to_be_committed.begin(), m_snapshots_to_be_committed.end(), cdf);
-}
-
-void
-SpmtThread::free_discarded_frames(bool only_snapshot)
-{
-    set<Frame*> frames;
-
-    if (not only_snapshot)
-        collect_inuse_frames(frames);
-
-    collect_snapshot_frames(frames);
-
-    for_each(frames.begin(), frames.end(), Delete());
-}
-
-void
-SpmtThread::reload_speculative_tasks()
-{
-    //return;
-    //assert(false);
-
-    std::deque<Message*>::iterator i;
-    for (i = m_messages_to_be_verified.begin(); i != m_messages_to_be_verified.end(); ++i) {
-        Message* msg = *i;
-
-        if (msg->get_type() == Message::invoke
-            // || msg->get_type() == Message::put
-            // || msg->get_type() == Message::arraystore
-            ) {
-
-            m_speculative_tasks.insert(m_speculative_tasks.begin(), msg);
-        }
-
-    }
-
-    m_messages_to_be_verified.clear();
-}
-
-void
-SpmtThread::discard_uncertain_execution(bool self)
-{
-    MINILOG0_IF(debug_scaffold::java_main_arrived,
-                "#" << id() << " discard uncertain execution");
-
-    for_each(m_messages_to_be_verified.begin(), m_messages_to_be_verified.end(), Delete());
-    m_messages_to_be_verified.clear();
-
-    // for_each(m_speculative_tasks.begin(), m_speculative_tasks.end(), Delete());
-    // m_speculative_tasks.clear();
-
-    free_discarded_frames(self == true);
-
-    for_each(m_snapshots_to_be_committed.begin(), m_snapshots_to_be_committed.end(), Delete());
-    m_snapshots_to_be_committed.clear();
-
-    m_state_buffer.reset();
-    m_rvp_buffer.clear();
-
-    m_is_waiting_for_task = false;
-}
 
 void
 SpmtThread::destroy_frame(Frame* frame)
@@ -593,18 +466,18 @@ SpmtThread::is_correspondence_btw_msgs_and_snapshots_ok()
 //}}} just for debug
 
 
-SpmtThread* g_get_current_core()
+SpmtThread* g_get_current_spmt_thread()
 {
     Thread* this_thread = threadSelf();
-    SpmtThread* this_core = this_thread->get_current_core();
+    SpmtThread* this_core = this_thread->get_current_spmt_thread();
     return this_core;
 }
 
 void
-g_set_current_core(SpmtThread* current_core)
+g_set_current_spmt_thread(SpmtThread* st)
 {
     Thread* this_thread = threadSelf();
-    this_thread->set_current_core(current_core);
+    this_thread->set_current_spmt_thread(st);
 }
 
 void
@@ -661,90 +534,134 @@ SpmtThread::report_stat(ostream& os)
     os << '#' << m_id << '\t' << "idle count" << '\t' << m_count_idle << '\n';
 }
 
-bool
-SpmtThread::verify(Message* message)
+
+void
+SpmtThread::commit(Effect* effect)
 {
-    // stat
-    m_count_verify_all++;
+    // 提交快照
+    // 确认消息
+}
 
 
-    assert(is_correspondence_btw_msgs_and_snapshots_ok());
+void
+SpmtThread::revoke_spec_msg(SpmtThread* target_thread, Message* msg)
+{
+    target_thread->remove_spec_msg(msg);
+}
 
-    bool ok = false;
-    if (not m_messages_to_be_verified.empty()) {
-        Message* spec_msg = m_messages_to_be_verified.front();
 
-        if (*spec_msg == *message) {
-            ok = true;
-        }
-
-        if (ok) {
-            MINILOG0_IF(debug_scaffold::java_main_arrived,
-                        "#" << id() << " verify " << *message << " OK");
-
-            MINILOG0_IF(debug_scaffold::java_main_arrived,
-                        "#" << id() << " veri spec: " << *spec_msg << " OK");
-        }
-        else {
-            MINILOG0_IF(debug_scaffold::java_main_arrived,
-                        "#" << id() << " verify " << *message << " FAILED"
-                        << " not " << *spec_msg);
-
-            MINILOG0_IF(debug_scaffold::java_main_arrived,
-                        "#" << id() << " veri spec: " << *spec_msg << " FAILED");
-
-            MINILOG0_IF(debug_scaffold::java_main_arrived,
-                        "#" << id() << " details:");
-            MINILOGPROC_IF(debug_scaffold::java_main_arrived,
-                           verify_detail_logger, show_msg_detail,
-                           (os, id(), message));
-            MINILOG0_IF(debug_scaffold::java_main_arrived,
-                        "#" << id() << " ---------");
-            MINILOGPROC_IF(debug_scaffold::java_main_arrived,
-                           verify_detail_logger, show_msg_detail,
-                           (os, id(), spec_msg));
-
-        }
-
-        m_messages_to_be_verified.pop_front();
-        delete spec_msg;
-    }
-    else {
-        MINILOG0_IF(debug_scaffold::java_main_arrived,
-                    "#" << id() << " verify " << *message << " EMPTY");
-        MINILOG0_IF(debug_scaffold::java_main_arrived,
-                    "#" << id() << " veri spec: EMPTY");
-
-        // stat
-        m_count_verify_empty++;
-    }
-
-    return ok;
+void
+SpmtThread::remove_spec_msg(Message* msg)
+{
 }
 
 void
-SpmtThread::verify_speculation(Message* message, bool self)
+SpmtThread::discard_all_effect()
 {
-    bool success = verify(message);
+    MINILOG0_IF(debug_scaffold::java_main_arrived,
+                "#" << id() << " discard uncertain execution");
 
-    // stat
-    if (success)
-        m_count_verify_ok++;
-    else
-        m_count_verify_fail++;
 
+    // for each 队列中每个消息
+    //     收回effect中发出的消息
+    //     处理effect中记录的栈帧
+    //     释放effect
+
+    // 重置state buffer与rvp buffer
+
+    for (auto i = m_spec_msg_queue.begin(); i != m_next_spec_msg; ++i) {
+        Message* msg = *i;
+        Effect* effect = msg->get_effect();
+
+        SpmtThread* target_thread = msg->get_target_object()->get_group()->get_spmt_thread();
+        revoke_spec_msg(target_thread, msg);
+
+        for (auto frame : effect->C) {
+            delete frame;
+        }
+
+        delete effect;
+    }
+
+
+    m_state_buffer.reset();
+    m_rvp_buffer.clear();
+
+    m_is_waiting_for_task = false;
+
+}
+
+
+void
+SpmtThread::verify_speculation(Message* certain_msg)
+{
+
+    // 如果无待验证消息
+    //     处理确定消息
+    //     结束
+    if (m_spec_msg_queue.begin() == m_next_spec_msg) {
+        process_certain_msg(certain_msg);
+        return;
+    }
+
+
+    // 比较第一个待验证消息与确定消息（异步消息比指针，同步消息比内容）
+    Message* spec_msg = *m_spec_msg_queue.begin();
+    bool success = false;
+    if (g_is_async_msg(certain_msg)) {
+        success = (spec_msg == certain_msg);
+    }
+    else {
+        success = g_equal_msg_content(spec_msg, certain_msg);
+    }
+
+
+
+    // if 二者相同
+    //     提交第一个消息关联的effect
+    //     释放该effect
+    //     从队列中删除该消息
+    // else
+    //     丢弃所有effect
+    //     if 确定消息是异步消息
+    //         收回该消息
+    //     处理确定消息
     if (success) {
-        handle_verification_success(message, self);
+        Effect* effect = spec_msg->get_effect();
+        commit(effect);
+        delete effect;
+        m_spec_msg_queue.pop_front();
     }
     else {
-        handle_verification_failure(message, self);
+        //discard_all_effect();
+
+        if (g_is_async_msg(certain_msg)) {
+        }
+        process_certain_msg(certain_msg);
     }
 
-    delete message;
+
+
+    // bool success = verify(message);
+
+    // // stat
+    // if (success)
+    //     m_count_verify_ok++;
+    // else
+    //     m_count_verify_fail++;
+
+    // if (success) {
+    //     handle_verification_success(message);
+    // }
+    // else {
+    //     handle_verification_failure(message);
+    // }
+
+    // delete message;
 }
 
 void
-SpmtThread::handle_verification_success(Message* message, bool self)
+SpmtThread::handle_verification_success(Message* message)
 {
     //bool should_reset_spec_exec = false;
 
@@ -838,7 +755,7 @@ SpmtThread::handle_verification_success(Message* message, bool self)
 
     //if (should_reset_spec_exec) {
     if (not has_message_to_be_verified()) {
-        discard_uncertain_execution(self);
+        discard_uncertain_execution(true);
     }
 
     MINILOG(commit_detail_logger,
@@ -858,7 +775,7 @@ SpmtThread::handle_verification_success(Message* message, bool self)
 }
 
 void
-SpmtThread::reexecute_failed_message(Message* message)
+SpmtThread::process_certain_msg(Message* message)
 {
     Message::Type type = message->get_type();
 
@@ -866,14 +783,18 @@ SpmtThread::reexecute_failed_message(Message* message)
 
         InvokeMsg* msg = static_cast<InvokeMsg*>(message);
         m_certain_mode.invoke_to_my_method(msg->get_target_object(), msg->mb, &msg->parameters[0],
-                                        msg->get_source_object(),
-                                        msg->caller_pc, msg->caller_frame, msg->caller_sp);
+                                           msg->get_source_object(),
+                                           0, 0, 0);
 
     }
     else if (type == Message::ret) {
 
         ReturnMsg* msg = static_cast<ReturnMsg*>(message);
-        m_certain_mode.return_to_my_method(&msg->retval[0], msg->retval.size(), msg->caller_pc, msg->caller_frame, msg->caller_sp);
+        m_certain_mode.return_to_my_method(&msg->retval[0],
+                                           msg->retval.size(),
+                                           m_certain_mode.pc,
+                                           m_certain_mode.frame,
+                                           m_certain_mode.sp);
 
     }
     else if (type == Message::get) {
@@ -948,10 +869,10 @@ SpmtThread::reexecute_failed_message(Message* message)
 }
 
 void
-SpmtThread::handle_verification_failure(Message* message, bool self)
+SpmtThread::handle_verification_failure(Message* message)
 {
     reload_speculative_tasks();
-    discard_uncertain_execution(self);
+    discard_uncertain_execution(true);
 
     reexecute_failed_message(message);
 
@@ -1014,22 +935,19 @@ SpmtThread::process_spec_msg(Message* spec_msg)
     if (type == Message::invoke) {
 
         InvokeMsg* msg = static_cast<InvokeMsg*>(spec_msg);
-        MethodBlock* new_mb = msg->mb;
-
-        m_state_buffer.freeze();
 
         Frame* new_frame = m_spec_mode.create_frame(msg->get_target_object(),
-                                                    new_mb,
-                                                    msg->caller_frame,
+                                                    msg->mb,
+                                                    0,
                                                     msg->get_source_object(),
                                                     &msg->parameters[0],
-                                                    msg->caller_sp,
-                                                    msg->caller_pc);
+                                                    0,
+                                                    0);
 
 
         m_spec_mode.sp = (uintptr_t*)new_frame->ostack_base;
         m_spec_mode.frame = new_frame;
-        m_spec_mode.pc = (CodePntr)new_mb->code;
+        m_spec_mode.pc = (CodePntr)new_frame->mb->code;
     }
     else if (type == Message::put) {
         PutMsg* msg = static_cast<PutMsg*>(spec_msg);
@@ -1062,13 +980,29 @@ SpmtThread::process_spec_msg(Message* spec_msg)
 }
 
 
+bool
+SpmtThread::has_unprocessed_spec_msg()
+{
+    if (m_next_spec_msg != m_spec_msg_queue.end())
+        return true;
+
+    return false;
+}
+
+
+void
+SpmtThread::begin_process_next_msg()
+{
+    ++m_next_spec_msg;
+}
+
+
 void
 SpmtThread::process_next_spec_msg()
 {
     MINILOG(task_load_logger, "#" << id() << " try to load a spec msg");
 
-    Message* msg = m_spec_msg_queue.begin_process_next_msg();
-    if (msg == nullptr) {
+    if (not has_unprocessed_spec_msg()) {
         MINILOG(task_load_logger, "#" << id() << " no spec msg, waiting for spec msg");
         m_spec_mode.pc = 0;
         m_spec_mode.frame = 0;
@@ -1079,7 +1013,9 @@ SpmtThread::process_next_spec_msg()
     }
 
     snapshot(false);
-    process_spec_msg(msg);
+
+    begin_process_next_msg();
+    process_spec_msg(current_spec_msg());
 }
 
 
@@ -1120,7 +1056,7 @@ SpmtThread::snapshot(bool pin)
     snapshot->frame = m_spec_mode.frame;
     snapshot->sp = m_spec_mode.sp;
 
-    Effect* current_effect = m_spec_msg_queue.current_msg()->get_effect();
+    Effect* current_effect = current_spec_msg()->get_effect();
     current_effect->snapshot = snapshot;
 
     if (pin)

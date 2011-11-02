@@ -13,7 +13,7 @@
 #include "DebugScaffold.h"
 #include "frame.h"
 
-uintptr_t* executeJava()
+uintptr_t* g_drive_loop()
 {
     Thread* this_thread = threadSelf();
 
@@ -102,6 +102,8 @@ Mode::exec_an_instr()
 
 
     assert(mb == frame->mb);
+
+
     switch (*pc) {
     default:
         assert(false);

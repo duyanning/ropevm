@@ -45,11 +45,11 @@ CertainMode::step()
     }
     //}}} just for debug
 
-    Message* msg = m_spmt_thread->get_certain_msg();
-    if (msg) {
-        process_certain_message(msg);
-        return;
-    }
+    // Message* msg = m_spmt_thread->get_certain_msg();
+    // if (msg) {
+    //     process_certain_message(msg);
+    //     return;
+    // }
 
     exec_an_instr();
 }
@@ -67,6 +67,7 @@ CertainMode::do_execute_method(Object* target_object,
     Frame* old_frame = frame;
     uintptr_t* old_sp = sp;
 
+
     // dummy frame is used to receive RV of top_frame
     // dummy->prev is current frame
     Frame* dummy = create_dummy_frame(frame);
@@ -80,27 +81,30 @@ CertainMode::do_execute_method(Object* target_object,
 
     assert(target_object);
 
+
+    SpmtThread* target_spmt_thread = target_object->get_group()->get_spmt_thread();
+
     Group* current_group = current_object ? current_object->get_group() : threadSelf()->get_default_group();
     Group* target_group = target_object->get_group();
 
     assert(target_group->get_thread() == threadSelf());
 
-    if (target_group == current_group) {
+    if (target_spmt_thread == m_spmt_thread) {
 
         invoke_to_my_method(target_object, new_mb, &jargs[0],
-                         current_object,
-                         0, dummy, dummy->ostack_base);
+                            current_object,
+                            0, dummy, dummy->ostack_base);
 
         void* ret2;
-        ret2 = executeJava();
+        ret2 = g_drive_loop();
         //assert(ret == ret2);
         assert(m_spmt_thread->m_mode->is_certain_mode());
     }
     else {
         SpmtThread* target_core = target_group->get_core();
 
-        InvokeMsg* msg =
-            new InvokeMsg(target_object, new_mb, dummy, current_object, &jargs[0], dummy->ostack_base, 0);
+        InvokeMsg* msg = new InvokeMsg(current_object, target_spmt_thread,
+                                       new_mb, &jargs[0]);
 
         MINILOG0("#" << m_spmt_thread->id() << " e>>>transfers to #" << target_core->id()
                  // << " " << info(current_object) << " => " << info(target_object)
@@ -115,19 +119,23 @@ CertainMode::do_execute_method(Object* target_object,
 
         m_spmt_thread->sleep();
         m_spmt_thread->m_is_waiting_for_task = false;
-        target_core->transfer_control(msg);
-        executeJava();
+        m_spmt_thread->send_certain_msg(target_core, msg);
+        g_drive_loop();
         m_spmt_thread->switch_to_certain_mode();
         m_spmt_thread->wakeup();
 
     }
+
+
+    g_drive_loop();
+
 
     // restore (pc, frame, sp)
     pc = old_pc;
     frame = old_frame;
     sp = old_sp;
 
-    g_set_current_core(m_spmt_thread); // executeJava will change current core
+    g_set_current_spmt_thread(m_spmt_thread); // executeJava will change current core
 
     return ret;
 }
@@ -135,28 +143,19 @@ CertainMode::do_execute_method(Object* target_object,
 void
 CertainMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
 {
-    if (intercept_vm_backdoor(target_object, new_mb)) return;
-
-    //log_when_invoke_return(true, m_user, frame->mb, target_object, new_mb);
-
-    MiniLogger logger(cout, false);
-
-    MINILOG_IF(debug_scaffold::java_main_arrived && is_app_obj(new_mb->classobj),
-               logger,
-               *new_mb);
-
     assert(target_object);
 
-    SpmtThread* target_spmt_thread = target_object->get_group()->get_spmt_thread();
+    //if (intercept_vm_backdoor(target_object, new_mb)) return;
 
+    SpmtThread* target_spmt_thread = target_object->get_group()->get_spmt_thread();
     assert(target_spmt_thread->m_thread == m_spmt_thread->m_thread);
 
     if (target_spmt_thread == m_spmt_thread) {
 
         sp -= new_mb->args_count;
         invoke_to_my_method(target_object, new_mb, sp,
-                         frame->get_object(),
-                         pc, frame, sp);
+                            frame->get_object(),
+                            pc, frame, sp);
 
     }
     else {
@@ -165,31 +164,35 @@ CertainMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
         sp -= new_mb->args_count;
 
         // construct certain msg
-        InvokeMsg* msg =
-            new InvokeMsg(target_object, new_mb, frame, frame->get_object(), sp, sp, pc);
+        InvokeMsg* msg = new InvokeMsg(frame->get_object(), target_object,
+                                       new_mb, sp);
 
         frame->last_pc = pc;
 
-        MINILOG0("#" << m_spmt_thread->id() << " i>>>transfers to #" << target_spmt_thread->id()
-                 // << " " << info(current_object) << " => " << info(target_object)
-                 // << " (" << current_object << "=>" << target_object << ")"
-                 << " because: " << *msg
-                 << " in: "  << info(frame)
-                 // << "("  << frame << ")"
-                 );
+        // MINILOG0("#" << m_spmt_thread->m_id << " i>>>transfers to #" << target_spmt_thread->id()
+        //          // << " " << info(current_object) << " => " << info(target_object)
+        //          // << " (" << current_object << "=>" << target_object << ")"
+        //          << " because: " << *msg
+        //          << " in: "  << info(frame)
+        //          // << "("  << frame << ")"
+        //          );
 
         target_spmt_thread->send_certain_msg(target_spmt_thread, msg);
 
-
         MethodBlock* rvp_method = get_rvp_method(new_mb);
-        MINILOG0("#" << m_spmt_thread->id() << " (S)invokes rvp-method: " << *rvp_method);
-        Frame* rvp_frame = m_spmt_thread->m_rvp_mode.create_frame(target_object, rvp_method, frame, 0, sp, sp, pc);
+
+        MINILOG0("#" << m_spmt_thread->m_id
+                 << " (S)invokes rvp-method: " << *rvp_method);
+
+        Frame* rvp_frame = m_spmt_thread->m_rvp_mode.create_frame(target_object,
+                                                                  rvp_method,
+                                                                  frame, 0, sp, sp, pc);
 
         m_spmt_thread->m_rvp_mode.pc = (CodePntr)rvp_method->code;
         m_spmt_thread->m_rvp_mode.frame = rvp_frame;
         m_spmt_thread->m_rvp_mode.sp = rvp_frame->ostack_base;
-        m_spmt_thread->switch_to_rvp_mode();
 
+        m_spmt_thread->switch_to_rvp_mode();
 
     }
 
@@ -256,9 +259,10 @@ CertainMode::do_method_return(int len)
             SpmtThread* target_core = target_group->get_core();
 
 
-            ReturnMsg* msg = new ReturnMsg(current_object, current_frame->mb, current_frame->prev,
-                                           target_object, rv, len,
-                                           current_frame->caller_sp, current_frame->caller_pc);
+            ReturnMsg* msg = new ReturnMsg(current_object,
+                                           target_object,
+                                           rv, len);
+
             MINILOG0("#" << m_spmt_thread->id() << " r<<<transfers to #" << target_core->id()
                      // << " " << info(current_object) << " => " << info(target_object)
                      // << " (" << current_object << "=>" << target_object << ")"
@@ -267,7 +271,7 @@ CertainMode::do_method_return(int len)
                      // << "("  << current_frame << ")"
                      );
 
-            target_core->transfer_control(msg);
+            m_spmt_thread->send_certain_msg(target_core, msg);
         }
 
 
@@ -558,7 +562,7 @@ CertainMode::do_put_field(Object* target_object, FieldBlock* fb,
         pc += 3;
 
         m_spmt_thread->sleep();
-        target_core->transfer_control(msg);
+        m_spmt_thread->send_certain_msg(target_core, msg);
 
         return;         // avoid sp-=... and pc += ...
 
@@ -629,7 +633,7 @@ CertainMode::do_array_store(Object* array, int index, int type_size)
         pc += 1;
 
         m_spmt_thread->sleep();
-        target_core->transfer_control(msg);
+        m_spmt_thread->send_certain_msg(target_core, msg);
 
         return;         // avoid sp-=... and pc += ...
 

@@ -21,9 +21,20 @@ class Message;
 class Snapshot;
 class Group;
 
+// struct ControlTuple {
+//     ControlTuple(CodePntr pc1, Frame *frame1, uintptr_t *sp1)
+//         : pc(pc1), frame(frame1), sp(sp1)
+//     {
+//     }
+//     CodePntr pc;
+//     Frame* frame;
+//     uintptr_t* sp;
+// };
+
 class SpmtThread {
     friend class Mode;
     friend class CertainMode;
+    friend class UncertainMode;
     friend class SpeculativeMode;
     friend class RvpMode;
     friend class RopeVM;
@@ -47,43 +58,57 @@ public:
     Mode* original_uncertain_mode() { return m_old_mode; }
     void init();
     void wakeup();
-    void transfer_control(Message* message); // refactor: to remove
+
+
+
     void send_certain_msg(SpmtThread* target_thread, Message* msg);
-    void set_certain_msg(Message* msg);
-    Message* get_certain_msg();
-    void add_speculative_task(Message* message); // refactor: to remove
     void send_spec_msg(SpmtThread* target_thread, Message* msg);
+    void revoke_spec_msg(SpmtThread* target_thread, Message* msg);
+
+    void set_certain_msg(Message* msg);
     void add_spec_msg(Message* msg);
-    void reload_speculative_tasks();
+    void remove_spec_msg(Message* msg);
+
+    Message* get_certain_msg();
+
+
+    Message* current_spec_msg();
+    void commit(Effect* effect);
+    void discard_all_effect();
+
+    void reload_speculative_tasks(); // refactor: to remove
     void on_enter_certain_mode();
     void leave_certain_mode(Message* msg);
+
+
+    void process_certain_msg(Message* msg);
 
     void process_next_spec_msg();
     void process_spec_msg(Message* msg);
     bool is_waiting_for_spec_msg();
 
-    void snapshot_old(bool shot_frame = true); // refactor: remove
+
     void snapshot(bool pin);
     void pin_frames();
 
-    void verify_speculation(Message* message, bool self = true);
-    bool verify(Message* message);
-    void handle_verification_success(Message* message, bool self);
-    void handle_verification_failure(Message* message, bool self);
+    void verify_speculation(Message* message);
+    void handle_verification_success(Message* message);
+    void handle_verification_failure(Message* message);
     void reexecute_failed_message(Message* message);
 
     int id() { return m_id; }
-    void add_message_to_be_verified(Message* message);
-    bool has_message_to_be_verified();
+    void add_message_to_be_verified(Message* message); // refactor: remove
+    bool has_message_to_be_verified();                 // refactor: remove
+
+
     void destroy_frame(Frame* frame);
 
-    void mark_frame_certain();
-    void discard_uncertain_execution(bool self);
-    void free_discarded_frames(bool only_snapshot);
-    void collect_inuse_frames(std::set<Frame*>& frames);
-    void collect_snapshot_frames(std::set<Frame*>& frames);
+    void mark_frame_certain();  // refactor: to remove
+    void discard_uncertain_execution(bool self); // refactor: to remove
+    void free_discarded_frames(bool only_snapshot); // refactor: to remove
+    void collect_inuse_frames(std::set<Frame*>& frames); // refactor: to remove
+    void collect_snapshot_frames(std::set<Frame*>& frames); // refactor: to remove
 
-    bool has_messages_to_be_verified() { return not m_messages_to_be_verified.empty(); }
 
     bool check_quit_step_loop();
     void signal_quit_step_loop(uintptr_t* result);
@@ -106,6 +131,9 @@ public:
     // for stat
     void report_stat(std::ostream& os);
 private:
+    bool has_unprocessed_spec_msg();
+    void begin_process_next_msg();
+
     void sync_speculative_with_certain();
     void sync_certain_with_speculative();
     void sync_certain_with_snapshot(Snapshot* snapshot);
@@ -134,14 +162,17 @@ private:
     Mode* m_mode;
     Mode* m_old_mode;
 
-    Message* m_certain_message;
 
-    // speculative execution state
-	SpecMsgQueue m_spec_msg_queue;
+    Message* m_certain_message;
+    std::list<Message*> m_spec_msg_queue;
+    std::list<Message*>::iterator m_next_spec_msg;
+
     StatesBuffer m_state_buffer;
     RvpBuffer m_rvp_buffer;
     bool m_need_spec_msg;
 
+
+    //std::stack<ControlTuple> m_certain_control_tuple_stack;
 
 
     std::deque<Message*> m_messages_to_be_verified; // refactor: remove
@@ -180,7 +211,7 @@ private:
 class DeepBreak {
 };
 
-SpmtThread* g_get_current_core();
-void g_set_current_core(SpmtThread* current_core);
+SpmtThread* g_get_current_spmt_thread();
+void g_set_current_spmt_thread(SpmtThread* st);
 
 #endif

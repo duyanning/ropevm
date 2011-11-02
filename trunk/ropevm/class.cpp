@@ -651,7 +651,7 @@ Class *defineClass(const char* classname, char *data, int offset, int len, Objec
         int x = 0;
         x++;
     }
-    SpmtThread* current_core = g_get_current_core();
+    SpmtThread* current_core = g_get_current_spmt_thread();
     current_core->after_alloc_object(classobj);
 
     return classobj;
@@ -721,7 +721,7 @@ Class *createArrayClass(const char *classname, Object *class_loader) {
         if(verbose)
             jam_printf("[Created array class %s]\n", classname);
         // dynsearch
-        SpmtThread* current_core = g_get_current_core();
+        SpmtThread* current_core = g_get_current_spmt_thread();
         current_core->after_alloc_object(classobj);
 
         return classobj;
@@ -747,7 +747,7 @@ createPrimClass(const char *classname, int index) {
 
     prepareClass(classobj);
     // dynsearch
-    SpmtThread* current_core = g_get_current_core();
+    SpmtThread* current_core = g_get_current_spmt_thread();
     current_core->after_alloc_object(classobj);
 
 
@@ -1479,7 +1479,7 @@ Class *findNonArrayClassFromClassLoader(char *classname, Object *loader) {
 
         {
             Thread* this_thread = threadSelf();
-            SpmtThread* this_core = this_thread->get_current_core();
+            SpmtThread* this_core = this_thread->get_current_spmt_thread();
             MINILOG0_IF(debug_scaffold::java_main_arrived,
                         "#" << this_core->id() << " is to load class: " << dot_name);
         }

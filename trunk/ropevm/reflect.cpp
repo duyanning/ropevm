@@ -874,7 +874,7 @@ invoke(Object *ob, MethodBlock *mb, Object *arg_array, Object *param_types, int 
     void* ret;
 
     Thread* this_thread = threadSelf();
-    SpmtThread* this_core = this_thread->get_current_core();
+    SpmtThread* this_core = this_thread->get_current_spmt_thread();
 
     std::vector<uintptr_t> arguments(mb->args_count);
     uintptr_t* arg = &arguments[0];

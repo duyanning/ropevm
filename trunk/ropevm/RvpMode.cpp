@@ -173,9 +173,10 @@ RvpMode::do_method_return(int len)
             rv.push_back(read(&sp[i]));
         }
 
-        ReturnMsg* msg = new ReturnMsg(frame->object, frame->mb, frame->prev,
-                                       frame->calling_object, &rv[0], len,
-                                       frame->caller_sp, frame->caller_pc);
+        ReturnMsg* msg = new ReturnMsg(frame->object,
+                                       frame->calling_object,
+                                       &rv[0],
+                                       len);
 
         m_spmt_thread->add_message_to_be_verified(msg);
 
@@ -242,19 +243,19 @@ RvpMode::do_throw_exception()
     assert(false);
 }
 
-void
-RvpMode::step()
-{
-    Message* msg = m_spmt_thread->get_certain_msg();
-    if (msg) {
-        // m_spmt_thread->enter_certain_mode();
-        // m_spmt_thread->verify_and_commit(msg);
-        process_certain_message(msg);
-        return;
-    }
-    //else
-    exec_an_instr();
-}
+// void
+// RvpMode::step()
+// {
+//     Message* msg = m_spmt_thread->get_certain_msg();
+//     if (msg) {
+//         // m_spmt_thread->enter_certain_mode();
+//         // m_spmt_thread->verify_and_commit(msg);
+//         process_certain_message(msg);
+//         return;
+//     }
+//     //else
+//     exec_an_instr();
+// }
 
 
 Frame*

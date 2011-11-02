@@ -58,17 +58,17 @@ void initialiseException() {
 
 Object *exceptionOccurred() {
     //return getExecEnv()->exception;
-    return threadSelf()->get_current_core()->get_current_mode()->exception;
+    return threadSelf()->get_current_spmt_thread()->get_current_mode()->exception;
 }
 
 void setException(Object *exp) {
     //getExecEnv()->exception = exp;
-    assert(*threadSelf()->get_current_core()->get_current_mode()->get_name() == 'C');
-    threadSelf()->get_current_core()->get_current_mode()->exception = exp;
+    assert(*threadSelf()->get_current_spmt_thread()->get_current_mode()->get_name() == 'C');
+    threadSelf()->get_current_spmt_thread()->get_current_mode()->exception = exp;
 }
 
 void clearException() {
-    assert(*threadSelf()->get_current_core()->get_current_mode()->get_name() == 'C');
+    assert(*threadSelf()->get_current_spmt_thread()->get_current_mode()->get_name() == 'C');
     //ExecEnv *ee = getExecEnv();
 
 //     if(ee->overflow) {
@@ -76,11 +76,11 @@ void clearException() {
 //         //        ee->stack_end -= STACK_RED_ZONE_SIZE;
 //     }
     //ee->exception = NULL;
-    threadSelf()->get_current_core()->get_current_mode()->exception = 0;
+    threadSelf()->get_current_spmt_thread()->get_current_mode()->exception = 0;
 }
 
 void signalChainedExceptionClass(Class *exception, const char* message, Object *cause) {
-    SpmtThread* current_core = g_get_current_core();
+    SpmtThread* current_core = g_get_current_spmt_thread();
     std::cout << "error msg: " << message << std::endl;
     current_core->before_signal_exception(exception);
 
@@ -135,7 +135,7 @@ void signalChainedExceptionEnum(int excep_enum, const char* message, Object *cau
 void printException() {
     //ExecEnv *ee = getExecEnv();
     //Object *exception = ee->exception;
-    Object *exception = threadSelf()->get_current_core()->get_current_mode()->exception;
+    Object *exception = threadSelf()->get_current_spmt_thread()->get_current_mode()->exception;
 
     if(exception != NULL) {
         MethodBlock *mb = lookupMethod(exception->classobj, SYMBOL(printStackTrace),
@@ -147,10 +147,10 @@ void printException() {
          * OutOfMemory, but then been unable to print any part of it!  In
          * this case the VM just seems to stop... */
         //if(ee->exception) {
-        if(threadSelf()->get_current_core()->get_current_mode()->exception) {
+        if(threadSelf()->get_current_spmt_thread()->get_current_mode()->exception) {
             jam_fprintf(stderr, "Exception occurred while printing exception (%s)...\n",
                         //CLASS_CB(ee->exception->classobj)->name);
-                            CLASS_CB(threadSelf()->get_current_core()->get_current_mode()->exception->classobj)->name);
+                            CLASS_CB(threadSelf()->get_current_spmt_thread()->get_current_mode()->exception->classobj)->name);
             jam_fprintf(stderr, "Original exception was %s\n", CLASS_CB(exception->classobj)->name);
         }
     }
@@ -195,11 +195,11 @@ CodePntr
 findCatchBlock(Class *exception)
 {
     //Frame *frame = getExecEnv()->last_frame;
-	//assert(getExecEnv()->last_frame == threadSelf()->get_current_core()->get_current_mode()->frame);
-    Frame* frame = threadSelf()->get_current_core()->get_current_mode()->frame;
+	//assert(getExecEnv()->last_frame == threadSelf()->get_current_spmt_thread()->get_current_mode()->frame);
+    Frame* frame = threadSelf()->get_current_spmt_thread()->get_current_mode()->frame;
     CodePntr handler_pc = NULL;
 
-    MINILOG(c_exception_logger, "#" << threadSelf()->get_current_core()->id() << " finding handler"
+    MINILOG(c_exception_logger, "#" << threadSelf()->get_current_spmt_thread()->id() << " finding handler"
             << " in: " << info(frame)
             << " on: #" << frame->get_object()->get_group()->get_core()->id()
             );
@@ -214,7 +214,7 @@ findCatchBlock(Class *exception)
         }
         frame = frame->prev;
 
-        MINILOG(c_exception_logger, "#" << threadSelf()->get_current_core()->id() << " finding handler"
+        MINILOG(c_exception_logger, "#" << threadSelf()->get_current_spmt_thread()->id() << " finding handler"
                 << " in: " << info(frame)
                 << " on: #" << frame->get_object()->get_group()->get_core()->id()
                 );
@@ -222,7 +222,7 @@ findCatchBlock(Class *exception)
     }
 
     //getExecEnv()->last_frame = frame;
-    threadSelf()->get_current_core()->get_current_mode()->frame = frame;
+    threadSelf()->get_current_spmt_thread()->get_current_mode()->frame = frame;
 
     return handler_pc;
 }
@@ -245,7 +245,7 @@ Object *setStackTrace0(int max_depth)
     //assert(false);
     Frame* bottom;
     //Frame* last = ee->last_frame;
-    SpmtThread* current_core = threadSelf()->get_current_core();
+    SpmtThread* current_core = threadSelf()->get_current_spmt_thread();
     Frame* last = current_core->get_current_mode()->frame;
     Object *array, *vmthrwble;
     uintptr_t *data;

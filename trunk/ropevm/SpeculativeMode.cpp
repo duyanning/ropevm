@@ -37,33 +37,35 @@ SpeculativeMode::mode_write(uint32_t* addr, uint32_t value)
     m_spmt_thread->m_state_buffer.write(addr, value);
 }
 
-void
-SpeculativeMode::step()
-{
-    assert(RopeVM::do_spec);
 
-    Message* msg = m_spmt_thread->get_certain_msg();
-    if (msg) {
-        process_certain_message(msg);
-        return;
-    }
+// void
+// SpeculativeMode::step()
+// {
+//     assert(RopeVM::do_spec);
 
-    if (m_spmt_thread->m_is_waiting_for_task) {
-        MINILOG(task_load_logger, "#" << m_spmt_thread->id() << " is waiting for task");
-        //assert(false);
+//     Message* msg = m_spmt_thread->get_certain_msg();
+//     if (msg) {
+//         process_certain_message(msg);
+//         return;
+//     }
 
-        // if (not m_spmt_thread->from_certain_to_spec)
-        //     m_spmt_thread->snapshot();
-        m_spmt_thread->process_next_spec_msg();
+//     if (m_spmt_thread->m_is_waiting_for_task) {
+//         MINILOG(task_load_logger, "#" << m_spmt_thread->id() << " is waiting for task");
+//         //assert(false);
 
-        // if (not m_spmt_thread->m_is_waiting_for_task) {
-        //     exec_an_instr();
-        // }
-    }
+//         // if (not m_spmt_thread->from_certain_to_spec)
+//         //     m_spmt_thread->snapshot();
+//         m_spmt_thread->process_next_spec_msg();
 
-    if (not m_spmt_thread->is_halt())
-        exec_an_instr();
-}
+//         // if (not m_spmt_thread->m_is_waiting_for_task) {
+//         //     exec_an_instr();
+//         // }
+//     }
+
+//     if (not m_spmt_thread->is_halt())
+//         exec_an_instr();
+// }
+
 
 void
 SpeculativeMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
@@ -72,12 +74,12 @@ SpeculativeMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
 
     //log_when_invoke_return(true, m_user, frame->mb, target_object, new_mb);
 
-    MINILOG(s_logger,
-            "#" << m_spmt_thread->id() << " (S) is to invoke method: " << *new_mb);
+    MINILOG(s_logger, "#" << m_spmt_thread->id()
+            << " (S) is to invoke method: " << *new_mb);
 
     if (is_priviledged(new_mb)) {
-        MINILOG(s_logger,
-                "#" << m_spmt_thread->id() << " (S) " << *new_mb << "is native/sync method");
+        MINILOG(s_logger, "#" << m_spmt_thread->id()
+                << " (S) " << *new_mb << "is native/sync method");
         m_spmt_thread->sleep();
         return;
     }
@@ -113,19 +115,15 @@ SpeculativeMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
         }
 
 
-        // MINILOG(s_logger,
-        //         "#" << m_spmt_thread->id() << " (S) target thread is #"
-        //         << target_core->id());
+        MINILOG(s_logger, "#" << m_spmt_thread->m_id
+                << " (S) target thread is #" << target_spmt_thread->id());
 
 
         // construct speculative message and send
-        InvokeMsg* msg = new InvokeMsg(target_object,
+        InvokeMsg* msg = new InvokeMsg(frame->get_object(),
+                                       target_object,
                                        new_mb,
-                                       frame,
-                                       frame->get_object(),
-                                       &args[0],
-                                       sp,
-                                       pc);
+                                       &args[0]);
 
         m_spmt_thread->send_spec_msg(target_spmt_thread, msg);
 
@@ -135,8 +133,8 @@ SpeculativeMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
         // invoke rvp-method
         MethodBlock* rvp_method = ::get_rvp_method(new_mb);
 
-        // MINILOG(s_logger,
-        //          "#" << m_spmt_thread->id() << " (S)invokes rvp-method: " << *rvp_method);
+        MINILOG(s_logger, "#" << m_spmt_thread->m_id
+                << " (S)invokes rvp-method: " << *rvp_method);
 
         Frame* rvp_frame = m_spmt_thread->m_rvp_mode.create_frame(target_object,
                                                                   rvp_method,
@@ -155,6 +153,7 @@ SpeculativeMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
     }
 }
 
+
 void
 SpeculativeMode::do_method_return(int len)
 {
@@ -164,40 +163,22 @@ SpeculativeMode::do_method_return(int len)
     Frame* current_frame = frame;
 
     MINILOG(s_logger,
-            // "#" << m_spmt_thread->id() << " (S) is to return from method: " << *frame->mb
-            // << " frame: " << frame);
             "#" << m_spmt_thread->id() << " (S) is to return from " << *frame);
 
-    if (frame->mb->is_synchronized()) {
-        MINILOG(s_logger,
-                "#" << m_spmt_thread->id() << " (S) " << *frame->mb << " is a sync method");
-        m_spmt_thread->sleep();
-        return;
-    }
-
-    // top frame' caller is native code, so we sleep
-    if (frame->is_top_frame()) {
-        MINILOG(s_logger,
-                "#" << m_spmt_thread->id() << " (S) " << *frame->mb << " is a top frame");
-        m_spmt_thread->sleep();
-        return;
-    }
+    // // top frame' caller is native code, so we sleep
+    // if (frame->is_top_frame()) {
+    //     MINILOG(s_logger,
+    //             "#" << m_spmt_thread->id() << " (S) " << *frame->mb << " is a top frame");
+    //     m_spmt_thread->sleep();
+    //     return;
+    // }
 
 
 
     Object* target_object = frame->calling_object;
     SpmtThread* target_spmt_thread = target_object->get_group()->get_spmt_thread();
 
-
     if (target_spmt_thread == m_spmt_thread) {
-
-        // //{{{ just for debug
-        // if (m_spmt_thread->id() == 0) {
-        //     int x = 0;
-        //     x++;
-        // }
-        // //}}} just for debug
-
 
         sp -= len;
         uintptr_t* caller_sp = current_frame->caller_sp;
@@ -216,11 +197,19 @@ SpeculativeMode::do_method_return(int len)
     }
     else {
 
+        sp -= len;
+        std::vector<uintptr_t> ret_val;
+        for (int i = 0; i < len; ++i) {
+            ret_val.push_back(read(&sp[i]));
+        }
+
         // construct speculative message
-        ReturnMsg* msg = 0;//new ReturnMsg();
+        ReturnMsg* msg = new ReturnMsg(current_frame->get_object(),
+                                       target_object,
+                                       &ret_val[0], len);
 
         // record spec msg sent in current effect
-        m_spmt_thread->m_spec_msg_queue.current_msg()->get_effect()->msg_sent = msg;
+        m_spmt_thread->current_spec_msg()->get_effect()->msg_sent = msg;
 
         destroy_frame(current_frame);
 
@@ -374,7 +363,7 @@ SpeculativeMode::do_put_field(Object* target_object, FieldBlock* fb,
                      "#" << m_spmt_thread->id() << " (S) add putfield task to #"
                     << target_core->id() << ": " << *msg);
 
-            target_core->add_speculative_task(msg);
+            m_spmt_thread->send_spec_msg(target_core, msg);
         }
         else {
 
@@ -486,7 +475,7 @@ SpeculativeMode::do_array_store(Object* array, int index, int type_size)
                      "#" << m_spmt_thread->id() << " (S) add arraystore task to #"
                     << target_core->id() << ": " << *msg);
 
-            target_core->add_speculative_task(msg);
+            m_spmt_thread->send_spec_msg(target_core, msg);
         }
         else {                  // target_object is a coreless object
             MINILOG(s_logger,

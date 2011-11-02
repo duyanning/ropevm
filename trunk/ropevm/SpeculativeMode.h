@@ -29,7 +29,7 @@ public:
 
     virtual uint32_t mode_read(uint32_t* addr);
     virtual void mode_write(uint32_t* addr, uint32_t value);
-    virtual void step();
+    //virtual void step();
 
 private:
     // for logging
