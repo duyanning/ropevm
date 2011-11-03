@@ -45,6 +45,8 @@ UncertainMode::step()
         if (msg->get_type() == Message::ret) {
             ReturnMsg* return_msg = static_cast<ReturnMsg*>(msg);
             if (return_msg->is_top()) {
+                // 把消息中的返回值写入接收返回值的dummy frame
+                // 。。。
                 m_spmt_thread->signal_quit_step_loop(0);
                 return;
             }

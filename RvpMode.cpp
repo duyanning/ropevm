@@ -174,10 +174,7 @@ RvpMode::do_method_return(int len)
             rv.push_back(read(&sp[i]));
         }
 
-        ReturnMsg* msg = new ReturnMsg(frame->object,
-                                       frame->calling_object,
-                                       &rv[0],
-                                       len);
+        ReturnMsg* msg = new ReturnMsg(&rv[0], len);
 
         m_spmt_thread->add_message_to_be_verified(msg);
 

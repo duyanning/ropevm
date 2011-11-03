@@ -28,10 +28,10 @@ public:
 
     virtual void destroy_frame(Frame* frame);
 
-    void invoke_to_my_method(Object* target_object, MethodBlock* new_mb, uintptr_t* args,
+    void internal_invoke(Object* target_object, MethodBlock* new_mb, uintptr_t* args,
                              CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp);
 
-    void return_to_my_method(uintptr_t* rv, int len, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp);
+    void internal_return(uintptr_t* rv, int len, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp);
 
     void get_my_field(Object* obj, FieldBlock* fb, uintptr_t* addr, int size, bool is_static);
     void put_my_field(Object* obj, FieldBlock* fb, uintptr_t* addr, int size, bool is_static);

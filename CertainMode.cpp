@@ -54,7 +54,7 @@ CertainMode::step()
     fetch_and_interpret_an_instruction();
 }
 
-// DO NOT forget invoke (reflect.cpp)!!!
+// DO NOT forget function 'invoke' in reflect.cpp!!!
 void*
 CertainMode::do_execute_method(Object* target_object,
                                MethodBlock *new_mb,
@@ -88,8 +88,8 @@ CertainMode::do_execute_method(Object* target_object,
 
     if (target_spmt_thread == m_spmt_thread) {
 
-        invoke_to_my_method(target_object, new_mb, &jargs[0],
-                            0, dummy, dummy->ostack_base);
+        internal_invoke(target_object, new_mb, &jargs[0],
+                        0, dummy, dummy->ostack_base);
 
 
     }
@@ -144,8 +144,8 @@ CertainMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
     if (target_spmt_thread == m_spmt_thread) {
 
         sp -= new_mb->args_count;
-        invoke_to_my_method(target_object, new_mb, sp,
-                            pc, frame, sp);
+        internal_invoke(target_object, new_mb, sp,
+                        pc, frame, sp);
 
     }
     else {
@@ -212,6 +212,8 @@ CertainMode::do_method_return(int len)
 
     //assert(target_group->get_thread() == threadSelf());
 
+    SpmtThread* target_spmt_thread = current_frame->caller;
+
     if (current_frame->mb->is_synchronized()) {
         assert(
                current_frame->get_object() == current_frame->mb->classobj
@@ -220,6 +222,13 @@ CertainMode::do_method_return(int len)
         Object* sync_ob = current_frame->get_object();
         objectUnlock(sync_ob);
     }
+
+    /*
+    if 目标线程是当前线程
+        if 是从top frame返回，返回值直接写入dummy frame
+    else
+        if 是从top frame返回，构造return消息
+    */
 
     if (current_frame->is_top_frame()) {
 
@@ -239,52 +248,50 @@ CertainMode::do_method_return(int len)
     }
 
 
-    if (target_group == current_group) {
+    if (target_spmt_thread == m_spmt_thread) {
 
-        if (not current_frame->is_top_frame())
-            return_to_my_method(rv, len, current_frame->caller_pc, current_frame->prev, current_frame->caller_sp);
+        internal_return(rv, len, current_frame->caller_pc, current_frame->prev, current_frame->caller_sp);
+        return;
 
     }
     else {
 
-        if (not current_frame->is_top_frame()) {
-            SpmtThread* target_core = target_group->get_core();
+
+        // MINILOG0("#" << m_spmt_thread->id() << " r<<<transfers to #" << target_spmt_thread->id()
+        //          // << " " << info(current_object) << " => " << info(target_object)
+        //          // << " (" << current_object << "=>" << target_object << ")"
+        //          << " because: " << *msg
+        //          << " in: "  << info(current_frame)
+        //          // << "("  << current_frame << ")"
+        //          );
 
 
-            ReturnMsg* msg = new ReturnMsg(current_object,
-                                           target_object,
-                                           rv, len);
+        ReturnMsg* msg = new ReturnMsg(rv, len, current_frame->is_top_frame());
 
-            MINILOG0("#" << m_spmt_thread->id() << " r<<<transfers to #" << target_core->id()
-                     // << " " << info(current_object) << " => " << info(target_object)
-                     // << " (" << current_object << "=>" << target_object << ")"
-                     << " because: " << *msg
-                     << " in: "  << info(current_frame)
-                     // << "("  << current_frame << ")"
-                     );
-
-            m_spmt_thread->send_certain_msg(target_core, msg);
-        }
+        m_spmt_thread->switch_to_speculative_mode();
+        m_spmt_thread->send_certain_msg(target_spmt_thread, msg);
+        m_spmt_thread->launch_next_spec_msg();
 
 
-        if (current_group->can_speculate()) {
-            m_spmt_thread->clear_frame_in_states_buffer(current_frame);
+        if (current_frame->is_top_frame())
+            m_spmt_thread->signal_quit_step_loop(0);
 
-            if (not m_spmt_thread->m_messages_to_be_verified.empty()) {
-                MINILOG0("#" << m_spmt_thread->id() << " resume speculative execution");
-                m_spmt_thread->restore_original_non_certain_mode();
-            }
-            else {
-                MINILOG0("#" << m_spmt_thread->id() << " start speculative execution");
 
-                m_spmt_thread->sync_speculative_with_certain();
-                m_spmt_thread->switch_to_speculative_mode();
-                m_spmt_thread->launch_next_spec_msg();
-            }
-        }
-        else {
-            m_spmt_thread->sleep();
-        }
+
+        // m_spmt_thread->clear_frame_in_states_buffer(current_frame);
+
+        // if (not m_spmt_thread->m_messages_to_be_verified.empty()) {
+        //     MINILOG0("#" << m_spmt_thread->id() << " resume speculative execution");
+        //     m_spmt_thread->restore_original_non_certain_mode();
+        // }
+        // else {
+        //     MINILOG0("#" << m_spmt_thread->id() << " start speculative execution");
+
+        //     m_spmt_thread->sync_speculative_with_certain();
+        //     m_spmt_thread->switch_to_speculative_mode();
+        //     m_spmt_thread->launch_next_spec_msg();
+        // }
+
 
     }
 
@@ -293,8 +300,8 @@ CertainMode::do_method_return(int len)
 }
 
 void
-CertainMode::invoke_to_my_method(Object* target_object, MethodBlock* new_mb, uintptr_t* args,
-                                 CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp)
+CertainMode::internal_invoke(Object* target_object, MethodBlock* new_mb, uintptr_t* args,
+                             CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp)
 {
     MINILOG_IF(debug_scaffold::java_main_arrived,
                invoke_return_logger,
@@ -345,7 +352,7 @@ CertainMode::invoke_to_my_method(Object* target_object, MethodBlock* new_mb, uin
 }
 
 void
-CertainMode::return_to_my_method(uintptr_t* rv, int len, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp)
+CertainMode::internal_return(uintptr_t* rv, int len, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp)
 {
     // MINILOG_IF(debug_scaffold::java_main_arrived,
     //            invoke_return_logger,
@@ -353,6 +360,8 @@ CertainMode::return_to_my_method(uintptr_t* rv, int len, CodePntr caller_pc, Fra
     //            );
 
     assert(len == 0 || len == 1 || len == 2);
+
+    Frame* current_frame = frame;
 
     // write RV to caller's frame
     for (int i = 0; i < len; ++i) {
@@ -364,6 +373,18 @@ CertainMode::return_to_my_method(uintptr_t* rv, int len, CodePntr caller_pc, Fra
     sp = caller_sp;
 
     pc += (*pc == OPC_INVOKEINTERFACE_QUICK ? 5 : 3);
+
+
+    if (current_frame->is_top_frame()) {
+
+        // MINILOG0("#" << m_spmt_thread->id() << " t<<<transfers to #" << target_core->id()
+        //          << " in: "  << info(frame)
+        //          << "because top frame return"
+        //          );
+
+        m_spmt_thread->signal_quit_step_loop(current_frame->prev->ostack_base);
+
+    }
 
 }
 
