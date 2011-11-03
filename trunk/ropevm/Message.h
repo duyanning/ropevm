@@ -88,8 +88,9 @@ public:
 
 class ReturnMsg : public Message {
 public:
-    // refactor:
-    ReturnMsg(Object* source_obj, Object* target_obj, uintptr_t* rv, int len, bool is_top = false);
+
+    ReturnMsg(uintptr_t* rv, int len, bool is_top = false);
+    //ReturnMsg(Object* source_obj, Object* target_obj, uintptr_t* rv, int len, bool is_top = false);
     //ReturnMsg(Object* object, MethodBlock* mb, Frame* caller_frame, Object* calling_object, uintptr_t* rv, int len, uintptr_t* caller_sp, CodePntr caller_pc);
     bool is_top() { return m_is_top; }
 

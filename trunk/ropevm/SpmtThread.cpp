@@ -782,14 +782,14 @@ SpmtThread::process_certain_msg(Message* message)
     if (type == Message::invoke) {
 
         InvokeMsg* msg = static_cast<InvokeMsg*>(message);
-        m_certain_mode.invoke_to_my_method(msg->get_target_object(), msg->mb, &msg->parameters[0],
+        m_certain_mode.internal_invoke(msg->get_target_object(), msg->mb, &msg->parameters[0],
                                            0, 0, 0);
 
     }
     else if (type == Message::ret) {
 
         ReturnMsg* msg = static_cast<ReturnMsg*>(message);
-        m_certain_mode.return_to_my_method(&msg->retval[0],
+        m_certain_mode.internal_return(&msg->retval[0],
                                            msg->retval.size(),
                                            m_certain_mode.pc,
                                            m_certain_mode.frame,

@@ -204,9 +204,7 @@ SpeculativeMode::do_method_return(int len)
         }
 
         // construct speculative message
-        ReturnMsg* msg = new ReturnMsg(current_frame->get_object(),
-                                       target_object,
-                                       &ret_val[0], len);
+        ReturnMsg* msg = new ReturnMsg(&ret_val[0], len);
 
         // record spec msg sent in current effect
         m_spmt_thread->current_spec_msg()->get_effect()->msg_sent = msg;

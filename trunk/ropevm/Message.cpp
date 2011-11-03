@@ -88,7 +88,8 @@ InvokeMsg::show_detail(std::ostream& os, int id) const
 
 //------------------------------------------------
 // ReturnMsg::ReturnMsg(Object* object, MethodBlock* mb, Frame* caller_frame, Object* calling_object, uintptr_t* rv, int len, uintptr_t* caller_sp, CodePntr caller_pc)
-ReturnMsg::ReturnMsg(Object* source_obj, Object* target_obj, uintptr_t* rv, int len, bool is_top)
+//ReturnMsg::ReturnMsg(Object* source_obj, Object* target_obj, uintptr_t* rv, int len, bool is_top)
+ReturnMsg::ReturnMsg(uintptr_t* rv, int len, bool is_top)
 :
     Message(Message::ret)
 {
