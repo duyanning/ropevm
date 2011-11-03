@@ -235,7 +235,7 @@ SpmtThread::sync_certain_with_snapshot(Snapshot* snapshot)
 }
 
 void
-SpmtThread::on_enter_certain_mode()
+SpmtThread::enter_certain_mode()
 {
     assert(not m_mode->is_certain_mode());
 
@@ -783,7 +783,6 @@ SpmtThread::process_certain_msg(Message* message)
 
         InvokeMsg* msg = static_cast<InvokeMsg*>(message);
         m_certain_mode.invoke_to_my_method(msg->get_target_object(), msg->mb, &msg->parameters[0],
-                                           msg->get_source_object(),
                                            0, 0, 0);
 
     }
@@ -882,7 +881,7 @@ SpmtThread::handle_verification_failure(Message* message)
         Group* source_group = source_object->get_group();
         SpmtThread* source_core = source_group->get_core();
         source_core->wakeup();
-        process_next_spec_msg();
+        launch_next_spec_msg();
 
     }
 }
@@ -926,11 +925,6 @@ SpmtThread::process_spec_msg(Message* spec_msg)
     MINILOG(task_load_logger, "#" << id() << " spec msg loaded: " << *spec_msg);
 
     Message::Type type = spec_msg->get_type();
-    assert(type == Message::invoke
-           or type == Message::put
-           or type == Message::get
-           or type == Message::arraystore
-           or type == Message::arrayload);
 
     if (type == Message::invoke) {
 
@@ -938,9 +932,9 @@ SpmtThread::process_spec_msg(Message* spec_msg)
 
         Frame* new_frame = m_spec_mode.create_frame(msg->get_target_object(),
                                                     msg->mb,
-                                                    0,
-                                                    msg->get_source_object(),
                                                     &msg->parameters[0],
+                                                    msg->get_source_spmt_thread(),
+                                                    0,
                                                     0,
                                                     0);
 
@@ -949,6 +943,16 @@ SpmtThread::process_spec_msg(Message* spec_msg)
         m_spec_mode.frame = new_frame;
         m_spec_mode.pc = (CodePntr)new_frame->mb->code;
     }
+    else if (type == Message::ret) {
+        ReturnMsg* msg = static_cast<ReturnMsg*>(spec_msg);
+
+        // 将返回值写入ostack
+        for (auto i : msg->retval) {
+            m_spec_mode.write(m_spec_mode.sp++, i);
+        }
+
+        m_spec_mode.pc += (*m_spec_mode.pc == OPC_INVOKEINTERFACE_QUICK ? 5 : 3);
+    }
     else if (type == Message::put) {
         PutMsg* msg = static_cast<PutMsg*>(spec_msg);
 
@@ -956,8 +960,25 @@ SpmtThread::process_spec_msg(Message* spec_msg)
             m_spec_mode.write(msg->addr + i, msg->val[i]);
         }
 
-        snapshot(false);
-        process_next_spec_msg();
+        launch_next_spec_msg();
+    }
+    else if (type == Message::put_return) {
+        // 没有什么需要写入ostack
+
+        m_spec_mode.pc += 3;
+    }
+    else if (type == Message::get) {
+        launch_next_spec_msg();
+    }
+    else if (type == Message::get_return) {
+        GetMsg* msg = static_cast<GetMsg*>(spec_msg);
+
+        // 将读到的值写入ostack
+        for (auto i : msg->val) {
+            m_spec_mode.write(m_spec_mode.sp++, i);
+        }
+
+        m_spec_mode.pc += 3;
     }
     else if (type == Message::arraystore) {
         ArrayStoreMsg* msg = static_cast<ArrayStoreMsg*>(spec_msg);
@@ -973,8 +994,24 @@ SpmtThread::process_spec_msg(Message* spec_msg)
         //     m_spec_mode.write(addr + i, msg->val[i]);
         // }
 
-        snapshot(false);
-        process_next_spec_msg();
+        launch_next_spec_msg();
+    }
+    else if (type == Message::arraystore_return) {
+        // 没有什么需要写入ostack
+
+        m_spec_mode.pc += 1;
+    }
+    else if (type == Message::arrayload) {
+    }
+    else if (type == Message::arrayload_return) {
+        ArrayLoadMsg* msg = static_cast<ArrayLoadMsg*>(spec_msg);
+
+        // 将读到的值写入ostack
+        // for (auto i : msg->val) {
+        //     m_spec_mode.write(m_spec_mode.sp++, i);
+        // }
+
+        m_spec_mode.pc += 3;
     }
 
 }
@@ -991,30 +1028,48 @@ SpmtThread::has_unprocessed_spec_msg()
 
 
 void
-SpmtThread::begin_process_next_msg()
+SpmtThread::launch_next_spec_msg()
 {
-    ++m_next_spec_msg;
-}
-
-
-void
-SpmtThread::process_next_spec_msg()
-{
+    // 不一定有待处理的消息
     MINILOG(task_load_logger, "#" << id() << " try to load a spec msg");
 
     if (not has_unprocessed_spec_msg()) {
         MINILOG(task_load_logger, "#" << id() << " no spec msg, waiting for spec msg");
+
         m_spec_mode.pc = 0;
         m_spec_mode.frame = 0;
         m_spec_mode.sp = 0;
         m_need_spec_msg = true;
+
         sleep();
         return;
     }
 
+    // 在处理新的推测之前对处理上一消息形成的状态进行快照
     snapshot(false);
 
-    begin_process_next_msg();
+    // 使下一个待处理消息成为当前消息
+    ++m_next_spec_msg;
+
+    // assert(type == Message::invoke
+    //        or type == Message::put
+    //        or type == Message::get
+    //        or type == Message::arraystore
+    //        or type == Message::arrayload);
+
+    process_spec_msg(current_spec_msg());
+}
+
+
+void
+SpmtThread::launch_spec_msg(Message* msg)
+{
+    // 在处理新的推测之前对处理上一消息形成的状态进行快照
+    snapshot(false);
+
+    // 将msg插在待处理消息之前，作为当前消息
+    // ...
+
     process_spec_msg(current_spec_msg());
 }
 

@@ -7,12 +7,9 @@ using namespace std;
 
 int msg_count = 0;              // just for debug
 
-Message::Message(Type t, Object* source_object, Object* target_object)
-    :
-    m_source_object(source_object),
-    m_target_object(target_object)
+Message::Message(Type t)
+    : type(t)
 {
-    type = t;
 }
 
 Message::~Message()
@@ -40,9 +37,9 @@ Message::get_type()
 //------------------------------------------------
 
 // InvokeMsg::InvokeMsg(Object* object, MethodBlock* mb, Frame* caller_frame, Object* calling_object, uintptr_t* args, uintptr_t* caller_sp, CodePntr caller_pc)
-InvokeMsg::InvokeMsg(Object* source_obj, Object* target_obj, MethodBlock* mb, uintptr_t* args)
+InvokeMsg::InvokeMsg(SpmtThread* source_spmt_thread, Object* target_object, MethodBlock* mb, uintptr_t* args, bool is_top)
 :
-    Message(Message::invoke, source_obj, target_obj)
+    RoundTripMsg(Message::invoke, source_spmt_thread, target_object)
 {
     this->mb = mb;
     //this->caller_frame = caller_frame;
@@ -52,6 +49,8 @@ InvokeMsg::InvokeMsg(Object* source_obj, Object* target_obj, MethodBlock* mb, ui
     }
     // this->caller_sp = caller_sp;
     // this->caller_pc = caller_pc;
+
+    m_is_top = is_top;
 }
 
 bool
@@ -89,9 +88,9 @@ InvokeMsg::show_detail(std::ostream& os, int id) const
 
 //------------------------------------------------
 // ReturnMsg::ReturnMsg(Object* object, MethodBlock* mb, Frame* caller_frame, Object* calling_object, uintptr_t* rv, int len, uintptr_t* caller_sp, CodePntr caller_pc)
-ReturnMsg::ReturnMsg(Object* source_obj, Object* target_obj, uintptr_t* rv, int len)
+ReturnMsg::ReturnMsg(Object* source_obj, Object* target_obj, uintptr_t* rv, int len, bool is_top)
 :
-    Message(Message::ret, source_obj, target_obj)
+    Message(Message::ret)
 {
     //this->mb = mb;
     // this->caller_frame = caller_frame;
@@ -102,6 +101,7 @@ ReturnMsg::ReturnMsg(Object* source_obj, Object* target_obj, uintptr_t* rv, int 
     // this->caller_pc = caller_pc;
 
     //this->frame = frame;
+    m_is_top = is_top;
 }
 
 bool
@@ -149,9 +149,9 @@ ReturnMsg::show_detail(std::ostream& os, int id) const
 }
 
 //-----------------------------------------------
-GetMsg::GetMsg(Object* source_object, Object* target_object, FieldBlock* fb, uintptr_t* addr, int size, Frame* caller_frame, uintptr_t* caller_sp, CodePntr caller_pc)
+GetMsg::GetMsg(SpmtThread* source_spmt_thread, Object* target_object, FieldBlock* fb, uintptr_t* addr, int size, Frame* caller_frame, uintptr_t* caller_sp, CodePntr caller_pc)
 :
-    Message(Message::get, source_object, target_object)
+    RoundTripMsg(Message::get, source_spmt_thread, target_object)
 {
     for (int i = 0; i < size; ++i) {
         this->val.push_back(addr[i]);
@@ -205,9 +205,9 @@ GetMsg::show_detail(std::ostream& os, int id) const
     //os << "#" << id << "\n";
 }
 //-----------------------------------------------
-PutMsg::PutMsg(Object* source_object, Object* target_object, FieldBlock* fb, uintptr_t* addr, uintptr_t* val, int len, bool is_static)
+PutMsg::PutMsg(SpmtThread* source_spmt_thread, Object* target_object, FieldBlock* fb, uintptr_t* addr, uintptr_t* val, int len, bool is_static)
 :
-    Message(Message::put, source_object, target_object)
+    RoundTripMsg(Message::put, source_spmt_thread, target_object)
 {
     for (int i = 0; i < len; ++i) {
         this->val.push_back(val[i]);
@@ -285,10 +285,10 @@ PutMsg::show_detail(std::ostream& os, int id) const
 // }
 
 //-----------------------------------------------
-ArrayLoadMsg::ArrayLoadMsg(Object* array, Object* target_object, int index, uint8_t* addr, int type_size,
+ArrayLoadMsg::ArrayLoadMsg(SpmtThread* source_spmt_thread, Object* array, int index, uint8_t* addr, int type_size,
                            Frame* caller_frame, uintptr_t* caller_sp, CodePntr caller_pc)
 :
-    Message(Message::arrayload, array, target_object)
+    RoundTripMsg(Message::arrayload, source_spmt_thread, array)
 {
     for (int i = 0; i < type_size; ++i) {
         this->val.push_back(addr[i]);
@@ -341,9 +341,9 @@ ArrayLoadMsg::show_detail(std::ostream& os, int id) const
 }
 //-----------------------------------------------
 
-ArrayStoreMsg::ArrayStoreMsg(Object* source_object, Object* array, int index, uintptr_t* slots, int nslots, int type_size)
+ArrayStoreMsg::ArrayStoreMsg(SpmtThread* source_spmt_thread, Object* array, int index, uintptr_t* slots, int nslots, int type_size)
 :
-    Message(Message::arraystore, source_object, array)
+    RoundTripMsg(Message::arraystore, source_spmt_thread, array)
 {
     this->index = index;
     for (int i = 0; i < nslots; ++i) {

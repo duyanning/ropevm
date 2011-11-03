@@ -27,7 +27,9 @@ public:
     virtual void do_array_load(Object* array, int index, int type_size);
     virtual void do_array_store(Object* array, int index, int type_size);
 
-    virtual Frame* create_frame(Object* object, MethodBlock* new_mb, Frame* caller_prev, Object* calling_object, uintptr_t* args, uintptr_t* caller_sp, CodePntr caller_pc);
+    virtual Frame* create_frame(Object* object, MethodBlock* new_mb, uintptr_t* args,
+                                SpmtThread* caller, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp);
+
     virtual void destroy_frame(Frame* frame);
 
     //virtual void step();

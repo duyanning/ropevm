@@ -2,6 +2,7 @@
 #define MESSAGE_H
 
 class Object;
+class SpmtThread;
 class MethodBlock;
 class FieldBlock;
 class Frame;
@@ -25,29 +26,48 @@ public:
         arrayload, arrayload_return,
         arraystore, arraystore_return
     };
-    Message(Type t, Object* source_object, Object* target_ojbect);
+    Message(Type t);
     virtual bool equal(Message& msg);
     Type get_type();
     Effect* get_effect();
     virtual ~Message();
     virtual void show(std::ostream& os) const = 0;
     virtual void show_detail(std::ostream& os, int id) const = 0;
-    Object* get_source_object() { return m_source_object; }
-    Object* get_target_object() { return m_target_object; }
+    Object* get_source_object() { return m_source_object; } // refactor: to remove
+    Object* get_target_object() { return m_target_object; } // refactor: to remove
 protected:
     Type type;
-    Object* m_source_object;
-    Object* m_target_object;
+    Object* m_source_object;    // refactor: to remove
+    Object* m_target_object;    // refactor: to remove
 	Effect* m_effect;  // 处理该消息所形成的effect
 };
 
 
+class RoundTripMsg : public Message {
+public:
+    RoundTripMsg(Type t, SpmtThread* source_spmt_thread, Object* target_object)
+        : Message(t)
+    {
+    }
+    SpmtThread* get_source_spmt_thread() { return m_source_spmt_thread; }
+    Object* get_target_object() { return m_target_object; }
+protected:
+    SpmtThread* m_source_spmt_thread;
+    Object* m_target_object;
+};
 
-class InvokeMsg : public Message {
+
+// class OneWayMsg : public Message {
+// };
+
+
+class InvokeMsg : public RoundTripMsg {
 public:
     // refactor:
-    InvokeMsg(Object* source_obj, Object* target_obj, MethodBlock* mb, uintptr_t* args);
+    InvokeMsg(SpmtThread* source_spmt_thread, Object* target_object, MethodBlock* mb, uintptr_t* args, bool is_top = false);
     //InvokeMsg(Object* object, MethodBlock* mb, Frame* prev, Object* calling_object, uintptr_t* args, uintptr_t* caller_sp, CodePntr caller_pc);
+
+    bool is_top() { return m_is_top; }
 
     virtual bool equal(Message& msg);
     void show(std::ostream& os) const;
@@ -55,6 +75,9 @@ public:
 
     MethodBlock* mb;
     std::vector<uintptr_t> parameters;
+
+
+    bool m_is_top;
 
 
     // Frame* caller_frame;        // refactor: to remove
@@ -66,8 +89,9 @@ public:
 class ReturnMsg : public Message {
 public:
     // refactor:
-    ReturnMsg(Object* source_obj, Object* target_obj, uintptr_t* rv, int len);
+    ReturnMsg(Object* source_obj, Object* target_obj, uintptr_t* rv, int len, bool is_top = false);
     //ReturnMsg(Object* object, MethodBlock* mb, Frame* caller_frame, Object* calling_object, uintptr_t* rv, int len, uintptr_t* caller_sp, CodePntr caller_pc);
+    bool is_top() { return m_is_top; }
 
     virtual bool equal(Message& msg);
     void show(std::ostream& os) const;
@@ -75,6 +99,7 @@ public:
 
     std::vector<uintptr_t> retval;
 
+    bool m_is_top;
 
     // Frame* caller_frame;        // refactor: to remove
     // uintptr_t* caller_sp;       // refactor: to remove
@@ -85,9 +110,9 @@ public:
 };
 
 
-class GetMsg : public Message {
+class GetMsg : public RoundTripMsg {
 public:
-    GetMsg(Object* source_object, Object* target_object, FieldBlock* fb, uintptr_t* addr, int size, Frame* caller_frame, uintptr_t* caller_sp, CodePntr caller_pc);
+    GetMsg(SpmtThread* source_spmt_thread, Object* target_object, FieldBlock* fb, uintptr_t* addr, int size, Frame* caller_frame, uintptr_t* caller_sp, CodePntr caller_pc);
     virtual bool equal(Message& msg);
     void show(std::ostream& os) const;
     virtual void show_detail(std::ostream& os, int id) const;
@@ -110,9 +135,9 @@ public:
 };
 
 
-class PutMsg : public Message {
+class PutMsg : public RoundTripMsg {
 public:
-    PutMsg(Object* source_object, Object* target_object, FieldBlock* fb, uintptr_t* addr, uintptr_t* val, int len, bool is_static);
+    PutMsg(SpmtThread* source_spmt_thread, Object* target_object, FieldBlock* fb, uintptr_t* addr, uintptr_t* val, int len, bool is_static);
     virtual bool equal(Message& msg);
     void show(std::ostream& os) const;
     virtual void show_detail(std::ostream& os, int id) const;
@@ -136,9 +161,9 @@ public:
 };
 
 
-class ArrayLoadMsg : public Message {
+class ArrayLoadMsg : public RoundTripMsg {
 public:
-    ArrayLoadMsg(Object* array, Object* target_object, int index, uint8_t* addr, int type_size,
+    ArrayLoadMsg(SpmtThread* source_spmt_thread, Object* array, int index, uint8_t* addr, int type_size,
                  Frame* caller_frame, uintptr_t* caller_sp, CodePntr caller_pc);
     virtual bool equal(Message& msg);
     void show(std::ostream& os) const;
@@ -162,9 +187,9 @@ public:
 };
 
 
-class ArrayStoreMsg : public Message {
+class ArrayStoreMsg : public RoundTripMsg {
 public:
-    ArrayStoreMsg(Object* source_object, Object* array, int index, uintptr_t* slots, int nslots, int type_size);
+    ArrayStoreMsg(SpmtThread* source_spmt_thread, Object* array, int index, uintptr_t* slots, int nslots, int type_size);
     virtual bool equal(Message& msg);
     void show(std::ostream& os) const;
     virtual void show_detail(std::ostream& os, int id) const;

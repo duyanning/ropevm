@@ -95,7 +95,7 @@ SpeculativeMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
             args.push_back(read(&sp[i]));
         }
 
-        Frame* new_frame = create_frame(target_object, new_mb, frame, frame->get_object(), &args[0], sp, pc);
+        Frame* new_frame = create_frame(target_object, new_mb, &args[0], m_spmt_thread, pc, frame, sp);
 
         frame->last_pc = pc;
 
@@ -120,7 +120,7 @@ SpeculativeMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
 
 
         // construct speculative message and send
-        InvokeMsg* msg = new InvokeMsg(frame->get_object(),
+        InvokeMsg* msg = new InvokeMsg(m_spmt_thread,
                                        target_object,
                                        new_mb,
                                        &args[0]);
@@ -138,11 +138,11 @@ SpeculativeMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
 
         Frame* rvp_frame = m_spmt_thread->m_rvp_mode.create_frame(target_object,
                                                                   rvp_method,
-                                                                  frame,
-                                                                  0,
                                                                   &args[0],
-                                                                  sp,
-                                                                  pc);
+                                                                  0,
+                                                                  pc,
+                                                                  frame,
+                                                                  sp);
 
         m_spmt_thread->m_rvp_mode.pc = (CodePntr)rvp_method->code;
         m_spmt_thread->m_rvp_mode.frame = rvp_frame;
@@ -213,7 +213,7 @@ SpeculativeMode::do_method_return(int len)
 
         destroy_frame(current_frame);
 
-        m_spmt_thread->process_next_spec_msg();
+        m_spmt_thread->launch_next_spec_msg();
 
     }
 }
@@ -235,9 +235,11 @@ SpeculativeMode::do_throw_exception()
 
 
 Frame*
-SpeculativeMode::create_frame(Object* object, MethodBlock* new_mb, Frame* caller_prev, Object* calling_object, uintptr_t* args, uintptr_t* caller_sp, CodePntr caller_pc)
+SpeculativeMode::create_frame(Object* object, MethodBlock* new_mb, uintptr_t* args,
+                              SpmtThread* caller, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp)
+
 {
-    Frame* new_frame = g_create_frame(object, new_mb, caller_prev, calling_object, args, caller_sp, caller_pc);
+    Frame* new_frame = g_create_frame(object, new_mb, args, caller, caller_pc, caller_frame, caller_sp);
     // record new_frame in effect
     return new_frame;
 }
@@ -298,7 +300,7 @@ SpeculativeMode::do_get_field(Object* source_object, FieldBlock* fb, uintptr_t* 
 
         sp -= is_static ? 0 : 1;
 
-        GetMsg* msg = new GetMsg(source_object, current_object, fb, &val[0], size, frame, sp, pc);
+        GetMsg* msg = new GetMsg(m_spmt_thread, source_object, fb, &val[0], size, frame, sp, pc);
         m_spmt_thread->add_message_to_be_verified(msg);
 
         for (int i = 0; i < size; ++i) {
@@ -357,7 +359,7 @@ SpeculativeMode::do_put_field(Object* target_object, FieldBlock* fb,
                      "#" << m_spmt_thread->id() << " (S) target object has a core #"
                      << target_core->id());
 
-            PutMsg* msg = new PutMsg(current_object, target_object, fb, addr, &val[0], size, is_static);
+            PutMsg* msg = new PutMsg(m_spmt_thread, target_object, fb, addr, &val[0], size, is_static);
 
             MINILOG(s_logger,
                      "#" << m_spmt_thread->id() << " (S) add putfield task to #"
@@ -410,7 +412,7 @@ SpeculativeMode::do_array_load(Object* array, int index, int type_size)
 
         sp -= 2;
 
-        ArrayLoadMsg* msg = new ArrayLoadMsg(array, current_object, index, &val[0], type_size, frame, sp, pc);
+        ArrayLoadMsg* msg = new ArrayLoadMsg(m_spmt_thread, array, index, &val[0], type_size, frame, sp, pc);
         m_spmt_thread->add_message_to_be_verified(msg);
 
         load_array_from_no_cache_mem(sp, &val[0], type_size);
@@ -469,7 +471,7 @@ SpeculativeMode::do_array_store(Object* array, int index, int type_size)
                      << target_core->id());
 
             ArrayStoreMsg* msg =
-                new ArrayStoreMsg(current_object, target_object, index, &val[0], nslots, type_size);
+                new ArrayStoreMsg(m_spmt_thread, target_object, index, &val[0], nslots, type_size);
 
             MINILOG(s_logger,
                      "#" << m_spmt_thread->id() << " (S) add arraystore task to #"

@@ -1224,6 +1224,8 @@ Thread::drive_loop()
 {
     using namespace std;
 
+    SpmtThread* current_spmt_thread_of_outer_loop = m_current_spmt_thread;
+
     for (;;) {
 
         // make a copy to avoid modification to m_spmt_threads while looping
@@ -1234,7 +1236,7 @@ Thread::drive_loop()
             m_current_spmt_thread = st;
 
             if (m_current_spmt_thread->is_halt()) {
-                m_current_spmt_thread->idle();
+                m_current_spmt_thread->idle(); // only serve for statistics
                 continue;
             }
 
@@ -1247,6 +1249,8 @@ Thread::drive_loop()
             bool quit = m_current_spmt_thread->check_quit_step_loop();
             if (quit) {
                 uintptr_t* result = m_current_spmt_thread->get_result();
+
+                m_current_spmt_thread = current_spmt_thread_of_outer_loop;
                 return result;
             }
 
@@ -1255,6 +1259,7 @@ Thread::drive_loop()
         assert(non_idle_total > 0);
     }
 
+    assert(false);
     return 0;
 }
 

@@ -3,7 +3,7 @@
 
 class Object;
 class Frame;
-typedef unsigned char *CodePntr;
+typedef unsigned char* CodePntr;
 class Message;
 
 class Snapshot {

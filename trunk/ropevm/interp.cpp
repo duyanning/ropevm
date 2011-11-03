@@ -33,7 +33,7 @@ uintptr_t* g_drive_loop()
 
 
 void
-Mode::exec_an_instr()
+Mode::fetch_and_interpret_an_instruction()
 {
     assert(frame);
     //assert(frame->is_alive());
@@ -1510,7 +1510,7 @@ Mode::exec_an_instr()
             pc[1] = new_mb->method_table_index;
             pc[2] = new_mb->args_count;
             MBARRIER();
-            pc[0] = OPC_INVOKEVIRTUAL_QUICK;
+            pc[0] = OPC_INVOKEVIRTUAL_QUICK; // OPC_INVOKEVIRTUAL_QUICK的解释过程：从this找到method_table，即vtable
         }
         else
             pc[0] = OPC_INVOKEVIRTUAL_QUICK_W;
