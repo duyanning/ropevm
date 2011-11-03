@@ -87,7 +87,7 @@ RvpMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
     MethodBlock* rvp_mb = get_rvp_method(new_mb);
 
     Frame* new_frame =
-        create_frame(target_object, rvp_mb, frame, 0, &args[0], sp, pc);
+        create_frame(target_object, rvp_mb, &args[0], 0, pc, frame, sp);
 
     new_frame->is_certain = false;
 
@@ -105,6 +105,7 @@ RvpMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
     frame = new_frame;
     pc = (CodePntr)frame->mb->code;
 }
+
 
 void
 RvpMode::do_method_return(int len)
@@ -228,6 +229,7 @@ RvpMode::do_method_return(int len)
     }
 }
 
+
 void
 RvpMode::before_signal_exception(Class *exception_class)
 {
@@ -236,6 +238,7 @@ RvpMode::before_signal_exception(Class *exception_class)
     m_spmt_thread->sleep();
     throw DeepBreak();
 }
+
 
 void
 RvpMode::do_throw_exception()
@@ -259,9 +262,10 @@ RvpMode::do_throw_exception()
 
 
 Frame*
-RvpMode::create_frame(Object* object, MethodBlock* new_mb, Frame* caller_prev, Object* calling_object, uintptr_t* args, uintptr_t* caller_sp, CodePntr caller_pc)
+RvpMode::create_frame(Object* object, MethodBlock* new_mb, uintptr_t* args,
+                      SpmtThread* caller, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp)
 {
-    Frame* new_frame = g_create_frame(object, new_mb, caller_prev, calling_object, args, caller_sp, caller_pc);
+    Frame* new_frame = g_create_frame(object, new_mb, args, caller, caller_pc, caller_frame, caller_sp);
     // record new_frame in V of effect
     return new_frame;
 }

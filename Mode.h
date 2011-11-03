@@ -12,13 +12,11 @@ public:
     const char* get_name();
     virtual const char* tag() = 0;
     virtual void step() = 0;
-    void exec_an_instr();
+    void fetch_and_interpret_an_instruction();
 
     virtual void before_alloc_object();
     virtual void after_alloc_object(Object* obj);
     Group* assign_group_for(Object* obj);
-
-    virtual void process_certain_message(Message* messge) = 0;
 
     virtual void* do_execute_method(Object* target_object, MethodBlock *mb, std::vector<uintptr_t>& jargs) = 0;
     virtual void do_invoke_method(Object* objectref, MethodBlock* new_mb) = 0;
@@ -38,7 +36,10 @@ public:
     void store_array_from_no_cache_mem(uintptr_t* sp, void* elem_addr, int type_size);
 
 
-    virtual Frame* create_frame(Object* object, MethodBlock* new_mb, Frame* caller_prev, Object* calling_object, uintptr_t* args, uintptr_t* caller_sp, CodePntr caller_pc) = 0;
+    virtual Frame* create_frame(Object* object, MethodBlock* new_mb, uintptr_t* args,
+                                SpmtThread* caller,
+                                CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp) = 0;
+
     virtual void destroy_frame(Frame* frame) = 0;
 
 
@@ -160,5 +161,6 @@ void
 show_invoke_return(std::ostream& os, bool is_invoke, int id, const char* tag,
                    Object* caller, MethodBlock* caller_mb,
                    Object* callee, MethodBlock* callee_mb);
+
 
 #endif // MODE_H

@@ -70,23 +70,22 @@ public:
     void remove_spec_msg(Message* msg);
 
     Message* get_certain_msg();
+    void process_certain_msg(Message* msg);
 
-
+    // msg queue related
+    bool has_unprocessed_spec_msg();
+    void launch_next_spec_msg();
+    void launch_spec_msg(Message* msg);
     Message* current_spec_msg();
+    void process_spec_msg(Message* msg);
+    bool is_waiting_for_spec_msg();
+
     void commit(Effect* effect);
     void discard_all_effect();
 
     void reload_speculative_tasks(); // refactor: to remove
-    void on_enter_certain_mode();
-    void leave_certain_mode(Message* msg);
-
-
-    void process_certain_msg(Message* msg);
-
-    void process_next_spec_msg();
-    void process_spec_msg(Message* msg);
-    bool is_waiting_for_spec_msg();
-
+    void enter_certain_mode();
+    void leave_certain_mode(Message* msg); // refactor: to remove
 
     void snapshot(bool pin);
     void pin_frames();
@@ -131,8 +130,6 @@ public:
     // for stat
     void report_stat(std::ostream& os);
 private:
-    bool has_unprocessed_spec_msg();
-    void begin_process_next_msg();
 
     void sync_speculative_with_certain();
     void sync_certain_with_speculative();

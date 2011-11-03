@@ -24,8 +24,9 @@ public:
     bool is_certain;            // refactor: remove
     //    bool snapshoted;            // refactor: rename
     bool pinned;
-    Object* object;
-    Object* calling_object;
+    Object* object;             // 这个主要是为了给没有this的静态方法使用
+    SpmtThread* caller;
+    Object* calling_object;     // refactor: to remove
 
     std::vector<Object*> * lrefs;
 
