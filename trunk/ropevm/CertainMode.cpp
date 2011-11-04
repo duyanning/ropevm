@@ -167,7 +167,7 @@ CertainMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
         //          // << "("  << frame << ")"
         //          );
 
-        target_spmt_thread->send_certain_msg(target_spmt_thread, msg);
+        m_spmt_thread->send_certain_msg(target_spmt_thread, msg);
 
         MethodBlock* rvp_method = get_rvp_method(new_mb);
 
@@ -198,64 +198,41 @@ CertainMode::do_method_return(int len)
 //     }
     //log_when_invoke_return(false, frame->calling_object, frame->prev->mb, m_user, frame->mb);
 
+
     Frame* current_frame = frame; // some funcitons below will change this->frame, so we save it to destroy
 
-    uintptr_t* rv = sp - len;   // rv points to the beginning of retrun value in this frame's operand stack
-    sp -= len;
 
-    Object* current_object = current_frame->get_object();
-    assert(current_object);
-    Object* target_object = current_frame->calling_object;
-
-    Group* current_group = current_object->get_group();
-    Group* target_group = target_object ? target_object->get_group() : threadSelf()->get_default_group();
-
-    //assert(target_group->get_thread() == threadSelf());
-
-    SpmtThread* target_spmt_thread = current_frame->caller;
-
+    // 给同步方法解锁
     if (current_frame->mb->is_synchronized()) {
-        assert(
-               current_frame->get_object() == current_frame->mb->classobj
-               or current_frame->get_object() == (Object*)current_frame->lvars[0]
-               );
+        assert(current_frame->get_object() == current_frame->mb->classobj
+               or current_frame->get_object() == (Object*)current_frame->lvars[0]);
         Object* sync_ob = current_frame->get_object();
         objectUnlock(sync_ob);
     }
 
+
+    SpmtThread* target_spmt_thread = current_frame->caller;
+    assert(target_spmt_thread->m_thread == m_spmt_thread->m_thread);
+
+
     /*
     if 目标线程是当前线程
-        if 是从top frame返回，返回值直接写入dummy frame
+        返回值写入上级frame的ostack（if 是从top frame返回，上级frame为dummy frame，并结束drive_loop）
     else
-        if 是从top frame返回，构造return消息
+        构造return确定消息（if 是从top frame返回，则带有top标志）
     */
-
-    if (current_frame->is_top_frame()) {
-
-        // MINILOG0("#" << m_spmt_thread->id() << " t<<<transfers to #" << target_core->id()
-        //          << " in: "  << info(frame)
-        //          << "because top frame return"
-        //          );
-
-        // write RV to dummy frame
-        uintptr_t* caller_sp = current_frame->caller_sp;
-        for (int i = 0; i < len; ++i) {
-            *caller_sp++ = rv[i];
-        }
-
-        m_spmt_thread->signal_quit_step_loop(current_frame->prev->ostack_base);
-
-    }
 
 
     if (target_spmt_thread == m_spmt_thread) {
+
+        uintptr_t* rv = sp - len;   // rv points to the beginning of retrun value in this frame's operand stack
+        sp -= len;
 
         internal_return(rv, len, current_frame->caller_pc, current_frame->prev, current_frame->caller_sp);
         return;
 
     }
     else {
-
 
         // MINILOG0("#" << m_spmt_thread->id() << " r<<<transfers to #" << target_spmt_thread->id()
         //          // << " " << info(current_object) << " => " << info(target_object)
@@ -266,38 +243,21 @@ CertainMode::do_method_return(int len)
         //          );
 
 
+        uintptr_t* rv = sp - len;   // rv points to the beginning of retrun value in this frame's operand stack
+        sp -= len;
+
         ReturnMsg* msg = new ReturnMsg(rv, len, current_frame->is_top_frame());
+        // state buffer中应无任何东西
+        // m_spmt_thread->clear_frame_in_state_buffer(current_frame);
+        destroy_frame(current_frame);
 
         m_spmt_thread->switch_to_speculative_mode();
         m_spmt_thread->send_certain_msg(target_spmt_thread, msg);
         m_spmt_thread->launch_next_spec_msg();
-
-
-        if (current_frame->is_top_frame())
-            m_spmt_thread->signal_quit_step_loop(0);
-
-
-
-        // m_spmt_thread->clear_frame_in_states_buffer(current_frame);
-
-        // if (not m_spmt_thread->m_messages_to_be_verified.empty()) {
-        //     MINILOG0("#" << m_spmt_thread->id() << " resume speculative execution");
-        //     m_spmt_thread->restore_original_non_certain_mode();
-        // }
-        // else {
-        //     MINILOG0("#" << m_spmt_thread->id() << " start speculative execution");
-
-        //     m_spmt_thread->sync_speculative_with_certain();
-        //     m_spmt_thread->switch_to_speculative_mode();
-        //     m_spmt_thread->launch_next_spec_msg();
-        // }
-
-
     }
 
-    destroy_frame(current_frame);
-
 }
+
 
 void
 CertainMode::internal_invoke(Object* target_object, MethodBlock* new_mb, uintptr_t* args,
@@ -320,6 +280,7 @@ CertainMode::internal_invoke(Object* target_object, MethodBlock* new_mb, uintptr
 
     frame = create_frame(target_object, new_mb, args, m_spmt_thread, caller_pc, caller_frame, caller_sp);
 
+    // 给同步方法加锁
     if (frame->mb->is_synchronized()) {
         Object *sync_ob = frame->mb->is_static() ?
             frame->mb->classobj : (Object*)frame->lvars[0]; // lvars[0] is 'this' reference
@@ -327,9 +288,9 @@ CertainMode::internal_invoke(Object* target_object, MethodBlock* new_mb, uintptr
     }
 
     if (new_mb->is_native()) {
-        // copy args to ostack
-        if (args)
-            std::copy(args, args + new_mb->args_count, frame->ostack_base);
+        // // copy args to ostack
+        // if (args)
+        //     std::copy(args, args + new_mb->args_count, frame->ostack_base);
 
         sp = (*(uintptr_t *(*)(Class*, MethodBlock*, uintptr_t*))
               new_mb->native_invoker)(new_mb->classobj, new_mb,
@@ -350,6 +311,7 @@ CertainMode::internal_invoke(Object* target_object, MethodBlock* new_mb, uintptr
         pc = (CodePntr)frame->mb->code;
     }
 }
+
 
 void
 CertainMode::internal_return(uintptr_t* rv, int len, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp)
@@ -519,7 +481,7 @@ CertainMode::do_get_field(Object* source_object, FieldBlock* fb,
 
     if (current_group->can_speculate() and m_spmt_thread->has_message_to_be_verified()) {
 
-        GetMsg* msg = new GetMsg(m_spmt_thread, source_object, fb, addr, size, frame, sp, pc);
+        GetMsg* msg = new GetMsg(m_spmt_thread, source_object, fb, addr, size);
         m_spmt_thread->verify_speculation(msg);
         return;
 
@@ -559,40 +521,28 @@ CertainMode::do_put_field(Object* target_object, FieldBlock* fb,
 {
     assert(size == 1 || size == 2);
 
-    // if target object has a core, target core should verify
-    // target object may be others or owner of this core
+    SpmtThread* target_spmt_thread = target_object->get_group()->get_spmt_thread();
+    assert(target_spmt_thread->m_thread == m_spmt_thread->m_thread);
 
-    Object* current_object = frame->get_object();
-    //Group* current_group = current_object->get_group();
-    Group* target_group = target_object->get_group();
-
-    sp -= size;
-
-    if (target_group->can_speculate()) {
-
-        SpmtThread* target_core = target_object->get_group()->get_core();
+    if (target_spmt_thread == m_spmt_thread) {
+        sp -= size;
+        for (int i = 0; i < size; ++i) {
+            write(addr + i, read(sp + i));
+        }
+        sp -= is_static ? 0 : 1;
+        pc += 3;
+    }
+    else {
+        sp -= size;
 
         PutMsg* msg = new PutMsg(m_spmt_thread, target_object, fb, addr, sp, size, is_static);
 
         sp -= is_static ? 0 : 1;
-        pc += 3;
 
         m_spmt_thread->sleep();
-        m_spmt_thread->send_certain_msg(target_core, msg);
-
-        return;         // avoid sp-=... and pc += ...
-
-    }
-    else {
-
-        for (int i = 0; i < size; ++i) {
-            write(addr + i, read(sp + i));
-        }
-
+        m_spmt_thread->send_certain_msg(target_spmt_thread, msg);
     }
 
-    sp -= is_static ? 0 : 1;
-    pc += 3;
 }
 
 void

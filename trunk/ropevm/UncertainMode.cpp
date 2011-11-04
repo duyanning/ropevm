@@ -33,11 +33,7 @@ UncertainMode::step()
         if (msg->get_type() == Message::invoke) {
             InvokeMsg* invoke_msg = static_cast<InvokeMsg*>(msg);
             if (invoke_msg->is_top()) {
-                // discard effect
-                m_spmt_thread->m_certain_mode.do_execute_method(
-                                                                invoke_msg->get_target_object(),
-                                                                invoke_msg->mb,
-                                                                invoke_msg->parameters);
+                m_spmt_thread->on_event_top_invoke(invoke_msg);
                 return;
             }
         }
@@ -45,16 +41,13 @@ UncertainMode::step()
         if (msg->get_type() == Message::ret) {
             ReturnMsg* return_msg = static_cast<ReturnMsg*>(msg);
             if (return_msg->is_top()) {
-                // 把消息中的返回值写入接收返回值的dummy frame
-                // 。。。
-                m_spmt_thread->signal_quit_step_loop(0);
+                m_spmt_thread->on_event_top_return(return_msg);
                 return;
             }
         }
 
-        m_spmt_thread->enter_certain_mode();
-        m_spmt_thread->verify_speculation(msg);
 
+        m_spmt_thread->verify_speculation(msg);
         return;
     }
 
