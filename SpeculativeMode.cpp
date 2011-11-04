@@ -298,7 +298,7 @@ SpeculativeMode::do_get_field(Object* source_object, FieldBlock* fb, uintptr_t* 
 
         sp -= is_static ? 0 : 1;
 
-        GetMsg* msg = new GetMsg(m_spmt_thread, source_object, fb, &val[0], size, frame, sp, pc);
+        GetMsg* msg = new GetMsg(m_spmt_thread, source_object, fb, &val[0], size);
         m_spmt_thread->add_message_to_be_verified(msg);
 
         for (int i = 0; i < size; ++i) {

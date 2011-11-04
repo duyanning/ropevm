@@ -150,20 +150,22 @@ ReturnMsg::show_detail(std::ostream& os, int id) const
 }
 
 //-----------------------------------------------
-GetMsg::GetMsg(SpmtThread* source_spmt_thread, Object* target_object, FieldBlock* fb, uintptr_t* addr, int size, Frame* caller_frame, uintptr_t* caller_sp, CodePntr caller_pc)
+GetMsg::GetMsg(SpmtThread* source_spmt_thread, Object* target_object, FieldBlock* fb, uintptr_t* addr, int size)
 :
     RoundTripMsg(Message::get, source_spmt_thread, target_object)
 {
-    for (int i = 0; i < size; ++i) {
-        this->val.push_back(addr[i]);
-    }
+    // for (int i = 0; i < size; ++i) {
+    //     this->val.push_back(addr[i]);
+    // }
 
-    this->caller_frame = caller_frame;
-    this->caller_sp = caller_sp;
-    this->caller_pc = caller_pc;
+    // this->caller_frame = caller_frame;
+    // this->caller_sp = caller_sp;
+    // this->caller_pc = caller_pc;
 
     //this->instr_len = instr_len;
     this->fb = fb;
+    this->addr = addr;
+    this->size = size;
 }
 
 bool
@@ -172,8 +174,8 @@ GetMsg::equal(Message& msg)
     GetMsg& m = static_cast<GetMsg&>(msg);
     // if (obj != m.obj)
     //     return false;
-    if (val != m.val)
-        return false;
+    // if (val != m.val)
+    //     return false;
     if (fb != m.fb)
         return false;
     // eqmore
@@ -189,15 +191,15 @@ GetMsg::equal(Message& msg)
 void
 GetMsg::show(ostream& os) const
 {
-    int len = val.size();
-    assert(len == 1 || len == 2);
+    // int len = val.size();
+    // assert(len == 1 || len == 2);
 
-    if (len == 1) {
-        os << "get32 " << *fb << hex << *((int*)&val[0]) << dec;
-    }
-    else if (len == 2) {
-        os << "get64 " << *fb << hex << *((long*)&val[0]) << dec;
-    }
+    // if (len == 1) {
+    //     os << "get32 " << *fb << hex << *((int*)&val[0]) << dec;
+    // }
+    // else if (len == 2) {
+    //     os << "get64 " << *fb << hex << *((long*)&val[0]) << dec;
+    // }
 }
 
 void

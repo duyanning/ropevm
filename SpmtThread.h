@@ -18,6 +18,8 @@ class Object;
 class Class;
 
 class Message;
+class InvokeMsg;
+class ReturnMsg;
 class Snapshot;
 class Group;
 
@@ -89,6 +91,9 @@ public:
 
     void snapshot(bool pin);
     void pin_frames();
+
+    void on_event_top_invoke(InvokeMsg* msg);
+    void on_event_top_return(ReturnMsg* msg);
 
     void verify_speculation(Message* message);
     void handle_verification_success(Message* message);

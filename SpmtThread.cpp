@@ -775,96 +775,126 @@ SpmtThread::handle_verification_success(Message* message)
 }
 
 void
-SpmtThread::process_certain_msg(Message* message)
+SpmtThread::process_certain_msg(Message* msg)
 {
-    Message::Type type = message->get_type();
+    Message::Type type = msg->get_type();
 
     if (type == Message::invoke) {
 
-        InvokeMsg* msg = static_cast<InvokeMsg*>(message);
-        m_certain_mode.internal_invoke(msg->get_target_object(), msg->mb, &msg->parameters[0],
-                                           0, 0, 0);
+        InvokeMsg* msg = static_cast<InvokeMsg*>(msg);
+
+        m_certain_mode.internal_invoke(msg->get_target_object(),
+                                       msg->mb,
+                                       &msg->parameters[0],
+                                       0, 0, 0);
 
     }
-    else if (type == Message::ret) {
+    else if (type == Message::put) {
 
-        ReturnMsg* msg = static_cast<ReturnMsg*>(message);
-        m_certain_mode.internal_return(&msg->retval[0],
-                                           msg->retval.size(),
-                                           m_certain_mode.pc,
-                                           m_certain_mode.frame,
-                                           m_certain_mode.sp);
+        PutMsg* put_msg = static_cast<PutMsg*>(msg);
+
+        // 按照put消息的指示，往某字段写入一个数值
+        for (int i = 0; i < put_msg->val.size(); ++i) {
+            put_msg->addr[i] = put_msg->val[i];
+        }
+
+        PutReturnMsg* put_return_msg = new PutReturnMsg();
+
+        send_certain_msg(put_msg->get_source_spmt_thread(), put_return_msg);
+
 
     }
     else if (type == Message::get) {
 
-        GetMsg* msg = static_cast<GetMsg*>(message);
+        GetMsg* get_msg = static_cast<GetMsg*>(msg);
 
-        assert(m_certain_mode.pc == msg->caller_pc);
-        assert(m_certain_mode.frame == msg->caller_frame);
-        assert(m_certain_mode.sp == msg->caller_sp);
+        GetReturnMsg* get_return_msg = new GetReturnMsg(get_msg->addr,
+                                                        get_msg->size);
 
-        // m_certain_mode.pc = msg->caller_pc;
-        // m_certain_mode.frame = msg->caller_frame;
-        // m_certain_mode.sp = msg->caller_sp;
+        send_certain_msg(get_msg->get_source_spmt_thread(), get_return_msg);
 
-        assert(is_pc_ok(m_certain_mode.pc, m_certain_mode.frame->mb));
-        assert(is_sp_ok(m_certain_mode.sp, m_certain_mode.frame));
+    }
+    else if (type == Message::arraystore) {
 
-        vector<uintptr_t>::iterator begin = msg->val.begin();
-        vector<uintptr_t>::iterator end = msg->val.end();
-        for (vector<uintptr_t>::iterator i = begin; i != end; ++i) {
-            *m_certain_mode.sp++ = *i;
+        ArrayStoreMsg* arraystore_msg = static_cast<ArrayStoreMsg*>(msg);
+
+        Object* array = arraystore_msg->get_target_object();
+        int index = arraystore_msg->index;
+        int type_size = arraystore_msg->type_size;
+
+        void* addr = array_elem_addr(array, index, type_size);
+        m_certain_mode.store_array_from_no_cache_mem(&arraystore_msg->slots[0], addr, type_size);
+
+        ArrayStoreReturn* arraystore_return_msg = new ArrayStoreReturn();
+        send_certain_msg(arraystore_msg->get_source_spmt_thread(),
+                         arraystore_return_msg);
+
+    }
+    else if (type == Message::arrayload) {
+
+        ArrayLoadMsg* arrayload_msg = static_cast<ArrayLoadMsg*>(msg);
+
+        int type_size = arrayload_msg->val.size();
+        m_certain_mode.load_array_from_no_cache_mem(m_certain_mode.sp, &arrayload_msg->val[0], type_size);
+        m_certain_mode.sp += type_size > 4 ? 2 : 1;
+
+
+        ArrayLoadReturn* arrayload_return_msg = new ArrayLoadReturn();
+        send_certain_msg(arrayload_msg->get_source_spmt_thread(),
+                         arrayload_return_msg);
+
+
+    }
+    else if (type == Message::ret) {
+
+        ReturnMsg* msg = static_cast<ReturnMsg*>(msg);
+
+        // 将返回值写入ostack
+        for (auto i : msg->retval) {
+            *m_spec_mode.sp++ = i;
+        }
+
+        m_certain_mode.pc += (*m_certain_mode.pc == OPC_INVOKEINTERFACE_QUICK ? 5 : 3);
+
+    }
+    else if (type == Message::put_return) {
+
+        PutReturnMsg* put_return_msg = static_cast<PutReturnMsg*>(msg);
+        // 什么也不需要做
+
+        m_certain_mode.pc += 3;
+
+    }
+    else if (type == Message::get_return) {
+
+        GetReturnMsg* get_return_msg = static_cast<GetReturnMsg*>(msg);
+
+        for (auto i : get_return_msg->val) {
+            *m_certain_mode.sp++ = i;
         }
 
         m_certain_mode.pc += 3;
 
     }
-    else if (type == Message::put) {
+    else if (type == Message::arraystore_return) {
+        // 没有什么需要写入ostack
 
-        PutMsg* msg = static_cast<PutMsg*>(message);
-
-        for (int i = 0; i < msg->val.size(); ++i) {
-            m_certain_mode.write(msg->addr + i, msg->val[i]);
-        }
-
+        m_spec_mode.pc += 1;
     }
-    else if (type == Message::arrayload) {
+    else if (type == Message::arrayload_return) {
+        ArrayLoadMsg* arrayload_msg = static_cast<ArrayLoadMsg*>(msg);
 
-        ArrayLoadMsg* msg = static_cast<ArrayLoadMsg*>(message);
+        // 将读到的值写入ostack
+        // for (auto i : msg->val) {
+        //     m_spec_mode.write(m_spec_mode.sp++, i);
+        // }
 
-        assert(m_certain_mode.pc == msg->caller_pc);
-        assert(m_certain_mode.frame == msg->caller_frame);
-        assert(m_certain_mode.sp == msg->caller_sp);
-
-        // m_certain_mode.pc = msg->caller_pc;
-        // m_certain_mode.frame = msg->caller_frame;
-        // m_certain_mode.sp = msg->caller_sp;
-
-        assert(is_pc_ok(m_certain_mode.pc, m_certain_mode.frame->mb));
-        assert(is_sp_ok(m_certain_mode.sp, m_certain_mode.frame));
-
-        int type_size = msg->val.size();
-        m_certain_mode.load_array_from_no_cache_mem(m_certain_mode.sp, &msg->val[0], type_size);
-        m_certain_mode.sp += type_size > 4 ? 2 : 1;
-        m_certain_mode.pc += 1;
-
-    }
-    else if (type == Message::arraystore) {
-
-        ArrayStoreMsg* msg = static_cast<ArrayStoreMsg*>(message);
-
-        Object* array = msg->get_target_object();
-        int index = msg->index;
-        int type_size = msg->type_size;
-
-        void* addr = array_elem_addr(array, index, type_size);
-        m_certain_mode.store_array_from_no_cache_mem(&msg->slots[0], addr, type_size);
-
+        m_spec_mode.pc += 3;
     }
     else {
         assert(false);
     }
+
 }
 
 void
@@ -918,22 +948,22 @@ SpmtThread::get_current_mode()
 
 
 void
-SpmtThread::process_spec_msg(Message* spec_msg)
+SpmtThread::process_spec_msg(Message* msg)
 {
     m_is_waiting_for_task = false;
 
-    MINILOG(task_load_logger, "#" << id() << " spec msg loaded: " << *spec_msg);
+    MINILOG(task_load_logger, "#" << id() << " spec msg loaded: " << *msg);
 
-    Message::Type type = spec_msg->get_type();
+    Message::Type type = msg->get_type();
 
     if (type == Message::invoke) {
 
-        InvokeMsg* msg = static_cast<InvokeMsg*>(spec_msg);
+        InvokeMsg* invoke_msg = static_cast<InvokeMsg*>(msg);
 
-        Frame* new_frame = m_spec_mode.create_frame(msg->get_target_object(),
-                                                    msg->mb,
-                                                    &msg->parameters[0],
-                                                    msg->get_source_spmt_thread(),
+        Frame* new_frame = m_spec_mode.create_frame(invoke_msg->get_target_object(),
+                                                    invoke_msg->mb,
+                                                    &invoke_msg->parameters[0],
+                                                    invoke_msg->get_source_spmt_thread(),
                                                     0,
                                                     0,
                                                     0);
@@ -943,68 +973,81 @@ SpmtThread::process_spec_msg(Message* spec_msg)
         m_spec_mode.frame = new_frame;
         m_spec_mode.pc = (CodePntr)new_frame->mb->code;
     }
+    else if (type == Message::put) {
+        PutMsg* put_msg = static_cast<PutMsg*>(msg);
+
+        for (int i = 0; i < put_msg->val.size(); ++i) {
+            m_spec_mode.write(put_msg->addr + i, put_msg->val[i]);
+        }
+
+        PutReturnMsg* put_return_msg = new PutReturnMsg();
+        // 将put_return消息记录在effect中
+
+        launch_next_spec_msg();
+    }
+    else if (type == Message::get) {
+        GetMsg* get_msg = static_cast<GetMsg*>(msg);
+
+        GetReturnMsg* get_return_msg = new GetReturnMsg(get_msg->addr,
+                                                        get_msg->size);
+        // 将get_return消息记录在effect中
+        launch_next_spec_msg();
+    }
+    else if (type == Message::arraystore) {
+        ArrayStoreMsg* arraystore_msg = static_cast<ArrayStoreMsg*>(msg);
+
+        Object* array = arraystore_msg->get_target_object();
+        int index = arraystore_msg->index;
+        int type_size = arraystore_msg->type_size;
+
+        void* addr = array_elem_addr(array, index, type_size);
+        m_spec_mode.store_array_from_no_cache_mem(&arraystore_msg->slots[0], addr, type_size);
+
+        // for (int i = 0; i < msg->val.size(); ++i) {
+        //     m_spec_mode.write(addr + i, msg->val[i]);
+        // }
+        ArrayStoreReturn* arraystore_return_msg = new ArrayStoreReturn();
+        // 将消息记入effect
+        launch_next_spec_msg();
+    }
+    else if (type == Message::arrayload) {
+        ArrayLoadReturn* arrayload_return_msg = new ArrayLoadReturn();
+        // 将消息记入effect
+        launch_next_spec_msg();
+    }
     else if (type == Message::ret) {
-        ReturnMsg* msg = static_cast<ReturnMsg*>(spec_msg);
+        ReturnMsg* return_msg = static_cast<ReturnMsg*>(msg);
 
         // 将返回值写入ostack
-        for (auto i : msg->retval) {
+        for (auto i : return_msg->retval) {
             m_spec_mode.write(m_spec_mode.sp++, i);
         }
 
         m_spec_mode.pc += (*m_spec_mode.pc == OPC_INVOKEINTERFACE_QUICK ? 5 : 3);
     }
-    else if (type == Message::put) {
-        PutMsg* msg = static_cast<PutMsg*>(spec_msg);
-
-        for (int i = 0; i < msg->val.size(); ++i) {
-            m_spec_mode.write(msg->addr + i, msg->val[i]);
-        }
-
-        launch_next_spec_msg();
-    }
     else if (type == Message::put_return) {
-        // 没有什么需要写入ostack
+        PutReturnMsg* put_return_msg = static_cast<PutReturnMsg*>(msg);
+        // 什么也不需要做
 
         m_spec_mode.pc += 3;
     }
-    else if (type == Message::get) {
-        launch_next_spec_msg();
-    }
     else if (type == Message::get_return) {
-        GetMsg* msg = static_cast<GetMsg*>(spec_msg);
 
-        // 将读到的值写入ostack
-        for (auto i : msg->val) {
+        GetReturnMsg* get_return_msg = static_cast<GetReturnMsg*>(msg);
+
+        for (auto i : get_return_msg->val) {
             m_spec_mode.write(m_spec_mode.sp++, i);
         }
 
         m_spec_mode.pc += 3;
-    }
-    else if (type == Message::arraystore) {
-        ArrayStoreMsg* msg = static_cast<ArrayStoreMsg*>(spec_msg);
-
-        Object* array = msg->get_target_object();
-        int index = msg->index;
-        int type_size = msg->type_size;
-
-        void* addr = array_elem_addr(array, index, type_size);
-        m_spec_mode.store_array_from_no_cache_mem(&msg->slots[0], addr, type_size);
-
-        // for (int i = 0; i < msg->val.size(); ++i) {
-        //     m_spec_mode.write(addr + i, msg->val[i]);
-        // }
-
-        launch_next_spec_msg();
     }
     else if (type == Message::arraystore_return) {
         // 没有什么需要写入ostack
 
         m_spec_mode.pc += 1;
     }
-    else if (type == Message::arrayload) {
-    }
     else if (type == Message::arrayload_return) {
-        ArrayLoadMsg* msg = static_cast<ArrayLoadMsg*>(spec_msg);
+        ArrayLoadMsg* arrayload_msg = static_cast<ArrayLoadMsg*>(msg);
 
         // 将读到的值写入ostack
         // for (auto i : msg->val) {
@@ -1012,6 +1055,9 @@ SpmtThread::process_spec_msg(Message* spec_msg)
         // }
 
         m_spec_mode.pc += 3;
+    }
+    else {
+        assert(false);
     }
 
 }
@@ -1120,71 +1166,29 @@ SpmtThread::snapshot(bool pin)
 }
 
 
-// void
-// SpmtThread::snapshot_old(bool shot_frame)
-// {
-//     if (shot_frame) {
-//         Frame* f = this->frame;
-//         //assert(f == 0 || m_spmt_thread->is_owner_enclosure(f->get_object()));
+void
+SpmtThread::on_event_top_invoke(InvokeMsg* msg)
+{
+    // assert 必为确定模式
+    // discard effect
+
+    // 按正常处理invoke消息那样处理
+    // internal_invoke
+    m_certain_mode.internal_invoke(msg->get_target_object(), msg->mb, &msg->parameters[0],
+                                   0, 0, 0);
+
+}
 
 
-//         if (f) {
-//             for (;;) {
-//                 MINILOG(snapshot_logger,
-//                         "#" << m_spmt_thread->id() << " snapshot frame(" << f << ")" << " for " << *f->mb);
+void
+SpmtThread::on_event_top_return(ReturnMsg* msg)
+{
+    // 把消息中的返回值写入接收返回值的dummy frame的ostack
+    for (auto i : msg->retval) {
+        *m_certain_mode.sp++ = i;
+    }
 
-//                 if (f->pinned) break;
-//                 f->pinned = true;
+    // 不需要调整pc，因为dummy frame没有对应的方法
 
-//                 if (f->calling_object->get_group() != get_group())
-//                     break;
-
-//                 //if (f == m_spmt_thread->m_certain_mode.frame) break;
-//                 if (f->is_task_frame) break;
-//                 if (f->is_top_frame()) break;
-
-//                 f = f->prev;
-//             }
-//         }
-//     }
-
-//     Snapshot* snapshot = new Snapshot;
-
-//     snapshot->version = m_spmt_thread->m_state_buffer.version();
-//     //m_spmt_thread->m_states_buffer.freeze();
-
-//     // //{{{ just for debug
-//     // MINILOG_IF(m_spmt_thread->id() == 5,
-//     //            cache_logger,
-//     //            "#" << m_spmt_thread->id() << " ostack base: " << frame->ostack_base);
-//     // MINILOGPROC_IF(m_spmt_thread->id() == 5,
-//     //                cache_logger, show_cache,
-//     //                (os, m_spmt_thread->id(), m_spmt_thread->m_states_buffer, false));
-//     // //}}} just for debug
-//     //snapshot->user = this->m_user;
-//     snapshot->pc = this->pc;
-//     snapshot->frame = shot_frame ? this->frame : 0;
-//     snapshot->sp = this->sp;
-
-//     //{{{ just for debug
-//     assert(m_spmt_thread->has_message_to_be_verified());
-//     snapshot->spec_msg = m_spmt_thread->m_messages_to_be_verified.back();
-//     MINILOG0("#" << m_spmt_thread->id() << " shot spec: " << *snapshot->spec_msg);
-//     //}}} just for debug
-
-
-//     MINILOG(snapshot_logger,
-//             "#" << m_spmt_thread->id() << " snapshot, ver(" << snapshot->version << ")" << " is frozen");
-//     if (shot_frame) {
-//         MINILOG(snapshot_detail_logger,
-//                 "#" << m_spmt_thread->id() << " details:");
-//         MINILOGPROC(snapshot_detail_logger, show_snapshot,
-//                     (os, m_spmt_thread->id(), snapshot));
-//     }
-
-//     if (shot_frame) {
-//         assert(snapshot->frame == 0 || is_sp_ok(snapshot->sp, snapshot->frame));
-//     }
-
-//     m_spmt_thread->m_snapshots_to_be_committed.push_back(snapshot);
-// }
+    signal_quit_step_loop(0);
+}
