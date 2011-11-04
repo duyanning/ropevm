@@ -12,6 +12,7 @@
 #include "frame.h"
 #include "DebugScaffold.h"
 #include "Helper.h"
+#include "Group.h"
 
 using namespace std;
 
@@ -61,14 +62,14 @@ RvpMode::after_alloc_object(Object* obj)
 void
 RvpMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
 {
-    if (intercept_vm_backdoor(target_object, new_mb)) return;
+    //if (intercept_vm_backdoor(target_object, new_mb)) return;
 
     //log_when_invoke_return(true, m_user, frame->mb, target_object, new_mb);
 
-    Group* target_group = target_object->get_group();
-    if (target_group == get_group()) { // object re-entry
-        assert(false);               // todo
-    }
+    SpmtThread* target_spmt_thread = target_object->get_group()->get_spmt_thread();
+    assert(target_spmt_thread->m_thread == m_spmt_thread->m_thread);
+
+    assert(target_spmt_thread != m_spmt_thread); // object reentry
 
     if (is_priviledged(new_mb)) {
         MINILOG(r_logger,
@@ -89,7 +90,6 @@ RvpMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
     Frame* new_frame =
         create_frame(target_object, rvp_mb, &args[0], 0, pc, frame, sp);
 
-    new_frame->is_certain = false;
 
     MINILOG_IF(debug_scaffold::java_main_arrived,
                r_frame_logger,
@@ -113,8 +113,6 @@ RvpMode::do_method_return(int len)
     assert(len == 0 || len == 1 || len == 2);
     assert(not is_priviledged(frame->mb));
 
-    //log_when_invoke_return(false, frame->calling_object, frame->prev->mb, m_user, frame->mb);
-
     MINILOG_IF(debug_scaffold::java_main_arrived,
                r_frame_logger,
                "#" << m_spmt_thread->id()
@@ -124,17 +122,17 @@ RvpMode::do_method_return(int len)
                << frame->prev->mb->full_name()
                );
 
-    //{{{ just for debug
-    if (m_spmt_thread->m_id == 6 && strcmp(frame->mb->name, "_p_slice_for_makeUniqueNeighbors") == 0) {
-        int x = 0;
-        x++;
-    }
-    //{{{ just for debug
+    Frame* current_frame = frame;
 
-    Object* target_object = frame->prev->get_object();
-    Group* target_group = target_object->get_group();
 
-    if (target_group != get_group()) {
+    /*
+      if 是从最顶层的rvp栈帧返回(最顶层的rvp栈帧的caller不为0)
+          构造返回值消息，退出rvp模式，转入推测模式
+      else
+          继续在rvp模式下工作
+     */
+
+    if (frame->caller == 0) {
         sp -= len;
         uintptr_t* caller_sp = frame->caller_sp;
         for (int i = 0; i < len; ++i) {
@@ -146,83 +144,32 @@ RvpMode::do_method_return(int len)
         sp = caller_sp;
         pc = current_frame->caller_pc;
 
-        assert(is_sp_ok(sp, frame));
-        assert(is_pc_ok(pc, frame->mb));
-
-
         destroy_frame(current_frame);
         pc += (*pc == OPC_INVOKEINTERFACE_QUICK ? 5 : 3);
     }
-    else { // should quit RVP mode
-
-        //{{{ just for debug
-        if (m_spmt_thread->m_id == 0
-            && strcmp(frame->mb->name, "createVillage") == 0
-            && strcmp(frame->prev->mb->name, "main") == 0) {
-            int x = 0;
-            x++;
-        }
-        //{{{ just for debug
+    else { // 从最顶层的rvp栈帧返回
 
         sp -= len;
 
+        // 获得推测性的返回值（现在rvp方法预测出来的返回值就静静地躺在当前栈帧的ostack中）
         std::vector<uintptr_t> rv;
-        uintptr_t* caller_sp = frame->caller_sp;
 
         for (int i = 0; i < len; ++i) {
-            m_spmt_thread->m_spec_mode.write(caller_sp++, read(&sp[i]));
             rv.push_back(read(&sp[i]));
         }
 
-        ReturnMsg* msg = new ReturnMsg(&rv[0], len);
-
-        m_spmt_thread->add_message_to_be_verified(msg);
-
-        Frame* current_frame = frame;
-        frame = frame->prev;
-        sp = caller_sp;
-        pc = current_frame->caller_pc;
-        pc += (*pc == OPC_INVOKEINTERFACE_QUICK ? 5 : 3);
-
-        assert(is_sp_ok(sp, frame));
-        assert(is_pc_ok(pc, frame->mb));
-
-        //m_spmt_thread->leave_rvp_mode(target_object);
-
-
-        MINILOG0("#" << m_spmt_thread->id() << " leave RVP mode");
-
-        m_spmt_thread->m_spec_mode.pc = pc;
-        m_spmt_thread->m_spec_mode.frame = frame;
-        m_spmt_thread->m_spec_mode.sp = sp;
-
-        m_spmt_thread->switch_to_speculative_mode();
-
-        // MINILOG(when_leave_rvp_logger,
-        //         "#" << id() << " when leave rvp mode");
-        // MINILOG(when_leave_rvp_logger,
-        //         "#" << id() << " ---------------------------");
-        // MINILOG(when_leave_rvp_logger,
-        //         "#" << id() << " now use cache ver(" << m_cache.version() << ")");
-        // MINILOG(when_leave_rvp_logger,
-        //         "#" << id() << " SPEC details:");
-        // // MINILOGPROC(when_leave_rvp_logger,
-        // //             show_triple,
-        // //             (os, id(),
-        // //              m_speculative_mode.frame, m_speculative_mode.sp, m_speculative_mode.pc,
-        // //              m_speculative_mode.m_user,
-        // //              true));
-
-        // MINILOG(when_leave_rvp_logger,
-        //         "#" << id() << " ---------------------------");
+        // 根据该返回值构造推测性的return消息
+        ReturnMsg* return_msg = new ReturnMsg(&rv[0], len);
 
         m_spmt_thread->m_rvp_buffer.clear();
 
-
-        // MINILOG(r_destroy_frame_logger, "#" << m_spmt_thread->id()
-        //         << " free rvpframe" << *current_frame);
-
         destroy_frame(current_frame);
+
+        MINILOG0("#" << m_spmt_thread->id() << " leave RVP mode");
+
+        m_spmt_thread->switch_to_speculative_mode();
+        m_spmt_thread->launch_spec_msg(return_msg);
+
     }
 }
 

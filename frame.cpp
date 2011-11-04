@@ -67,11 +67,8 @@ Frame::Frame(int lvars_size, int ostack_size)
     prev = 0;
     _name_ = 0;
     object = 0;
-    calling_object = 0;
     lrefs = 0;
     pinned = false;
-    is_task_frame = false;
-    is_certain = true;
     caller_sp = 0;
     caller_pc = 0;
 
@@ -104,7 +101,7 @@ Frame::~Frame()
     prev = 0;
     caller_pc = 0;
     caller_sp = 0;
-    calling_object = 0;
+    caller = 0;
     magic = 2009;
     object = 0;
     //}}} just for debug
@@ -132,7 +129,7 @@ operator<<(std::ostream& os, const Frame& f)
        << " obj: " << f.object
        << " prev: " << f.prev
        << " prev_obj: " << f.prev->object
-       << " calling_obj: " << f.calling_object
+       << " caller: " << f.caller
        << " ["
        << f.lvars << ", " << f.lvars + f.mb->max_locals
        << ")"
