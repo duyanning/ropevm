@@ -20,13 +20,9 @@ public:
 
     const char* _name_;
 
-    bool is_task_frame;
-    bool is_certain;            // refactor: remove
-    //    bool snapshoted;            // refactor: rename
     bool pinned;
     Object* object;             // 这个主要是为了给没有this的静态方法使用
     SpmtThread* caller;
-    Object* calling_object;     // refactor: to remove
 
     std::vector<Object*> * lrefs;
 
@@ -56,7 +52,7 @@ std::ostream& operator<<(std::ostream& os, const Frame& f);
 inline
 bool is_rvp_frame(Frame* frame)
 {
-    return frame->calling_object == 0;
+    return frame->caller == 0;
 }
 
 #endif // FRAME_H

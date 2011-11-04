@@ -63,10 +63,7 @@ protected:
 
 class InvokeMsg : public RoundTripMsg {
 public:
-    // refactor:
     InvokeMsg(SpmtThread* source_spmt_thread, Object* target_object, MethodBlock* mb, uintptr_t* args, bool is_top = false);
-    //InvokeMsg(Object* object, MethodBlock* mb, Frame* prev, Object* calling_object, uintptr_t* args, uintptr_t* caller_sp, CodePntr caller_pc);
-
     bool is_top() { return m_is_top; }
 
     virtual bool equal(Message& msg);
@@ -75,14 +72,7 @@ public:
 
     MethodBlock* mb;
     std::vector<uintptr_t> parameters;
-
-
     bool m_is_top;
-
-
-    // Frame* caller_frame;        // refactor: to remove
-    // uintptr_t* caller_sp;       // refactor: to remove
-    // CodePntr caller_pc;         // refactor: to remove
 };
 
 
@@ -90,8 +80,6 @@ class ReturnMsg : public Message {
 public:
 
     ReturnMsg(uintptr_t* rv, int len, bool is_top = false);
-    //ReturnMsg(Object* source_obj, Object* target_obj, uintptr_t* rv, int len, bool is_top = false);
-    //ReturnMsg(Object* object, MethodBlock* mb, Frame* caller_frame, Object* calling_object, uintptr_t* rv, int len, uintptr_t* caller_sp, CodePntr caller_pc);
     bool is_top() { return m_is_top; }
 
     virtual bool equal(Message& msg);
@@ -99,34 +87,20 @@ public:
     virtual void show_detail(std::ostream& os, int id) const;
 
     std::vector<uintptr_t> retval;
-
     bool m_is_top;
-
-    // Frame* caller_frame;        // refactor: to remove
-    // uintptr_t* caller_sp;       // refactor: to remove
-    // CodePntr caller_pc;         // refactor: to remove
-
-    // // for debug
-    // MethodBlock* mb;
 };
 
 
 class GetMsg : public RoundTripMsg {
 public:
-    GetMsg(SpmtThread* source_spmt_thread, Object* target_object, FieldBlock* fb, uintptr_t* addr, int size);
+    GetMsg(SpmtThread* source_spmt_thread, Object* target_object, FieldBlock* fb);
+    uintptr_t* get_field_addr();
+    int get_field_size();
     virtual bool equal(Message& msg);
     void show(std::ostream& os) const;
     virtual void show_detail(std::ostream& os, int id) const;
 
     FieldBlock* fb;
-    uintptr_t* addr;
-    int size;
-
-    //std::vector<uintptr_t> val;
-    //int instr_len;
-    // Frame* caller_frame;
-    // uintptr_t* caller_sp;
-    // CodePntr caller_pc;
 };
 
 
@@ -143,18 +117,16 @@ public:
 
 class PutMsg : public RoundTripMsg {
 public:
-    PutMsg(SpmtThread* source_spmt_thread, Object* target_object, FieldBlock* fb, uintptr_t* addr, uintptr_t* val, int len, bool is_static);
+    PutMsg(SpmtThread* source_spmt_thread,
+           Object* target_object, FieldBlock* fb,
+           uintptr_t* val);
+    uintptr_t* get_field_addr();
     virtual bool equal(Message& msg);
     void show(std::ostream& os) const;
     virtual void show_detail(std::ostream& os, int id) const;
 
     FieldBlock* fb;
-    uintptr_t* addr;
     std::vector<uintptr_t> val;
-    /*     Frame* caller_frame; */
-    /*     uintptr_t* caller_sp; */
-    /*     CodePntr caller_pc; */
-    bool is_static;
 };
 
 

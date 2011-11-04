@@ -510,8 +510,8 @@ SpmtThread::mark_frame_certain()
     for (;;) {
         MINILOG(mark_frame_certain_logger,
                 "#" << id() << " mark frame certain " << *f);
-        if (f->is_certain) break;
-        f->is_certain = true;
+        //if (f->is_certain) break;
+        //f->is_certain = true;
         if (f->is_top_frame()) break;
         f = f->prev;
     }
@@ -793,9 +793,10 @@ SpmtThread::process_certain_msg(Message* msg)
 
         PutMsg* put_msg = static_cast<PutMsg*>(msg);
 
-        // 按照put消息的指示，往某字段写入一个数值
+        // 向put消息指定的字段写入一个指定的数值
+        uintptr_t* field_addr = put_msg->get_field_addr();
         for (int i = 0; i < put_msg->val.size(); ++i) {
-            put_msg->addr[i] = put_msg->val[i];
+            m_certain_mode.write(field_addr + i, put_msg->val[i]);
         }
 
         PutReturnMsg* put_return_msg = new PutReturnMsg();
@@ -808,8 +809,17 @@ SpmtThread::process_certain_msg(Message* msg)
 
         GetMsg* get_msg = static_cast<GetMsg*>(msg);
 
-        GetReturnMsg* get_return_msg = new GetReturnMsg(get_msg->addr,
-                                                        get_msg->size);
+        // 从get消息的指定的字段中读取一个值，并根据该值构造get_return消息
+        uintptr_t* field_addr = get_msg->get_field_addr();
+        int field_size = get_msg->get_field_size();
+        std::vector<uintptr_t> value;
+        for (int i = 0; i < field_size; ++i) {
+            value.push_back(m_certain_mode.read(field_addr + i));
+        }
+
+
+        GetReturnMsg* get_return_msg = new GetReturnMsg(&value[0],
+                                                        value.size());
 
         send_certain_msg(get_msg->get_source_spmt_thread(), get_return_msg);
 
@@ -825,7 +835,7 @@ SpmtThread::process_certain_msg(Message* msg)
         void* addr = array_elem_addr(array, index, type_size);
         m_certain_mode.store_array_from_no_cache_mem(&arraystore_msg->slots[0], addr, type_size);
 
-        ArrayStoreReturn* arraystore_return_msg = new ArrayStoreReturn();
+        ArrayStoreReturnMsg* arraystore_return_msg = new ArrayStoreReturnMsg();
         send_certain_msg(arraystore_msg->get_source_spmt_thread(),
                          arraystore_return_msg);
 
@@ -839,7 +849,7 @@ SpmtThread::process_certain_msg(Message* msg)
         m_certain_mode.sp += type_size > 4 ? 2 : 1;
 
 
-        ArrayLoadReturn* arrayload_return_msg = new ArrayLoadReturn();
+        ArrayLoadReturnMsg* arrayload_return_msg = new ArrayLoadReturnMsg();
         send_certain_msg(arrayload_msg->get_source_spmt_thread(),
                          arrayload_return_msg);
 
@@ -976,8 +986,10 @@ SpmtThread::process_spec_msg(Message* msg)
     else if (type == Message::put) {
         PutMsg* put_msg = static_cast<PutMsg*>(msg);
 
+        uintptr_t* field_addr = put_msg->get_field_addr();
+
         for (int i = 0; i < put_msg->val.size(); ++i) {
-            m_spec_mode.write(put_msg->addr + i, put_msg->val[i]);
+            m_spec_mode.write(field_addr + i, put_msg->val[i]);
         }
 
         PutReturnMsg* put_return_msg = new PutReturnMsg();
@@ -988,8 +1000,18 @@ SpmtThread::process_spec_msg(Message* msg)
     else if (type == Message::get) {
         GetMsg* get_msg = static_cast<GetMsg*>(msg);
 
-        GetReturnMsg* get_return_msg = new GetReturnMsg(get_msg->addr,
-                                                        get_msg->size);
+        // 从get消息的指定的字段中读取一个值，并根据该值构造get_return消息
+        uintptr_t* field_addr = get_msg->get_field_addr();
+        int field_size = get_msg->get_field_size();
+        std::vector<uintptr_t> value;
+        for (int i = 0; i < field_size; ++i) {
+            value.push_back(m_spec_mode.read(field_addr + i));
+        }
+
+
+        GetReturnMsg* get_return_msg = new GetReturnMsg(&value[0],
+                                                        value.size());
+
         // 将get_return消息记录在effect中
         launch_next_spec_msg();
     }
@@ -1006,12 +1028,12 @@ SpmtThread::process_spec_msg(Message* msg)
         // for (int i = 0; i < msg->val.size(); ++i) {
         //     m_spec_mode.write(addr + i, msg->val[i]);
         // }
-        ArrayStoreReturn* arraystore_return_msg = new ArrayStoreReturn();
+        ArrayStoreReturnMsg* arraystore_return_msg = new ArrayStoreReturnMsg();
         // 将消息记入effect
         launch_next_spec_msg();
     }
     else if (type == Message::arrayload) {
-        ArrayLoadReturn* arrayload_return_msg = new ArrayLoadReturn();
+        ArrayLoadReturnMsg* arrayload_return_msg = new ArrayLoadReturnMsg();
         // 将消息记入effect
         launch_next_spec_msg();
     }
@@ -1138,7 +1160,7 @@ SpmtThread::pin_frames()
             break;
 
         f = f->prev;
-        if (f->calling_object->get_group()->get_spmt_thread() != this)
+        if (f->caller != this)
             break;
 
     }

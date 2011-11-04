@@ -461,41 +461,30 @@ getstatic
 
  */
 void
-CertainMode::do_get_field(Object* source_object, FieldBlock* fb,
+CertainMode::do_get_field(Object* target_object, FieldBlock* fb,
                           uintptr_t* addr, int size, bool is_static)
 {
     assert(size == 1 || size == 2);
 
-    //{{{ just for debug
-    if (strcmp(frame->mb->name, "main") == 0) {
-        int x = 0;
-        x++;
-    }
-    //}}} just for debug
+    SpmtThread* target_spmt_thread = target_object->get_group()->get_spmt_thread();
+    assert(target_spmt_thread->m_thread == m_spmt_thread->m_thread);
 
-    Object* current_object = frame->get_object();
-    Group* current_group = current_object->get_group();
-    //Group* source_group = source_object->get_group();
-
-    sp -= is_static ? 0 : 1;
-
-    if (current_group->can_speculate() and m_spmt_thread->has_message_to_be_verified()) {
-
-        GetMsg* msg = new GetMsg(m_spmt_thread, source_object, fb, addr, size);
-        m_spmt_thread->verify_speculation(msg);
-        return;
-
-    }
-    else {
-
+    if (target_spmt_thread == m_spmt_thread) {
+        sp -= is_static ? 0 : 1;
         for (int i = 0; i < size; ++i) {
             write(sp, read(addr + i));
             sp++;
         }
+        pc += 3;
+    }
+    else {
+        sp -= is_static ? 0 : 1;
+        GetMsg* msg = new GetMsg(m_spmt_thread, target_object, fb);
+
+        m_spmt_thread->sleep();
+        m_spmt_thread->send_certain_msg(target_spmt_thread, msg);
 
     }
-
-    pc += 3;
 
 }
 
@@ -526,20 +515,23 @@ CertainMode::do_put_field(Object* target_object, FieldBlock* fb,
 
     if (target_spmt_thread == m_spmt_thread) {
         sp -= size;
+
         for (int i = 0; i < size; ++i) {
             write(addr + i, read(sp + i));
         }
+
         sp -= is_static ? 0 : 1;
         pc += 3;
     }
     else {
         sp -= size;
 
-        PutMsg* msg = new PutMsg(m_spmt_thread, target_object, fb, addr, sp, size, is_static);
+        PutMsg* msg = new PutMsg(m_spmt_thread, target_object, fb, sp);
 
         sp -= is_static ? 0 : 1;
 
         m_spmt_thread->sleep();
+
         m_spmt_thread->send_certain_msg(target_spmt_thread, msg);
     }
 

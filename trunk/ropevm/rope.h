@@ -403,7 +403,11 @@ public:
     AnnotationData *annotations;
 public:
     bool is_static() const {  return access_flags & ACC_STATIC;  }
+    int field_size() const;
+    uintptr_t* field_addr(Object* obj);
 };
+
+
 
 typedef struct itable_entry {
     Class *interface;
@@ -962,5 +966,24 @@ array_elem_addr(Object* array, int index, size_t type_size)
     uint8_t* addr = (uint8_t*)ARRAY_DATA(array) + index * type_size;
     return addr;
 }
+
+
+inline
+int
+FieldBlock::field_size() const
+{
+    int size = ((*type == 'J') || (*type == 'D')) ? 2 : 1;
+    return size;
+}
+
+
+inline
+uintptr_t*
+FieldBlock::field_addr(Object* obj)
+{
+    uintptr_t* addr = is_static() ? &static_value : &INST_DATA(obj)[offset];
+    return addr;
+}
+
 
 #endif // ROPE_H

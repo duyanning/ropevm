@@ -150,7 +150,8 @@ ReturnMsg::show_detail(std::ostream& os, int id) const
 }
 
 //-----------------------------------------------
-GetMsg::GetMsg(SpmtThread* source_spmt_thread, Object* target_object, FieldBlock* fb, uintptr_t* addr, int size)
+//GetMsg::GetMsg(SpmtThread* source_spmt_thread, Object* target_object, FieldBlock* fb, uintptr_t* addr, int size)
+GetMsg::GetMsg(SpmtThread* source_spmt_thread, Object* target_object, FieldBlock* fb)
 :
     RoundTripMsg(Message::get, source_spmt_thread, target_object)
 {
@@ -164,8 +165,20 @@ GetMsg::GetMsg(SpmtThread* source_spmt_thread, Object* target_object, FieldBlock
 
     //this->instr_len = instr_len;
     this->fb = fb;
-    this->addr = addr;
-    this->size = size;
+    // this->addr = addr;
+    // this->size = size;
+}
+
+uintptr_t*
+GetMsg::get_field_addr()
+{
+    return fb->field_addr(get_target_object());
+}
+
+int
+GetMsg::get_field_size()
+{
+    return fb->field_size();
 }
 
 bool
@@ -208,22 +221,38 @@ GetMsg::show_detail(std::ostream& os, int id) const
     //os << "#" << id << "\n";
 }
 //-----------------------------------------------
-PutMsg::PutMsg(SpmtThread* source_spmt_thread, Object* target_object, FieldBlock* fb, uintptr_t* addr, uintptr_t* val, int len, bool is_static)
+// PutMsg::PutMsg(SpmtThread* source_spmt_thread,
+//                Object* target_object, FieldBlock* fb, uintptr_t* addr,
+//                uintptr_t* val, int len)
+PutMsg::PutMsg(SpmtThread* source_spmt_thread,
+               Object* target_object, FieldBlock* fb,
+               uintptr_t* val)
 :
     RoundTripMsg(Message::put, source_spmt_thread, target_object)
 {
-    for (int i = 0; i < len; ++i) {
+
+    for (int i = 0; i < fb->field_size(); ++i) {
         this->val.push_back(val[i]);
     }
-    this->addr = addr;
+    this->fb = fb;
+
+    //this->addr = addr;
 
 //     this->caller_frame = caller_frame;
 //     this->caller_sp = caller_sp;
 //     this->caller_pc = caller_pc;
-    this->is_static = is_static;
+    //this->is_static = is_static;
 
-    this->fb = fb;
+
 }
+
+
+uintptr_t*
+PutMsg::get_field_addr()
+{
+    return fb->field_addr(get_target_object());
+}
+
 
 bool
 PutMsg::equal(Message& msg)

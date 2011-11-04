@@ -162,21 +162,12 @@ SpeculativeMode::do_method_return(int len)
 
     Frame* current_frame = frame;
 
-    MINILOG(s_logger,
-            "#" << m_spmt_thread->id() << " (S) is to return from " << *frame);
-
-    // // top frame' caller is native code, so we sleep
-    // if (frame->is_top_frame()) {
-    //     MINILOG(s_logger,
-    //             "#" << m_spmt_thread->id() << " (S) " << *frame->mb << " is a top frame");
-    //     m_spmt_thread->sleep();
-    //     return;
-    // }
+    MINILOG(s_logger, "#" << m_spmt_thread->id()
+            << " (S) is to return from " << *frame);
 
 
 
-    Object* target_object = frame->calling_object;
-    SpmtThread* target_spmt_thread = target_object->get_group()->get_spmt_thread();
+    SpmtThread* target_spmt_thread = current_frame->caller;
 
     if (target_spmt_thread == m_spmt_thread) {
 
@@ -262,21 +253,20 @@ SpeculativeMode::destroy_frame(Frame* frame)
 }
 
 void
-SpeculativeMode::do_get_field(Object* source_object, FieldBlock* fb, uintptr_t* addr, int size, bool is_static)
+SpeculativeMode::do_get_field(Object* target_object, FieldBlock* fb, uintptr_t* addr, int size, bool is_static)
 {
     assert(size == 1 || size == 2);
 
-    MINILOG(s_logger,
-            "#" << m_spmt_thread->id() << " (S) is to getfield: " << *fb
+    MINILOG(s_logger, "#" << m_spmt_thread->id()
+            << " (S) is to getfield: " << *fb
             //            << " of " << static_cast<void*>(target_object));
-            << " of " << source_object);
+            << " of " << target_object);
 
-    Object* current_object = frame->get_object();
 
-    Group* current_group = current_object->get_group();
-    Group* source_group = source_object->get_group();
+    SpmtThread* target_spmt_thread = target_object->get_group()->get_spmt_thread();
+    assert(target_spmt_thread->m_thread == m_spmt_thread->m_thread);
 
-    if (source_group == current_group) {
+    if (target_spmt_thread == m_spmt_thread) {
 
         sp -= is_static ? 0 : 1;
         for (int i = 0; i < size; ++i) {
@@ -287,25 +277,24 @@ SpeculativeMode::do_get_field(Object* source_object, FieldBlock* fb, uintptr_t* 
 
     }
     else {
-
-        m_spmt_thread->snapshot(1==1);
-
-        // read all at one time, to avoid data change between two reading.
-        vector<uintptr_t> val;
-        for (int i = 0; i < size; ++i) {
-            val.push_back(addr[i]);
-        }
-
         sp -= is_static ? 0 : 1;
 
-        GetMsg* msg = new GetMsg(m_spmt_thread, source_object, fb, &val[0], size);
-        m_spmt_thread->add_message_to_be_verified(msg);
+        GetMsg* get_msg = new GetMsg(m_spmt_thread, target_object, fb);
 
+        MINILOG(s_logger, "#" << m_spmt_thread->id()
+                << " (S) add get msg to #"
+                << target_spmt_thread->id() << ": " << *get_msg);
+
+        m_spmt_thread->send_spec_msg(target_spmt_thread, get_msg);
+
+
+        // 构造推测性的get_return消息并使用
+        vector<uintptr_t> value;
         for (int i = 0; i < size; ++i) {
-            write(sp, val[i]);
-            sp++;
+            value.push_back(addr[i]);
         }
-        pc += 3;
+        GetReturnMsg* get_return_msg = new GetReturnMsg(&value[0], value.size());
+        m_spmt_thread->launch_spec_msg(get_return_msg);
 
     }
 
@@ -317,59 +306,42 @@ SpeculativeMode::do_put_field(Object* target_object, FieldBlock* fb,
 {
     assert(size == 1 || size == 2);
 
-    MINILOG(s_logger,
-            "#" << m_spmt_thread->id() << " (S) is to putfield: " << *fb);
+    MINILOG(s_logger, "#" << m_spmt_thread->id()
+            << " (S) is to put: " << *fb);
 
+    SpmtThread* target_spmt_thread = target_object->get_group()->get_spmt_thread();
+    assert(target_spmt_thread->m_thread == m_spmt_thread->m_thread);
 
-    Object* current_object = frame->get_object();
-
-    Group* current_group = current_object->get_group();
-    Group* target_group = target_object->get_group();
-
-    if (target_group == current_group) {
-
+    if (target_spmt_thread == m_spmt_thread) {
         sp -= size;
         for (int i = 0; i < size; ++i) {
             write(addr + i, read(sp + i));
         }
         sp -= is_static ? 0 : 1;
         pc += 3;
-
     }
     else {
+        sp -= size;
 
-        m_spmt_thread->snapshot(1==1);
-
-        if (target_group->can_speculate()) {
-
-            SpmtThread* target_core = target_group->get_core();
-            sp -= size;
-
-            vector<uintptr_t> val;
-            for (int i = 0; i < size; ++i) {
-                val.push_back(read(sp + i));
-            }
-
-            sp -= is_static ? 0 : 1;
-            pc += 3;
-
-            MINILOG(s_logger,
-                     "#" << m_spmt_thread->id() << " (S) target object has a core #"
-                     << target_core->id());
-
-            PutMsg* msg = new PutMsg(m_spmt_thread, target_object, fb, addr, &val[0], size, is_static);
-
-            MINILOG(s_logger,
-                     "#" << m_spmt_thread->id() << " (S) add putfield task to #"
-                    << target_core->id() << ": " << *msg);
-
-            m_spmt_thread->send_spec_msg(target_core, msg);
+        vector<uintptr_t> val;
+        for (int i = 0; i < size; ++i) {
+            val.push_back(read(sp + i));
         }
-        else {
 
-            MINILOG(s_logger,
-                    "#" << m_spmt_thread->id() << " target object is coreless");
-        }
+        sp -= is_static ? 0 : 1;
+
+        PutMsg* put_msg = new PutMsg(m_spmt_thread, target_object, fb, &val[0]);
+
+        MINILOG(s_logger, "#" << m_spmt_thread->id()
+                << " (S) add put msg to #"
+                << target_spmt_thread->id() << ": " << *put_msg);
+
+        m_spmt_thread->send_spec_msg(target_spmt_thread, put_msg);
+
+
+        // 构造推测性的put_return消息并使用
+        PutReturnMsg* put_return_msg = new PutReturnMsg();
+        m_spmt_thread->launch_spec_msg(put_return_msg);
 
     }
 }
