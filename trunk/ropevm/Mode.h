@@ -16,7 +16,7 @@ public:
 
     virtual void before_alloc_object();
     virtual void after_alloc_object(Object* obj);
-    Group* assign_group_for(Object* obj);
+    //SpmtThread* assign_spmt_thread_for(Object* obj);
 
     virtual void* do_execute_method(Object* target_object, MethodBlock *mb, std::vector<uintptr_t>& jargs) = 0;
     virtual void do_invoke_method(Object* objectref, MethodBlock* new_mb) = 0;
@@ -32,8 +32,8 @@ public:
 
     void load_from_array(uintptr_t* sp, void* elem_addr, int type_size);
     void store_to_array(uintptr_t* sp, void* elem_addr, int type_size);
-    void load_array_from_no_cache_mem(uintptr_t* sp, void* elem_addr, int type_size);
-    void store_array_from_no_cache_mem(uintptr_t* sp, void* elem_addr, int type_size);
+    void load_from_array_to_c(uintptr_t* sp, void* elem_addr, int type_size);
+    void store_to_array_from_c(uintptr_t* sp, void* elem_addr, int type_size);
 
 
     virtual Frame* create_frame(Object* object, MethodBlock* new_mb, uintptr_t* args,
@@ -54,8 +54,6 @@ public:
     bool is_certain_mode();
     bool is_speculative_mode();
     bool is_rvp_mode();
-
-    Group* get_group();
 
 public:
     //-------------------
@@ -132,6 +130,9 @@ Mode::write(T* addr, U value)
 }
 
 
+
+void
+g_load_from_stable_array_to_c(uintptr_t* sp, void* elem_addr, int type_size);
 
 
 

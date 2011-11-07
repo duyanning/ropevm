@@ -12,7 +12,6 @@
 #include "frame.h"
 #include "DebugScaffold.h"
 #include "Helper.h"
-#include "Group.h"
 
 using namespace std;
 
@@ -66,7 +65,7 @@ RvpMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
 
     //log_when_invoke_return(true, m_user, frame->mb, target_object, new_mb);
 
-    SpmtThread* target_spmt_thread = target_object->get_group()->get_spmt_thread();
+    SpmtThread* target_spmt_thread = target_object->get_spmt_thread();
     assert(target_spmt_thread->m_thread == m_spmt_thread->m_thread);
 
     assert(target_spmt_thread != m_spmt_thread); // object reentry
@@ -159,7 +158,8 @@ RvpMode::do_method_return(int len)
         }
 
         // 根据该返回值构造推测性的return消息
-        ReturnMsg* return_msg = new ReturnMsg(&rv[0], len);
+        ReturnMsg* return_msg = new ReturnMsg(&rv[0], len,
+                                              0, 0, 0);
 
         m_spmt_thread->m_rvp_buffer.clear();
 
@@ -270,8 +270,6 @@ RvpMode::do_put_field(Object* obj, FieldBlock* fb, uintptr_t* addr, int size, bo
 void
 RvpMode::do_array_load(Object* array, int index, int type_size)
 {
-    //assert(size == 1 || size == 2);
-
     sp -= 2;                    // pop arrayref and index
 
     void* addr = array_elem_addr(array, index, type_size);
@@ -284,8 +282,6 @@ RvpMode::do_array_load(Object* array, int index, int type_size)
 void
 RvpMode::do_array_store(Object* array, int index, int type_size)
 {
-    //assert(size == 1 || size == 2);
-
     sp -= type_size > 4 ? 2 : 1; // pop up value
 
     void* addr = array_elem_addr(array, index, type_size);

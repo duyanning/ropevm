@@ -13,7 +13,6 @@
 #include "DebugScaffold.h"
 #include "Snapshot.h"
 #include "frame.h"
-#include "Group.h"
 
 using namespace std;
 
@@ -82,20 +81,21 @@ CertainMode::do_execute_method(Object* target_object,
     assert(target_object);
 
 
-    SpmtThread* target_spmt_thread = target_object->get_group()->get_spmt_thread();
+    SpmtThread* target_spmt_thread = target_object->get_spmt_thread();
 
-    assert(target_spmt_thread->get_group()->get_thread() == threadSelf());
+    assert(target_spmt_thread->get_thread() == g_get_current_thread());
 
     if (target_spmt_thread == m_spmt_thread) {
 
-        internal_invoke(target_object, new_mb, &jargs[0],
-                        0, dummy, dummy->ostack_base);
+        invoke_impl(target_object, new_mb, &jargs[0],
+                    0, dummy, dummy->ostack_base);
 
 
     }
     else {
-        InvokeMsg* msg = new InvokeMsg(m_spmt_thread, target_object,
-                                       new_mb, &jargs[0],
+        InvokeMsg* msg = new InvokeMsg(m_spmt_thread,
+                                       target_object, new_mb, &jargs[0],
+                                       pc, frame, sp,
                                        true);
 
 
@@ -118,7 +118,8 @@ CertainMode::do_execute_method(Object* target_object,
     }
 
 
-    g_drive_loop();
+    //g_drive_loop();
+    m_spmt_thread->drive_loop();
 
     assert(m_spmt_thread->m_mode->is_certain_mode());
 
@@ -138,14 +139,14 @@ CertainMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
 
     //if (intercept_vm_backdoor(target_object, new_mb)) return;
 
-    SpmtThread* target_spmt_thread = target_object->get_group()->get_spmt_thread();
+    SpmtThread* target_spmt_thread = target_object->get_spmt_thread();
     assert(target_spmt_thread->m_thread == m_spmt_thread->m_thread);
 
     if (target_spmt_thread == m_spmt_thread) {
 
         sp -= new_mb->args_count;
-        internal_invoke(target_object, new_mb, sp,
-                        pc, frame, sp);
+        invoke_impl(target_object, new_mb, sp,
+                    pc, frame, sp);
 
     }
     else {
@@ -154,8 +155,9 @@ CertainMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
         sp -= new_mb->args_count;
 
         // construct certain msg
-        InvokeMsg* msg = new InvokeMsg(m_spmt_thread, target_object,
-                                       new_mb, sp);
+        InvokeMsg* msg = new InvokeMsg(m_spmt_thread,
+                                       target_object, new_mb, sp,
+                                       pc, frame, sp);
 
         frame->last_pc = pc;
 
@@ -198,6 +200,7 @@ CertainMode::do_method_return(int len)
 //     }
     //log_when_invoke_return(false, frame->calling_object, frame->prev->mb, m_user, frame->mb);
 
+    assert(len == 0 || len == 1 || len == 2);
 
     Frame* current_frame = frame; // some funcitons below will change this->frame, so we save it to destroy
 
@@ -228,8 +231,30 @@ CertainMode::do_method_return(int len)
         uintptr_t* rv = sp - len;   // rv points to the beginning of retrun value in this frame's operand stack
         sp -= len;
 
-        internal_return(rv, len, current_frame->caller_pc, current_frame->prev, current_frame->caller_sp);
-        return;
+        // 将返回值写入主调方法的ostack
+        uintptr_t* caller_sp = current_frame->caller_sp;
+        for (int i = 0; i < len; ++i) {
+            *caller_sp++ = rv[i];
+        }
+
+        pc = current_frame->caller_pc;
+        frame = current_frame->prev;
+        sp = caller_sp;
+
+        destroy_frame(current_frame);
+        pc += (*pc == OPC_INVOKEINTERFACE_QUICK ? 5 : 3);
+
+        if (current_frame->is_top_frame()) {
+
+            // MINILOG0("#" << m_spmt_thread->id() << " t<<<transfers to #" << target_core->id()
+            //          << " in: "  << info(frame)
+            //          << "because top frame return"
+            //          );
+
+            m_spmt_thread->signal_quit_step_loop(0);
+
+        }
+
 
     }
     else {
@@ -246,7 +271,11 @@ CertainMode::do_method_return(int len)
         uintptr_t* rv = sp - len;   // rv points to the beginning of retrun value in this frame's operand stack
         sp -= len;
 
-        ReturnMsg* msg = new ReturnMsg(rv, len, current_frame->is_top_frame());
+        ReturnMsg* msg = new ReturnMsg(rv, len,
+                                       current_frame->caller_pc,
+                                       current_frame->prev,
+                                       current_frame->caller_sp,
+                                       current_frame->is_top_frame());
         // state buffer中应无任何东西
         // m_spmt_thread->clear_frame_in_state_buffer(current_frame);
         destroy_frame(current_frame);
@@ -260,7 +289,7 @@ CertainMode::do_method_return(int len)
 
 
 void
-CertainMode::internal_invoke(Object* target_object, MethodBlock* new_mb, uintptr_t* args,
+CertainMode::invoke_impl(Object* target_object, MethodBlock* new_mb, uintptr_t* args,
                              CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp)
 {
     MINILOG_IF(debug_scaffold::java_main_arrived,
@@ -278,7 +307,8 @@ CertainMode::internal_invoke(Object* target_object, MethodBlock* new_mb, uintptr
 
     caller_frame->last_pc = pc;
 
-    frame = create_frame(target_object, new_mb, args, m_spmt_thread, caller_pc, caller_frame, caller_sp);
+    frame = create_frame(target_object, new_mb, args,
+                         m_spmt_thread, caller_pc, caller_frame, caller_sp);
 
     // 给同步方法加锁
     if (frame->mb->is_synchronized()) {
@@ -287,6 +317,8 @@ CertainMode::internal_invoke(Object* target_object, MethodBlock* new_mb, uintptr
         objectLock(sync_ob);
     }
 
+
+    // 如果是native方法，在此处立即执行其native code
     if (new_mb->is_native()) {
         // // copy args to ostack
         // if (args)
@@ -300,55 +332,20 @@ CertainMode::internal_invoke(Object* target_object, MethodBlock* new_mb, uintptr
             throw_exception;
         }
         else {
-
+            // native方法已经结束，返回值已经产生。该返回了。
             do_method_return(sp - frame->ostack_base);
 
         }
 
+        return;
+
     }
-    else {
-        sp = frame->ostack_base;
-        pc = (CodePntr)frame->mb->code;
-    }
+
+    sp = frame->ostack_base;
+    pc = (CodePntr)frame->mb->code;
+
 }
 
-
-void
-CertainMode::internal_return(uintptr_t* rv, int len, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp)
-{
-    // MINILOG_IF(debug_scaffold::java_main_arrived,
-    //            invoke_return_logger,
-    //            "RRR from " << info(current_frame->mb)
-    //            );
-
-    assert(len == 0 || len == 1 || len == 2);
-
-    Frame* current_frame = frame;
-
-    // write RV to caller's frame
-    for (int i = 0; i < len; ++i) {
-        *caller_sp++ = rv[i];
-    }
-
-    pc = caller_pc;
-    frame = caller_frame;
-    sp = caller_sp;
-
-    pc += (*pc == OPC_INVOKEINTERFACE_QUICK ? 5 : 3);
-
-
-    if (current_frame->is_top_frame()) {
-
-        // MINILOG0("#" << m_spmt_thread->id() << " t<<<transfers to #" << target_core->id()
-        //          << " in: "  << info(frame)
-        //          << "because top frame return"
-        //          );
-
-        m_spmt_thread->signal_quit_step_loop(current_frame->prev->ostack_base);
-
-    }
-
-}
 
 void
 CertainMode::before_signal_exception(Class *exception_class)
@@ -363,7 +360,7 @@ CertainMode::do_throw_exception()
 {
     MINILOG(c_exception_logger, "#" << m_spmt_thread->id() << " (C) throw exception"
             << " in: " << info(frame)
-            << " on: #" << frame->get_object()->get_group()->get_core()->id()
+            << " on: #" << frame->get_object()->get_spmt_thread()->id()
             );
     //{{{ just for debug
     if (debug_scaffold::java_main_arrived && m_spmt_thread->id() == 7) {
@@ -380,7 +377,7 @@ CertainMode::do_throw_exception()
     pc = findCatchBlock(excep->classobj);
     MINILOG(c_exception_logger, "#" << m_spmt_thread->id() << " (C) handler found"
             << " in: " << info(frame)
-            << " on: #" << frame->get_object()->get_group()->get_core()->id()
+            << " on: #" << frame->get_object()->get_spmt_thread()->id()
             );
 
     /* If we didn't find a handler, restore exception and
@@ -466,7 +463,7 @@ CertainMode::do_get_field(Object* target_object, FieldBlock* fb,
 {
     assert(size == 1 || size == 2);
 
-    SpmtThread* target_spmt_thread = target_object->get_group()->get_spmt_thread();
+    SpmtThread* target_spmt_thread = target_object->get_spmt_thread();
     assert(target_spmt_thread->m_thread == m_spmt_thread->m_thread);
 
     if (target_spmt_thread == m_spmt_thread) {
@@ -504,13 +501,16 @@ putstatic
 |     |           |     |
 
  */
+
+// size表示占几个ostack位置。
+// 就算字段的类型大小只有一个字节，但在存储时，总是有四个或八个字节的位置保留给它。数组则不然，数组是紧致存储的。
 void
 CertainMode::do_put_field(Object* target_object, FieldBlock* fb,
                           uintptr_t* addr, int size, bool is_static)
 {
     assert(size == 1 || size == 2);
 
-    SpmtThread* target_spmt_thread = target_object->get_group()->get_spmt_thread();
+    SpmtThread* target_spmt_thread = target_object->get_spmt_thread();
     assert(target_spmt_thread->m_thread == m_spmt_thread->m_thread);
 
     if (target_spmt_thread == m_spmt_thread) {
@@ -540,70 +540,74 @@ CertainMode::do_put_field(Object* target_object, FieldBlock* fb,
 void
 CertainMode::do_array_load(Object* array, int index, int type_size)
 {
-    Object* source_object = array;
-    Object* current_object = frame->get_object();
-    //Group* source_group = source_object->get_group();
-    Group* current_group = current_object->get_group();
 
-    sp -= 2; // pop up arrayref and index
+    Object* target_object = array;
+
+    SpmtThread* target_spmt_thread = target_object->get_spmt_thread();
+    assert(target_spmt_thread->m_thread == m_spmt_thread->m_thread);
+
 
     void* addr = array_elem_addr(array, index, type_size);
     int nslots = type_size > 4 ? 2 : 1; // number of slots for value
 
-    if (current_group->can_speculate() and m_spmt_thread->has_message_to_be_verified()) {
-
-        ArrayLoadMsg* msg =
-            new ArrayLoadMsg(m_spmt_thread, array, index, (uint8_t*)addr, type_size, frame, sp, pc);
-        m_spmt_thread->verify_speculation(msg);
-        return;
-
-    }
-    else {
-
+    if (target_spmt_thread == m_spmt_thread) {
+        sp -= 2; // pop up arrayref and index
         load_from_array(sp, addr, type_size);
         sp += nslots;
+        pc += 1;
+    }
+    else {
+        sp -= 2; // pop up arrayref and index
+        ArrayLoadMsg* msg = new ArrayLoadMsg(m_spmt_thread,
+                                             array, type_size, index);
+
+        m_spmt_thread->sleep();
+        m_spmt_thread->send_certain_msg(target_spmt_thread, msg);
 
     }
 
-    pc += 1;
+
 
 }
 
+/*
+type_size 表示元素类型的大小，单位字节。
+nslots 表示占几个ostack的位置，一个位置四个字节。
+
+就算数组元素的类型大小只有一个字节，但读到ostack中之后，仍然是占一个ostack位置，即四个字节。
+但数组是紧致存储的。
+
+ */
 void
 CertainMode::do_array_store(Object* array, int index, int type_size)
 {
-    void* addr = array_elem_addr(array, index, type_size);
-    int nslots = type_size > 4 ? 2 : 1; // number of slots for value
     Object* target_object = array;
-    Object* current_object = frame->get_object();
-    //Group* current_group = current_object->get_group();
-    Group* target_group = target_object->get_group();
 
-    sp -= nslots;
+    SpmtThread* target_spmt_thread = target_object->get_spmt_thread();
+    assert(target_spmt_thread->m_thread == m_spmt_thread->m_thread);
 
-    if (target_group->can_speculate()) {
+    void* addr = array_elem_addr(array, index, type_size);
+    int nslots = size2nslots(type_size); // number of slots for value
 
-        SpmtThread* target_core = target_object->get_group()->get_core();
-        assert(target_core);
 
-        ArrayStoreMsg* msg = new ArrayStoreMsg(m_spmt_thread, array, index, sp, nslots, type_size);
+    if (target_spmt_thread == m_spmt_thread) {
+        sp -= nslots;
+        store_to_array(sp, addr, type_size);
         sp -= 2;                    // pop up arrayref and index
         pc += 1;
-
-        m_spmt_thread->sleep();
-        m_spmt_thread->send_certain_msg(target_core, msg);
-
-        return;         // avoid sp-=... and pc += ...
-
     }
     else {
 
-        store_to_array(sp, addr, type_size);
+        sp -= nslots;
+        ArrayStoreMsg* array_store_msg = new ArrayStoreMsg(m_spmt_thread, array,
+                                                           type_size, index, sp);
+        sp -= 2;                    // pop up arrayref and index
+
+        m_spmt_thread->sleep();
+        m_spmt_thread->send_certain_msg(target_spmt_thread, array_store_msg);
 
     }
 
-    sp -= 2;                    // pop up arrayref and index
-    pc += 1;
 }
 
 

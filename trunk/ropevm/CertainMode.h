@@ -28,13 +28,8 @@ public:
 
     virtual void destroy_frame(Frame* frame);
 
-    void internal_invoke(Object* target_object, MethodBlock* new_mb, uintptr_t* args,
-                             CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp);
-
-    void internal_return(uintptr_t* rv, int len, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp);
-
-    void get_my_field(Object* obj, FieldBlock* fb, uintptr_t* addr, int size, bool is_static);
-    void put_my_field(Object* obj, FieldBlock* fb, uintptr_t* addr, int size, bool is_static);
+    void invoke_impl(Object* target_object, MethodBlock* new_mb, uintptr_t* args,
+                         CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp);
 
     virtual uint32_t mode_read(uint32_t* addr);
     virtual void mode_write(uint32_t* addr, uint32_t value);

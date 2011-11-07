@@ -1,14 +1,15 @@
 #include "std.h"
+#include "rope.h"
 #include "RopeVM.h"
 #include "Helper.h"
 #include "Statistic.h"
-#include "Group.h"
 #include "thread.h"
+#include "SpmtThread.h"
 
 using namespace std;
 
 RopeVM* RopeVM::m_instance = 0;
-int RopeVM::m_next_core_id = 0;
+int RopeVM::m_next_id = 0;
 
 RopeVM*
 RopeVM::instance()
@@ -38,35 +39,36 @@ RopeVM::RopeVM()
 // }
 
 SpmtThread*
-RopeVM::alloc_core()
+RopeVM::new_spmt_thread()
 {
-    SpmtThread* core = 0;
+    SpmtThread* spmt_thread = 0;
     pthread_mutex_lock(&m_lock);
-    if (m_cores.size() < 1000) {
-    //if (m_cores.size() < 6) {
-        core = new SpmtThread(get_next_core_id());
-        m_cores.push_back(core);
-        core->init();
+    if (m_spmt_threads.size() < 1000) {
+        spmt_thread = new SpmtThread(get_next_id());
+        m_spmt_threads.push_back(spmt_thread);
+        spmt_thread->init();
     }
     else {
         assert(false);
         cerr << "no more cores\n";
     }
     pthread_mutex_unlock(&m_lock);
-    return core;
+    return spmt_thread;
 }
 
-Group*
-RopeVM::new_group_for(Object* leader, Thread* thread)
+
+SpmtThread*
+RopeVM::create_spmt_thread()
 {
-    SpmtThread* core = alloc_core();
-    //Thread* thread = threadSelf();
+    SpmtThread* spmt_thread = new_spmt_thread();
 
-    Group* group = new Group(thread, leader, core);
+    // 为spmt_thread对象配上os线程(S_threadStart中调用spmt_thread->drive_loop)
+    // 但目前是单os线程实现方式，让一个spmt线程运行drive_loop的时候带动其他spmt线程。
+    //os_api_create_thread(SpmtThread::S_threadStart, spmt_thread);
 
-    //MINILOG0("#" << core->id() << " is assigned to obj: " << leader << " class: " << type_name(leader));
-    return group;
+    return spmt_thread;
 }
+
 
 bool RopeVM::do_spec;
 
@@ -80,10 +82,10 @@ RopeVM::report_stat(std::ostream& os)
 {
     Statistic::instance()->report_stat(os);
 
-    os << "JVM" << '\t' << "core count" << '\t' << m_cores.size()-4 << '\n';
+    os << "JVM" << '\t' << "core count" << '\t' << m_spmt_threads.size()-4 << '\n';
     os << "JVM" << '\t' << "control transfer" << '\t' << m_count_control_transfer << '\n';
 
-    for (vector<SpmtThread*>::iterator i = m_cores.begin(); i != m_cores.end(); ++i) {
+    for (vector<SpmtThread*>::iterator i = m_spmt_threads.begin(); i != m_spmt_threads.end(); ++i) {
         SpmtThread* core = *i;
         if (1 <= core->id() && core->id() <= 4)
             continue;

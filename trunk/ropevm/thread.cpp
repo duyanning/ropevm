@@ -9,7 +9,6 @@
 #include "RopeVM.h"
 #include "DebugScaffold.h"
 #include "Loggers.h"
-#include "Group.h"
 #include "Helper.h"
 #include "frame.h"
 
@@ -1164,32 +1163,28 @@ Thread::Thread()
     wait_id(0),
     notify_id(0)
 {
-    // create the only default group
-    m_default_group = RopeVM::instance()->new_group_for(0, this);
-    SpmtThread* core = m_default_group->get_core();
-    add_core(core);
+    m_initial_spmt_thread = RopeVM::instance()->new_spmt_thread();
+    m_initial_spmt_thread->set_thread(this);
 
-    //set_certain_core(core);
-    core->switch_to_certain_mode();
-    //core->m_is_waiting_for_task = false;
+    // 初始线程一开始就是确定模式
+    m_initial_spmt_thread->switch_to_certain_mode();
 
-    core->wakeup();              // need?
-
-    m_current_spmt_thread = core;      // need?
+    // 初始线程处于确定模式、运行状态、推测模式不需要任务。
+    m_initial_spmt_thread->wakeup();
 }
 
 Thread::~Thread()
 {
 }
 
-void
-Thread::add_core(SpmtThread* core)
-{
-    assert(core);
+// void
+// Thread::add_spmt_thread(SpmtThread* spmt_thread)
+// {
+//     assert(spmt_thread);
 
-    m_spmt_threads.push_back(core);
-    core->set_thread(this);
-}
+//     m_spmt_threads.push_back(spmt_thread);
+//     spmt_thread->set_thread(this);
+// }
 
 
 // bool
@@ -1219,66 +1214,55 @@ Thread::add_core(SpmtThread* core)
 // }
 
 
-uintptr_t*
-Thread::drive_loop()
-{
-    using namespace std;
-
-    SpmtThread* current_spmt_thread_of_outer_loop = m_current_spmt_thread;
-
-    for (;;) {
-
-        // make a copy to avoid modification to m_spmt_threads while looping
-        vector<SpmtThread*> spmt_threads(m_spmt_threads);
-
-        int non_idle_total = 0;
-        for (auto st : spmt_threads) {
-            m_current_spmt_thread = st;
-
-            if (m_current_spmt_thread->is_halt()) {
-                m_current_spmt_thread->idle(); // only serve for statistics
-                continue;
-            }
-
-            non_idle_total++;
-
-
-            m_current_spmt_thread->step();
-
-
-            bool quit = m_current_spmt_thread->check_quit_step_loop();
-            if (quit) {
-                uintptr_t* result = m_current_spmt_thread->get_result();
-
-                m_current_spmt_thread = current_spmt_thread_of_outer_loop;
-                return result;
-            }
-
-        }
-
-        assert(non_idle_total > 0);
-    }
-
-    assert(false);
-    return 0;
-}
-
-// SpmtThread*
-// Thread::get_certain_core()
+// uintptr_t*
+// Thread::drive_loop()
 // {
-//     return m_certain_core;
+//     using namespace std;
+
+//     SpmtThread* current_spmt_thread_of_outer_loop = m_current_spmt_thread;
+
+//     for (;;) {
+
+//         // make a copy to avoid modification to m_spmt_threads while looping
+//         vector<SpmtThread*> spmt_threads(m_spmt_threads);
+
+//         int non_idle_total = 0;
+//         for (auto st : spmt_threads) {
+//             m_current_spmt_thread = st;
+
+//             if (m_current_spmt_thread->is_halt()) {
+//                 m_current_spmt_thread->idle(); // only serve for statistics
+//                 continue;
+//             }
+
+//             non_idle_total++;
+
+
+//             m_current_spmt_thread->step();
+
+
+//             bool quit = m_current_spmt_thread->check_quit_step_loop();
+//             if (quit) {
+//                 uintptr_t* result = m_current_spmt_thread->get_result();
+
+//                 m_current_spmt_thread = current_spmt_thread_of_outer_loop;
+//                 return result;
+//             }
+
+//         }
+
+//         assert(non_idle_total > 0);
+//     }
+
+//     assert(false);
+//     return 0;
 // }
 
-// void
-// Thread::set_certain_core(SpmtThread* core)
-// {
-//     m_certain_core = core;
-// }
 
-Group*
-Thread::get_default_group()
+SpmtThread*
+Thread::get_initial_spmt_thread()
 {
-    return m_default_group;
+    return m_initial_spmt_thread;
 }
 
 SpmtThread*
@@ -1305,19 +1289,28 @@ Thread::scan_spmt_threads()
     }
 }
 
-Group*
-Thread::group_of(Object* obj)
+
+SpmtThread*
+Thread::spmt_thread_of(Object* obj)
 {
-    Group* group = 0;
-    ObjectGroupMap::iterator i = m_object_to_group.find(obj);
-    if (i != m_object_to_group.end())
-        group = i->second;
-    return group;
+    SpmtThread* spmt_thread = 0;
+    Object2SpmtThreadMap::iterator i = m_object_to_spmt_thread.find(obj);
+    if (i != m_object_to_spmt_thread.end())
+        spmt_thread = i->second;
+    return spmt_thread;
 }
+
 
 void
-Thread::register_object_group(Object* object, Group* group)
+Thread::register_object_spmt_thread(Object* object, SpmtThread* spmt_thread)
 {
-    m_object_to_group[object] = group;
+    m_object_to_spmt_thread[object] = spmt_thread;
 }
 
+
+Thread*
+g_get_current_thread()
+{
+    SpmtThread* current_spmt_thread = g_get_current_spmt_thread();
+    return current_spmt_thread->get_thread();
+}

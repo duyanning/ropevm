@@ -37,18 +37,21 @@ Message::get_type()
 //------------------------------------------------
 
 // InvokeMsg::InvokeMsg(Object* object, MethodBlock* mb, Frame* caller_frame, Object* calling_object, uintptr_t* args, uintptr_t* caller_sp, CodePntr caller_pc)
-InvokeMsg::InvokeMsg(SpmtThread* source_spmt_thread, Object* target_object, MethodBlock* mb, uintptr_t* args, bool is_top)
+InvokeMsg::InvokeMsg(SpmtThread* source_spmt_thread, Object* target_object, MethodBlock* mb, uintptr_t* args,
+                     CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp,
+                     bool is_top)
 :
     RoundTripMsg(Message::invoke, source_spmt_thread, target_object)
 {
     this->mb = mb;
-    //this->caller_frame = caller_frame;
 
     for (int i = 0; i < mb->args_count; ++i) {
         parameters.push_back(args[i]);
     }
-    // this->caller_sp = caller_sp;
-    // this->caller_pc = caller_pc;
+
+    this->caller_sp = caller_sp;
+    this->caller_frame = caller_frame;
+    this->caller_pc = caller_pc;
 
     m_is_top = is_top;
 }
@@ -89,19 +92,22 @@ InvokeMsg::show_detail(std::ostream& os, int id) const
 //------------------------------------------------
 // ReturnMsg::ReturnMsg(Object* object, MethodBlock* mb, Frame* caller_frame, Object* calling_object, uintptr_t* rv, int len, uintptr_t* caller_sp, CodePntr caller_pc)
 //ReturnMsg::ReturnMsg(Object* source_obj, Object* target_obj, uintptr_t* rv, int len, bool is_top)
-ReturnMsg::ReturnMsg(uintptr_t* rv, int len, bool is_top)
+ReturnMsg::ReturnMsg(uintptr_t* rv, int len,
+                     CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp,
+                     bool is_top)
 :
     Message(Message::ret)
 {
     //this->mb = mb;
-    // this->caller_frame = caller_frame;
+
     for (int i = 0; i < len; ++i) {
         retval.push_back(rv[i]);
     }
-    // this->caller_sp = caller_sp;
-    // this->caller_pc = caller_pc;
 
-    //this->frame = frame;
+    this->caller_pc = caller_pc;
+    this->caller_frame = caller_frame;
+    this->caller_sp = caller_sp;
+
     m_is_top = is_top;
 }
 
@@ -292,45 +298,12 @@ PutMsg::show_detail(std::ostream& os, int id) const
 }
 
 //-----------------------------------------------
-// AckMsg::AckMsg()
-// :
-//     Message(Message::ack, 0, 0)
-// {
-// }
 
-// bool
-// AckMsg::equal(Message& msg)
-// {
-//     return true;
-// }
-
-// void
-// AckMsg::show(ostream& os) const
-// {
-//     os << "ack";
-// }
-
-// void
-// AckMsg::show_detail(std::ostream& os, int id) const
-// {
-//     //os << "#" << id << "\n";
-// }
-
-//-----------------------------------------------
-ArrayLoadMsg::ArrayLoadMsg(SpmtThread* source_spmt_thread, Object* array, int index, uint8_t* addr, int type_size,
-                           Frame* caller_frame, uintptr_t* caller_sp, CodePntr caller_pc)
+ArrayLoadMsg::ArrayLoadMsg(SpmtThread* source_spmt_thread, Object* array, int type_size, int index)
 :
     RoundTripMsg(Message::arrayload, source_spmt_thread, array)
 {
-    for (int i = 0; i < type_size; ++i) {
-        this->val.push_back(addr[i]);
-    }
-
-    this->caller_frame = caller_frame;
-    this->caller_sp = caller_sp;
-    this->caller_pc = caller_pc;
-
-    //this->instr_len = instr_len;
+    this->type_size = type_size;
     this->index = index;
 }
 
@@ -338,8 +311,7 @@ bool
 ArrayLoadMsg::equal(Message& msg)
 {
     ArrayLoadMsg& m = static_cast<ArrayLoadMsg&>(msg);
-    if (val != m.val)
-        return false;
+
     if (index != m.index)
         return false;
     // if (caller_frame != m.caller_frame)
@@ -354,16 +326,16 @@ ArrayLoadMsg::equal(Message& msg)
 void
 ArrayLoadMsg::show(ostream& os) const
 {
-    int type_size = val.size();
-    assert(type_size >= 1 && type_size <= 8);
+    // int type_size = val.size();
+    // assert(type_size >= 1 && type_size <= 8);
 
-    os << "array load" << type_size << " " << m_source_object->classobj->name() << "(" << index << ") = ";
+    // // os << "array load" << type_size << " " << m_source_object->classobj->name() << "(" << index << ") = ";
 
-    os << hex;
-    for (int i = 0; i < val.size(); ++i) {
-        os << (int)val[i] << " ";
-    }
-    os << dec;
+    // os << hex;
+    // for (int i = 0; i < val.size(); ++i) {
+    //     os << (int)val[i] << " ";
+    // }
+    // os << dec;
 }
 
 void
@@ -373,25 +345,27 @@ ArrayLoadMsg::show_detail(std::ostream& os, int id) const
 }
 //-----------------------------------------------
 
-ArrayStoreMsg::ArrayStoreMsg(SpmtThread* source_spmt_thread, Object* array, int index, uintptr_t* slots, int nslots, int type_size)
+//ArrayStoreMsg::ArrayStoreMsg(SpmtThread* source_spmt_thread, Object* array, int index, uintptr_t* slots, int nslots, int type_size)
+ArrayStoreMsg::ArrayStoreMsg(SpmtThread* source_spmt_thread, Object* array, int type_size, int index, uintptr_t* slots)
+
 :
     RoundTripMsg(Message::arraystore, source_spmt_thread, array)
 {
-    this->index = index;
-    for (int i = 0; i < nslots; ++i) {
-        this->slots.push_back(slots[i]);
-    }
+
     this->type_size = type_size;
-//     this->caller_frame = caller_frame;
-//     this->caller_sp = caller_sp;
-//     this->caller_pc = caller_pc;
+    this->index = index;
+    int nslots = size2nslots(type_size);
+    for (int i = 0; i < nslots; ++i) {
+        this->val.push_back(slots[i]);
+    }
+
 }
 
 bool
 ArrayStoreMsg::equal(Message& msg)
 {
     ArrayStoreMsg& m = static_cast<ArrayStoreMsg&>(msg);
-    if (slots != m.slots)
+    if (val != m.val)
         return false;
     if (index != m.index)
         return false;
@@ -407,17 +381,17 @@ ArrayStoreMsg::equal(Message& msg)
 void
 ArrayStoreMsg::show(ostream& os) const
 {
-    int nslots = slots.size();
+    int nslots = val.size();
     assert(nslots == 1 || nslots == 2);
 
     os << "array store" << type_size << " " << m_target_object->classobj->name() << "(" << index << ") = ";
 
     if (nslots == 1) {
-        int i = *(int*)&slots[0];
+        int i = *(int*)&val[0];
         os << hex << i << dec;
     }
     else {                      //  nslots == 2
-        double d = *(double*)&slots[0];
+        double d = *(double*)&val[0];
         os << hex << d << dec;
     }
 }

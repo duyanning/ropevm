@@ -13,7 +13,6 @@
 #include "Snapshot.h"
 #include "Helper.h"
 #include "frame.h"
-#include "Group.h"
 #include "Effect.h"
 
 using namespace std;
@@ -84,7 +83,7 @@ SpeculativeMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
         return;
     }
 
-    SpmtThread* target_spmt_thread = target_object->get_group()->get_spmt_thread();
+    SpmtThread* target_spmt_thread = target_object->get_spmt_thread();
 
     if (target_spmt_thread == m_spmt_thread) {
 
@@ -121,9 +120,8 @@ SpeculativeMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
 
         // construct speculative message and send
         InvokeMsg* msg = new InvokeMsg(m_spmt_thread,
-                                       target_object,
-                                       new_mb,
-                                       &args[0]);
+                                       target_object, new_mb, &args[0],
+                                       pc, frame, sp);
 
         m_spmt_thread->send_spec_msg(target_spmt_thread, msg);
 
@@ -195,10 +193,13 @@ SpeculativeMode::do_method_return(int len)
         }
 
         // construct speculative message
-        ReturnMsg* msg = new ReturnMsg(&ret_val[0], len);
+        ReturnMsg* msg = new ReturnMsg(&ret_val[0], len,
+                                       current_frame->caller_pc,
+                                       current_frame->prev,
+                                       current_frame->caller_sp);
 
         // record spec msg sent in current effect
-        m_spmt_thread->current_spec_msg()->get_effect()->msg_sent = msg;
+        m_spmt_thread->m_current_spec_msg->get_effect()->msg_sent = msg;
 
         destroy_frame(current_frame);
 
@@ -263,7 +264,7 @@ SpeculativeMode::do_get_field(Object* target_object, FieldBlock* fb, uintptr_t* 
             << " of " << target_object);
 
 
-    SpmtThread* target_spmt_thread = target_object->get_group()->get_spmt_thread();
+    SpmtThread* target_spmt_thread = target_object->get_spmt_thread();
     assert(target_spmt_thread->m_thread == m_spmt_thread->m_thread);
 
     if (target_spmt_thread == m_spmt_thread) {
@@ -288,7 +289,7 @@ SpeculativeMode::do_get_field(Object* target_object, FieldBlock* fb, uintptr_t* 
         m_spmt_thread->send_spec_msg(target_spmt_thread, get_msg);
 
 
-        // 构造推测性的get_return消息并使用
+        // 直接从稳定内存取数，构造推测性的get_return消息并使用
         vector<uintptr_t> value;
         for (int i = 0; i < size; ++i) {
             value.push_back(addr[i]);
@@ -309,7 +310,7 @@ SpeculativeMode::do_put_field(Object* target_object, FieldBlock* fb,
     MINILOG(s_logger, "#" << m_spmt_thread->id()
             << " (S) is to put: " << *fb);
 
-    SpmtThread* target_spmt_thread = target_object->get_group()->get_spmt_thread();
+    SpmtThread* target_spmt_thread = target_object->get_spmt_thread();
     assert(target_spmt_thread->m_thread == m_spmt_thread->m_thread);
 
     if (target_spmt_thread == m_spmt_thread) {
@@ -349,22 +350,19 @@ SpeculativeMode::do_put_field(Object* target_object, FieldBlock* fb,
 void
 SpeculativeMode::do_array_load(Object* array, int index, int type_size)
 {
-    //assert(size == 1 || size == 2);
+    MINILOG(s_logger, "#" << m_spmt_thread->id()
+            << " (S) is to load from array");
 
-    MINILOG(s_logger,
-            "#" << m_spmt_thread->id() << " (S) is to load from array");
+    Object* target_object = array;
+
+    SpmtThread* target_spmt_thread = target_object->get_spmt_thread();
+    assert(target_spmt_thread->m_thread == m_spmt_thread->m_thread);
+
 
     void* addr = array_elem_addr(array, index, type_size);
     int nslots = type_size > 4 ? 2 : 1; // number of slots for value
-    assert(array != get_group()->get_leader()); // array never can be leader
 
-    Object* source_object = array;
-    Group* source_group = source_object->get_group();
-    Object* current_object = frame->get_object();
-    Group* current_group = current_object->get_group();
-
-    if (source_group == current_group) {
-
+    if (target_spmt_thread == m_spmt_thread) {
         sp -= 2; // pop up arrayref and index
         load_from_array(sp, addr, type_size);
         sp += nslots;
@@ -374,21 +372,23 @@ SpeculativeMode::do_array_load(Object* array, int index, int type_size)
     }
     else {
 
-        m_spmt_thread->snapshot(1==1);
+        sp -= 2; // pop up arrayref and index
+        ArrayLoadMsg* msg = new ArrayLoadMsg(m_spmt_thread,
+                                             array, type_size, index);
 
-        // read all at one time, to avoid data change between two reading.
-        uint8_t val[8]; // longest value is 8 bytes
-        std::copy((uint8_t*)addr, (uint8_t*)addr + type_size, val); // get from certain memory
+        MINILOG(s_logger, "#" << m_spmt_thread->id()
+                << " (S) add arrayload msg to #"
+                << target_spmt_thread->id() << ": " << *msg);
 
-        sp -= 2;
+        m_spmt_thread->send_spec_msg(target_spmt_thread, msg);
 
-        ArrayLoadMsg* msg = new ArrayLoadMsg(m_spmt_thread, array, index, &val[0], type_size, frame, sp, pc);
-        m_spmt_thread->add_message_to_be_verified(msg);
 
-        load_array_from_no_cache_mem(sp, &val[0], type_size);
-        sp += nslots;
+        // 直接从稳定内存取数，构造推测性的arrayload_return消息并使用
+        vector<uintptr_t> value;
+        g_load_from_stable_array_to_c(&value[0], addr, type_size);
+        ArrayLoadReturnMsg* arrayload_return_msg = new ArrayLoadReturnMsg(&value[0], value.size());
+        m_spmt_thread->launch_spec_msg(arrayload_return_msg);
 
-        pc += 1;
     }
 
 }
@@ -396,67 +396,52 @@ SpeculativeMode::do_array_load(Object* array, int index, int type_size)
 void
 SpeculativeMode::do_array_store(Object* array, int index, int type_size)
 {
-    //assert(size == 1 || size == 2);
+    MINILOG(s_logger, "#" << m_spmt_thread->id()
+            << " (S) is to store to array");
 
-    MINILOG(s_logger,
-            "#" << m_spmt_thread->id() << " (S) is to store to array");
+
+    Object* target_object = array;
+
+    SpmtThread* target_spmt_thread = target_object->get_spmt_thread();
+    assert(target_spmt_thread->m_thread == m_spmt_thread->m_thread);
 
     void* addr = array_elem_addr(array, index, type_size);
     int nslots = type_size > 4 ? 2 : 1; // number of slots for value
-    assert(array != get_group()->get_leader()); // array never can be leader
 
-    Object* target_object = array;
-    Group* target_group = target_object->get_group();
-    Object* current_object = frame->get_object();
-    Group* current_group = current_object->get_group();
 
-    if (target_group == current_group) {
-
+    if (target_spmt_thread == m_spmt_thread) {
         sp -= nslots; // pop up value
         store_to_array(sp, addr, type_size);
         sp -= 2;                    // pop arrayref and index
-
         pc += 1;
 
     }
     else {
 
-        m_spmt_thread->snapshot(true);
+        sp -= nslots; // pop up value
 
-        if (target_group->can_speculate()) {      // target_object has a core
-            SpmtThread* target_core = target_group->get_core();
-
-            sp -= nslots; // pop up value
-
-            uint32_t val[2]; // at most 2 slots
-            for (int i = 0; i < nslots; ++i) {
-                val[i] = read(sp + i);
-            }
-
-            sp -= 2;
-            pc += 1;
-
-            MINILOG(s_logger,
-                     "#" << m_spmt_thread->id() << " (S) target object has a core #"
-                     << target_core->id());
-
-            ArrayStoreMsg* msg =
-                new ArrayStoreMsg(m_spmt_thread, target_object, index, &val[0], nslots, type_size);
-
-            MINILOG(s_logger,
-                     "#" << m_spmt_thread->id() << " (S) add arraystore task to #"
-                    << target_core->id() << ": " << *msg);
-
-            m_spmt_thread->send_spec_msg(target_core, msg);
-        }
-        else {                  // target_object is a coreless object
-            MINILOG(s_logger,
-                    "#" << m_spmt_thread->id() << " target object is coreless");
+        uint32_t val[2]; // at most 2 slots
+        for (int i = 0; i < nslots; ++i) {
+            val[i] = read(sp + i);
         }
 
-        // AckMsg* ack = new AckMsg;
-        // m_spmt_thread->add_message_to_be_verified(ack);
+        sp -= 2;
+
+        ArrayStoreMsg* msg = new ArrayStoreMsg(m_spmt_thread, array,
+                                               type_size, index, &val[0]);
+
+        MINILOG(s_logger, "#" << m_spmt_thread->id()
+                << " (S) add arraystore task to #"
+                << target_spmt_thread->id() << ": " << *msg);
+
+        m_spmt_thread->send_spec_msg(target_spmt_thread, msg);
+
+        ArrayStoreReturnMsg* array_store_return_msg = new ArrayStoreReturnMsg();
+        m_spmt_thread->launch_spec_msg(array_store_return_msg);
+
     }
+
+
 }
 
 void*

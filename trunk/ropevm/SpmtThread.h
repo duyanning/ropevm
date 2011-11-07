@@ -16,22 +16,11 @@ class Frame;
 class MethodBlock;
 class Object;
 class Class;
-
 class Message;
 class InvokeMsg;
 class ReturnMsg;
 class Snapshot;
-class Group;
 
-// struct ControlTuple {
-//     ControlTuple(CodePntr pc1, Frame *frame1, uintptr_t *sp1)
-//         : pc(pc1), frame(frame1), sp(sp1)
-//     {
-//     }
-//     CodePntr pc;
-//     Frame* frame;
-//     uintptr_t* sp;
-// };
 
 class SpmtThread {
     friend class Mode;
@@ -41,15 +30,26 @@ class SpmtThread {
     friend class RvpMode;
     friend class RopeVM;
 public:
+
+    //Object* get_leader();
+
     ~SpmtThread();
-    void set_group(Group* group);
-    Group* get_group() { return m_group; }
+
+    // spmt线程总是属于某个java线程
+    Thread* get_thread();
     void set_thread(Thread* thread);
-    uintptr_t* run();
+
+    // 唤醒与睡眠
     bool is_halt();
     void sleep();
+    void wakeup();
+
+    // 只要醒着就step
     void step();
-    void idle();
+    void idle();                // 仅为统计而存在
+
+
+    // 模式相关
     void switch_to_certain_mode();
     void switch_to_speculative_mode();
     void switch_to_rvp_mode();
@@ -59,81 +59,91 @@ public:
     void restore_original_non_certain_mode();
     Mode* original_uncertain_mode() { return m_old_mode; }
     void init();
-    void wakeup();
 
 
 
+    // 向其他线程发送消息
     void send_certain_msg(SpmtThread* target_thread, Message* msg);
     void send_spec_msg(SpmtThread* target_thread, Message* msg);
     void revoke_spec_msg(SpmtThread* target_thread, Message* msg);
 
+    // 由其他线程给自己发送消息
     void set_certain_msg(Message* msg);
     void add_spec_msg(Message* msg);
     void remove_spec_msg(Message* msg);
 
+    void discard_revoked_msgs();
+
+    // 检测并处理确定消息
     Message* get_certain_msg();
     void process_certain_msg(Message* msg);
 
+    // 检测并处理推测消息
     // msg queue related
     bool has_unprocessed_spec_msg();
     void launch_next_spec_msg();
     void launch_spec_msg(Message* msg);
-    Message* current_spec_msg();
+    //Message* current_spec_msg();
     void process_spec_msg(Message* msg);
     bool is_waiting_for_spec_msg();
 
-    void commit(Effect* effect);
+    // 提交与丢弃
+    void commit_effect(Effect* effect);
     void discard_all_effect();
 
-    void reload_speculative_tasks(); // refactor: to remove
+
     void enter_certain_mode();
     void leave_certain_mode(Message* msg); // refactor: to remove
 
+    // 快照
     void snapshot(bool pin);
     void pin_frames();
 
+    // 顶级方法调用事件
     void on_event_top_invoke(InvokeMsg* msg);
     void on_event_top_return(ReturnMsg* msg);
 
-    void verify_speculation(Message* message);
-    void handle_verification_success(Message* message);
-    void handle_verification_failure(Message* message);
-    void reexecute_failed_message(Message* message);
+    void verify_speculation(Message* message); // 验证推测消息，并进行后续处理
+    //void handle_verification_success(Message* message);
+    //void handle_verification_failure(Message* message);
+    //void reexecute_failed_message(Message* message);
 
     int id() { return m_id; }
-    void add_message_to_be_verified(Message* message); // refactor: remove
-    bool has_message_to_be_verified();                 // refactor: remove
 
 
     void destroy_frame(Frame* frame);
 
     void mark_frame_certain();  // refactor: to remove
-    void discard_uncertain_execution(bool self); // refactor: to remove
-    void free_discarded_frames(bool only_snapshot); // refactor: to remove
-    void collect_inuse_frames(std::set<Frame*>& frames); // refactor: to remove
-    void collect_snapshot_frames(std::set<Frame*>& frames); // refactor: to remove
+
 
 
     bool check_quit_step_loop();
-    void signal_quit_step_loop(uintptr_t* result);
+    void signal_quit_step_loop(uintptr_t* result); // refactor: 不需要这个参数
     uintptr_t* get_result();
 
-    //{{{ just for debug
-    void show_msgs_to_be_verified();
-    bool is_correspondence_btw_msgs_and_snapshots_ok();
-    //}}} just for debug
     bool is_certain_mode() { return m_mode->is_certain_mode(); }
 
     void before_signal_exception(Class *exception_class);
 
     void before_alloc_object();
     void after_alloc_object(Object* obj);
-    Group* assign_group_for(Object* obj);
+    SpmtThread* assign_spmt_thread_for(Object* obj);
 
-    void scan();
+    Object* get_current_object();
+    GroupingPolicyEnum get_leader_policy();
+    void set_leader(Object* leader);
+
+
+    void scan();                // GC scan
 
     // for stat
     void report_stat(std::ostream& os);
+
+
+    // 多os实现下，os线程运行S_threadStart，该函数再调用spmt_thread->drive_loop()
+    static void S_threadStart(SpmtThread* spmt_thread);
+    uintptr_t* drive_loop();
+
 private:
 
     void sync_speculative_with_certain();
@@ -148,7 +158,6 @@ private:
     void clear_frame_in_rvp_buffer(Frame* f);
 private:
     Thread* m_thread;
-    Group* m_group;
 
     bool m_halt;
 
@@ -165,21 +174,23 @@ private:
     Mode* m_old_mode;
 
 
+    // 确定消息
     Message* m_certain_message;
-    std::list<Message*> m_spec_msg_queue;
-    std::list<Message*>::iterator m_next_spec_msg;
 
+    // 推测消息
+    std::list<Message*> m_spec_msg_queue;
+    std::list<Message*>::iterator m_iter_next_spec_msg;
+    Message* m_current_spec_msg; // 正在处理的推测消息
+    bool m_need_spec_msg;        // 推测执行需要推测消息才能继续
+    std::vector<Message*> m_revoked_msgs; // 发送方要求收回这些推测消息
+
+
+    // 不同模式下读写的去处
     StatesBuffer m_state_buffer;
     RvpBuffer m_rvp_buffer;
-    bool m_need_spec_msg;
 
 
-    //std::stack<ControlTuple> m_certain_control_tuple_stack;
 
-
-    std::deque<Message*> m_messages_to_be_verified; // refactor: remove
-    std::deque<Message*> m_speculative_tasks; // refactor: remove
-    std::deque<Snapshot*> m_snapshots_to_be_committed; // refactor: remove
     bool m_is_waiting_for_task; // refactor: to remove
 
 private:
@@ -214,6 +225,5 @@ class DeepBreak {
 };
 
 SpmtThread* g_get_current_spmt_thread();
-void g_set_current_spmt_thread(SpmtThread* st);
 
 #endif

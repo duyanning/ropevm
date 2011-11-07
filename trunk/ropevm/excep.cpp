@@ -6,7 +6,6 @@
 #include "SpmtThread.h"
 #include "Loggers.h"
 #include "Helper.h"
-#include "Group.h"
 
 static Class *ste_class, *ste_array_class, *throw_class, *vmthrow_class;
 static MethodBlock *vmthrow_init_mb;
@@ -201,7 +200,7 @@ findCatchBlock(Class *exception)
 
     MINILOG(c_exception_logger, "#" << threadSelf()->get_current_spmt_thread()->id() << " finding handler"
             << " in: " << info(frame)
-            << " on: #" << frame->get_object()->get_group()->get_core()->id()
+            << " on: #" << frame->get_object()->get_spmt_thread()->id()
             );
 
     while (((handler_pc = findCatchBlockInMethod(frame->mb, exception, frame->last_pc)) == NULL)
@@ -216,7 +215,7 @@ findCatchBlock(Class *exception)
 
         MINILOG(c_exception_logger, "#" << threadSelf()->get_current_spmt_thread()->id() << " finding handler"
                 << " in: " << info(frame)
-                << " on: #" << frame->get_object()->get_group()->get_core()->id()
+                << " on: #" << frame->get_object()->get_spmt_thread()->id()
                 );
 
     }
