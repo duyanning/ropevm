@@ -22,12 +22,34 @@ SpmtThread::SpmtThread(int id)
     m_id(id)
 {
     m_thread = 0;
-    m_halt = false;
+    m_halt = true;
 
-    m_certain_mode.set_core(this);
-    m_spec_mode.set_core(this);
-    m_rvp_mode.set_core(this);
-    m_mode = &m_certain_mode;
+    m_certain_mode.set_spmt_thread(this);
+    m_spec_mode.set_spmt_thread(this);
+    m_rvp_mode.set_spmt_thread(this);
+
+    m_certain_message = 0;
+    m_mode = &m_spec_mode;
+
+    m_need_spec_msg = true;
+
+    m_quit_step_loop = false;
+    m_result = 0;
+
+    // stat
+    m_count_spec_msgs_sent = 0;
+    m_count_spec_msgs_used = 0;
+    m_count_verify_all = 0;
+    m_count_verify_ok = 0;
+    m_count_verify_fail = 0;
+    m_count_verify_empty = 0;
+    m_count_rvp = 0;
+    m_count_certain_instr = 0;
+    m_count_spec_instr = 0;
+    m_count_rvp_instr = 0;
+    m_count_step = 0;
+    m_count_idle = 0;
+
 }
 
 SpmtThread::~SpmtThread()
@@ -83,11 +105,6 @@ SpmtThread::idle()
     m_count_idle++;
 }
 
-void
-SpmtThread::change_mode(Mode* new_mode)
-{
-	m_mode = new_mode;
-}
 
 void
 SpmtThread::record_current_non_certain_mode()
@@ -107,32 +124,6 @@ SpmtThread::restore_original_non_certain_mode()
     MINILOG0("#" << id() << " restore to " << m_mode->get_name());
 }
 
-void
-SpmtThread::init()
-{
-    m_halt = true;
-    m_certain_message = 0;
-    m_mode = &m_spec_mode;
-
-    m_is_waiting_for_task = true;
-
-    m_quit_step_loop = false;
-    m_result = 0;
-
-    // stat
-    m_count_spec_msgs_sent = 0;
-    m_count_spec_msgs_used = 0;
-    m_count_verify_all = 0;
-    m_count_verify_ok = 0;
-    m_count_verify_fail = 0;
-    m_count_verify_empty = 0;
-    m_count_rvp = 0;
-    m_count_certain_instr = 0;
-    m_count_spec_instr = 0;
-    m_count_rvp_instr = 0;
-    m_count_step = 0;
-    m_count_idle = 0;
-}
 
 void
 SpmtThread::wakeup()
@@ -174,6 +165,7 @@ SpmtThread::set_certain_msg(Message* msg)
 {
     m_certain_message = msg;
 
+    // 确定控制到来，不管当前处于什么状态，必须起来处理。
     wakeup();
 }
 
@@ -227,21 +219,6 @@ SpmtThread::sync_speculative_with_certain()
     m_spec_mode.sp = m_certain_mode.sp;
 }
 
-void
-SpmtThread::sync_certain_with_speculative()
-{
-    m_certain_mode.pc = m_spec_mode.pc;
-    m_certain_mode.frame = m_spec_mode.frame;
-    m_certain_mode.sp = m_spec_mode.sp;
-}
-
-void
-SpmtThread::sync_certain_with_snapshot(Snapshot* snapshot)
-{
-    m_certain_mode.pc = snapshot->pc;
-    m_certain_mode.frame = snapshot->frame;
-    m_certain_mode.sp = snapshot->sp;
-}
 
 void
 SpmtThread::enter_certain_mode()
@@ -251,9 +228,8 @@ SpmtThread::enter_certain_mode()
     //m_thread->set_certain_core(this);
 
     record_current_non_certain_mode();
-    change_mode(&m_certain_mode);
+    switch_to_certain_mode();
 
-    //m_certain_catch_up_with_spec = true;
 
     MINILOG(when_enter_certain_logger,
             "#" << id() << " when enter certain mode");
@@ -268,38 +244,20 @@ SpmtThread::enter_certain_mode()
     MINILOG(when_enter_certain_logger,
             "#" << id() << " SPEC details:");
 
-    if (original_uncertain_mode()->is_speculative_mode()) {
-        // MINILOGPROC(when_enter_certain_logger,
-        //             show_triple,
-        //             (os, id(),
-        //              m_spec_mode.frame, m_spec_mode.sp, m_spec_mode.pc,
-        //              m_spec_mode.m_user));
-    }
-    else {
 
-        MINILOG(when_enter_certain_logger,
-                "#" << id() << " RVP details:");
-        // MINILOGPROC(when_enter_certain_logger,
-        //             show_triple,
-        //             (os, id(), m_rvp_mode.frame, m_rvp_mode.sp, m_rvp_mode.pc, m_rvp_mode.m_user,
-        //              true));
-    }
-
-    MINILOG(when_enter_certain_logger,
-            "#" << id() << " ---------------------------");
 }
 
 
 void
 SpmtThread::switch_to_certain_mode()
 {
-    change_mode(&m_certain_mode);
+    m_mode = &m_certain_mode;
 }
 
 void
 SpmtThread::switch_to_speculative_mode()
 {
-    change_mode(&m_spec_mode);
+    m_mode = &m_spec_mode;
 }
 
 void
@@ -314,7 +272,7 @@ SpmtThread::switch_to_rvp_mode()
 //     m_rvp_mode.frame = m_spec_mode.frame;
 //     m_rvp_mode.ostack = m_spec_mode.ostack;
 
-    change_mode(&m_rvp_mode);
+    m_mode = &m_rvp_mode;
 }
 
 
@@ -341,14 +299,8 @@ SpmtThread::add_spec_msg(Message* msg)
 
     m_spec_msg_queue.push_back(msg);
 
-
-    //{{{ just for debug
-    // if (m_id == 6) {
-    //     cout << "#6 sleep: " << m_halt << endl;
-    //     cout << "#6 waiting: " << m_is_waiting_for_task << endl;
-    // }
-    //}}} just for debug
-    if (m_halt && m_is_waiting_for_task) {
+    // 如果本线程是因为推测执行缺乏任务而睡眠，则唤醒。
+    if (m_halt and is_spec_mode() and m_need_spec_msg) {
         MINILOG0("#" << id() << " is waken(sleeping, waiting for task)");
         wakeup();
     }
@@ -509,6 +461,96 @@ SpmtThread::discard_revoked_msgs()
 
 
 void
+SpmtThread::discard_revoked_msg(Message* msg)
+{
+    /*
+      if 队列中找不到该消息
+          返回
+    */
+    auto iter_revoked_msg = find(m_spec_msg_queue.begin(),
+                                 m_spec_msg_queue.end(),
+                                 msg);
+    if (iter_revoked_msg == m_spec_msg_queue.end())
+        return;
+
+    /*
+      if 消息并无关联的effect（说明还未被处理）
+          if iter_to_revoke与iter_next相同
+              iter_next指向下一个
+          从队列中删除iter_to_revoke所指
+      else
+          从后向前遍历区间[iter_to_revoke, iter_next)内的消息
+              丢弃与消息关联的effect
+              if 消息是异步消息
+                  让iter_next指向该位置
+              else
+                  释放该消息
+                  移除该消息
+     */
+
+    Message* revoked_msg = *iter_revoked_msg;
+    if (revoked_msg->get_effect() == nullptr) {
+        if (iter_revoked_msg == m_iter_next_spec_msg) {
+            ++m_iter_next_spec_msg;
+        }
+        m_spec_msg_queue.erase(iter_revoked_msg);
+    }
+    else {
+        auto reverse_iter_msg = reverse_iterator<decltype(m_iter_next_spec_msg)>(m_iter_next_spec_msg);
+        auto reverse_iter_revoked_msg = reverse_iterator<decltype(iter_revoked_msg)>(iter_revoked_msg);
+
+        while (reverse_iter_msg != reverse_iter_revoked_msg) {
+            Message* msg = *reverse_iter_msg;
+            discard_effect(msg->get_effect());
+            if (g_is_async_msg(msg)) {
+                m_iter_next_spec_msg = reverse_iter_msg.base();
+                --m_iter_next_spec_msg;
+            }
+            else {
+                delete msg;
+                ++reverse_iter_msg;
+                m_spec_msg_queue.erase(reverse_iter_msg.base());
+            }
+        }
+
+    }
+}
+
+
+/*
+  只要丢弃effect，无论是全部丢弃，还是从某个之后丢弃。所有的rvp栈帧就都要释放。
+  只有最新的推测执行才会处于rvp模式，才会生成rvp栈帧。
+  而无论丢弃哪个effect，最新的推测执行难免会被丢弃。
+ */
+void
+SpmtThread::discard_effect(Effect* effect)
+{
+    // 释放C中的栈帧（不用从状态缓存中清除栈帧中的内容，等会一把丢弃）
+    for (Frame* f : effect->C) {
+        delete f;
+    }
+
+    // 丢弃快照中记录的版本以及之后所有版本（若无快照，丢弃最新版本）
+    if (effect->snapshot) {
+        m_state_buffer.discard(effect->snapshot->version);
+    }
+    else {
+        m_state_buffer.discard(m_state_buffer.version());
+    }
+
+    // 收回消息（如果是往返消息，则收回）
+    if (effect->msg_sent and g_is_async_msg(effect->msg_sent)) {
+        revoke_spec_msg(effect->msg_target_spmt_thread, effect->msg_sent);
+    }
+
+    // 释放RVP栈帧
+    for (Frame* f : V) {
+        delete f;
+    }
+}
+
+
+void
 SpmtThread::discard_all_effect()
 {
     MINILOG0_IF(debug_scaffold::java_main_arrived,
@@ -520,7 +562,7 @@ SpmtThread::discard_all_effect()
     //     处理effect中记录的栈帧
     //     释放effect
 
-    // 重置state buffer与rvp buffer
+    // 清空state buffer与rvp buffer
 
     for (auto i = m_spec_msg_queue.begin(); i != m_iter_next_spec_msg; ++i) {
         Message* msg = *i;
@@ -539,7 +581,7 @@ SpmtThread::discard_all_effect()
     m_state_buffer.reset();
     m_rvp_buffer.clear();
 
-    m_is_waiting_for_task = false;
+    m_need_spec_msg = false;
 
 }
 
@@ -593,120 +635,6 @@ SpmtThread::verify_speculation(Message* certain_msg)
     }
 
 }
-
-// void
-// SpmtThread::handle_verification_success(Message* message)
-// {
-//     //bool should_reset_spec_exec = false;
-
-//     if (m_snapshots_to_be_committed.empty()) {
-//         sync_certain_with_speculative();
-
-//         if (m_certain_mode.frame) {
-//             //assert(m_core->is_owner_or_subsidiary(frame->get_object()));
-//             assert(is_sp_ok(m_certain_mode.sp, m_certain_mode.frame));
-//             assert(is_pc_ok(m_certain_mode.pc, m_certain_mode.frame->mb));
-//         }
-
-//         MINILOG(commit_logger,
-//                 "#" << id()
-//                 << " commit to latest, ver(" << m_state_buffer.version() << ")");
-//         //{{{ just for debug
-//         MINILOG(cache_logger,
-//                 "#" << id() << " ostack base: " << m_certain_mode.frame->ostack_base);
-//         MINILOGPROC(cache_logger, show_buffer,
-//                     (os, id(), m_state_buffer, false));
-//         //}}} just for debug
-//         m_state_buffer.commit(m_state_buffer.version());
-//         //{{{ just for debug
-//         MINILOG(cache_logger,
-//                 "#" << id() << " ostack base: " << m_certain_mode.frame->ostack_base);
-//         MINILOGPROC(cache_logger, show_buffer,
-//                     (os, id(), m_state_buffer, false));
-//         //}}} just for debug
-
-//         // because has commited to latest version, cache should restart from ver 0
-//         //should_reset_spec_exec = true;
-
-//         //{{{ just for debug
-//         // if (m_id == 6 && message->get_type() == Message::ack) {
-//         //     int x = 0;
-//         //     x++;
-//         // }
-//         //}}} just for debug
-//         MINILOG0_IF(debug_scaffold::java_main_arrived,
-//                     "#" << id() << " comt spec: latest");
-//     }
-//     else {
-//         Snapshot* snapshot = m_snapshots_to_be_committed.front();
-//         m_snapshots_to_be_committed.pop_front();
-//         sync_certain_with_snapshot(snapshot);
-
-//         if (message->get_type() == Message::ret && m_certain_mode.frame) {
-//             //assert(m_core->is_owner_enclosure(frame->get_object()));
-//             //assert(get_group() == m_certain_mode.frame->get_object()->());
-//             assert(is_sp_ok(m_certain_mode.sp, m_certain_mode.frame));
-//             assert(is_pc_ok(m_certain_mode.pc, m_certain_mode.frame->mb));
-//         }
-
-//         MINILOG(commit_logger,
-//                 "#" << id() << " commit to ver(" << snapshot->version << ")");
-
-//         // MINILOG0_IF(debug_scaffold::java_main_arrived,
-//         //             "#" << m_core->id() << " comt spec: " << *snapshot->spec_msg);
-
-//         //{{{ just for debug
-//         MINILOG(cache_logger,
-//                 "#" << id() << " ostack base: " << m_certain_mode.frame->ostack_base);
-//         MINILOGPROC(cache_logger, show_buffer,
-//                     (os, id(), m_state_buffer, false));
-//         //}}} just for debug
-//         m_state_buffer.commit(snapshot->version);
-//         //{{{ just for debug
-//         MINILOG(cache_logger,
-//                 "#" << id() << " ostack base: " << m_certain_mode.frame->ostack_base);
-//         MINILOGPROC(cache_logger, show_buffer,
-//                     (os, id(), m_state_buffer, false));
-//         //}}} just for debug
-
-//         // if (snapshot->version == m_core->m_state_buffer.prev_version()) {
-//         //     //{{{ just for debug
-//         //     int x = 0;
-//         //     x++;
-//         //     //}}} just for debug
-
-//         //     //should_reset_spec_exec = true;
-//         // }
-
-//         delete snapshot;
-//     }
-
-//     if (message->get_type() != Message::put
-//         and message->get_type() != Message::arraystore) {
-//         mark_frame_certain();
-//     }
-
-
-//     //if (should_reset_spec_exec) {
-//     if (not has_message_to_be_verified()) {
-//         //discard_uncertain_execution(true);
-//     }
-
-//     MINILOG(commit_detail_logger,
-//             "#" << id() << " CERT details:");
-//     // MINILOGPROC(commit_detail_logger, show_triple,
-//     //             (os, m_core->id(),
-//     //              frame, sp, pc, m_user,
-//     //              true));
-
-//     if (message->get_type() == Message::put or message->get_type() == Message::arraystore) {
-//         // Object* source_object = message->get_source_object();
-//         // Group* source_group = source_object->get_group();
-//         // SpmtThread* source_core = source_group->get_core();
-//         // source_core->wakeup();
-//     }
-
-// }
 
 
 // 该方法跟process_spec_msg有很多重复，可以考虑合并为一个方法process_msg放在Mode中
@@ -855,24 +783,6 @@ SpmtThread::process_certain_msg(Message* msg)
 
 }
 
-// void
-// SpmtThread::handle_verification_failure(Message* message)
-// {
-//     reload_speculative_tasks();
-//     //discard_uncertain_execution(true);
-
-//     reexecute_failed_message(message);
-
-//     if (message->get_type() == Message::put or message->get_type() == Message::arraystore) {
-
-//         // Object* source_object = message->get_source_object();
-//         // Group* source_group = source_object->get_group();
-//         // SpmtThread* source_core = source_group->get_core();
-//         // source_core->wakeup();
-//         launch_next_spec_msg();
-
-//     }
-// }
 
 void
 SpmtThread::before_signal_exception(Class *exception_class)
@@ -964,7 +874,7 @@ SpmtThread::get_current_mode()
 void
 SpmtThread::process_spec_msg(Message* msg)
 {
-    m_is_waiting_for_task = false;
+    m_need_spec_msg = false;
 
     MINILOG(task_load_logger, "#" << id() << " spec msg loaded: " << *msg);
 
@@ -1164,18 +1074,21 @@ SpmtThread::pin_frames()
     Frame* f = m_spec_mode.frame;
 
     for (;;) {
-        // MINILOG(snapshot_logger,
-        //         "#" << m_spmt_thread->id() << " snapshot frame(" << f << ")" << " for " << *f->mb);
+        MINILOG(snapshot_logger, "#" << m_id
+                << " pin frame(" << f << ")" << " for " << *f->mb);
 
         if (f->pinned)
             break;
 
         f->pinned = true;
 
+        // execute_method开始新的执行，top frame就是新老执行的边界。新老执行的推测执行彼此无关。
         if (f->is_top_frame())
             break;
 
         f = f->prev;
+
+        // 只管钉住本线程创建
         if (f->caller != this)
             break;
 

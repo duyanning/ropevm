@@ -94,7 +94,8 @@ SpeculativeMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
             args.push_back(read(&sp[i]));
         }
 
-        Frame* new_frame = create_frame(target_object, new_mb, &args[0], m_spmt_thread, pc, frame, sp);
+        Frame* new_frame = create_frame(target_object, new_mb, &args[0],
+                                        m_spmt_thread, pc, frame, sp);
 
         frame->last_pc = pc;
 

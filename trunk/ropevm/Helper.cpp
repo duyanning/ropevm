@@ -461,6 +461,14 @@ get_foreign_policy(Object* obj)
     return static_cast<GroupingPolicyEnum>(policy);
 }
 
+
+bool
+g_is_pure_code_method(MethodBlock* mb)
+{
+    return false;
+}
+
+
 string
 info(MethodBlock* mb)
 {

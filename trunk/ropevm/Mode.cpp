@@ -48,9 +48,9 @@ Mode::is_rvp_mode()
 }
 
 void
-Mode::set_core(SpmtThread* core)
+Mode::set_spmt_thread(SpmtThread* spmt_thread)
 {
-    m_spmt_thread = core;
+    m_spmt_thread = spmt_thread;
 }
 
 void
