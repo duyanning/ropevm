@@ -26,8 +26,8 @@ bool get_bool(const char* val, const char* defval = "1");
 class MethodBlock;
 bool is_priviledged(MethodBlock* mb);
 
-GroupingPolicyEnum get_grouping_policy_self(Object* obj);
-GroupingPolicyEnum get_grouping_policy_others(Object* obj);
+GroupingPolicyEnum get_policy(Object* obj);
+GroupingPolicyEnum get_foreign_policy(Object* obj);
 
 std::string info(Frame* frame);
 std::string info(Object* o);

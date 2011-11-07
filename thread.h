@@ -38,11 +38,12 @@ typedef struct monitor {
     struct monitor *next;
 } Monitor;
 
-
-class Group;
 class SpmtThread;
 
+
+// 代表一个java线程
 class Thread {
+    friend class SpmtThread;
 public:
     Object* thread;
     int id;
@@ -66,36 +67,40 @@ public:
     unsigned int wait_id;
     unsigned int notify_id;
 
-    Group* m_default_group;
-    //SpmtThread* m_certain_core;
-    //std::vector<SpmtThread*> m_cores;
+    // 一个java线程的背后是若干spmt线程。
+    // java线程仅仅是一个概念上的东西，每个spmt线程对应一个os线程。
+    // 但目前，简单起见，java线程对应一个os线程，众spmt线程由该os线程驱动。
     std::vector<SpmtThread*> m_spmt_threads;
 
+    SpmtThread* m_initial_spmt_thread; // 每个java线程一产生，就有一个spmt线程。
 
-    typedef std::map<Object*, Group*> ObjectGroupMap;
-    ObjectGroupMap m_object_to_group;
-    void register_object_group(Object* object, Group* group);
-    Group* group_of(Object* obj);
-    Group* assign_group_for(Object* obj, Object* current_object);
-    void add_core(SpmtThread* core);
+
+    typedef std::map<Object*, SpmtThread*> Object2SpmtThreadMap;
+    Object2SpmtThreadMap m_object_to_spmt_thread;
+    void register_object_spmt_thread(Object* object, SpmtThread* spmt_thread);
+    SpmtThread* spmt_thread_of(Object* obj);
+    //SpmtThread* assign_spmt_thread_for(Object* obj, Object* current_object);
+    //void add_spmt_thread(SpmtThread* core);
     Thread();
     ~Thread();
     bool create();
-    static void* S_threadStart(void *arg);
 
-    uintptr_t* drive_loop();
 
-    Group* get_default_group();
-    // SpmtThread* get_certain_core();
-    // void set_certain_core(SpmtThread* core);
+    //uintptr_t* drive_loop();
+
+    SpmtThread* get_initial_spmt_thread();
 
     SpmtThread* get_current_spmt_thread();
     void set_current_spmt_thread(SpmtThread* st);
+
     void scan();
     void scan_spmt_threads();
+
 private:
     SpmtThread* m_current_spmt_thread;
 };
+
+Thread* g_get_current_thread();
 
 class VMThread : public Thread {
 public:

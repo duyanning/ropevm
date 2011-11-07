@@ -12,7 +12,6 @@
 #include "DebugScaffold.h"
 #include "SpmtThread.h"
 #include "RopeVM.h"
-#include "Group.h"
 
 #define PREPARE(ptr) ptr
 #define SCAVENGE(ptr) FALSE

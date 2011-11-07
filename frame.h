@@ -1,7 +1,6 @@
 #ifndef FRAME_H
 #define FRAME_H
 
-class Group;
 
 class Frame {
 public:

@@ -757,7 +757,7 @@ extern void initialiseException();
 
 /* interp */
 
-extern uintptr_t* g_drive_loop();
+//extern uintptr_t* g_drive_loop();
 extern void initialiseInterpreter(InitArgs *args);
 
 /* String */
@@ -966,6 +966,10 @@ array_elem_addr(Object* array, int index, size_t type_size)
     uint8_t* addr = (uint8_t*)ARRAY_DATA(array) + index * type_size;
     return addr;
 }
+
+
+inline
+int size2nslots(size_t type_size) { return type_size > 4 ? 2 : 1; }
 
 
 inline

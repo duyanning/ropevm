@@ -26,9 +26,6 @@ public:
 
     virtual void destroy_frame(Frame* frame);
 
-    void get_my_field(Object* obj, uintptr_t* addr, int size);
-    void put_my_field(Object* obj, uintptr_t* addr, int size, bool is_static);
-
     virtual uint32_t mode_read(uint32_t* addr);
     virtual void mode_write(uint32_t* addr, uint32_t value);
     //virtual void step();

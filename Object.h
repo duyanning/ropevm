@@ -3,20 +3,19 @@
 
 class Class;
 class SpmtThread;
-class Group;
 
 class Object {
 public:
 
     //Object() // because using gcMalloc to alloc Object, ctor for Object has no chance to run, so we MUST call initialize
     void initialize();
-    void set_group(Group* group);
-    void join_group_in_other_threads(Group* group);
-    Group* get_group();
 
+    SpmtThread* get_spmt_thread(); // 根据不同的java线程调用它而返回不同的spmt线程。
+    void set_spmt_thread(SpmtThread* spmt_thread); // 创建对象的java线程为其分配的spmt线程
+    void join_spmt_thread_in_other_threads(SpmtThread* spmt_thread); // 其他java线程为其分配的spmt线程。
     uintptr_t lock;
 private:
-    Group* m_group;             // set by the thread that created it
+    SpmtThread* m_spmt_thread;             // set by the thread that created it
 public:
     Class* classobj;
 };
@@ -25,7 +24,7 @@ inline
 void
 Object::initialize()
 {
-    m_group = 0;
+    m_spmt_thread = 0;
 }
 
 

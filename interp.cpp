@@ -13,15 +13,15 @@
 #include "DebugScaffold.h"
 #include "frame.h"
 
-uintptr_t* g_drive_loop()
-{
-    Thread* this_thread = threadSelf();
+// uintptr_t* g_drive_loop()
+// {
+//     Thread* this_thread = threadSelf();
 
-    uintptr_t* result;
-    result = this_thread->drive_loop();
+//     uintptr_t* result;
+//     result = this_thread->drive_loop();
 
-    return result;
-}
+//     return result;
+// }
 
 
 #define THROW_EXCEPTION(excep_name, message)    \
@@ -41,7 +41,7 @@ Mode::fetch_and_interpret_an_instruction()
     assert(not frame->is_bad());
 
     // speculative (pc, frame, sp) only serves owner
-    assert(is_speculative_mode() ? (frame->get_object()->get_group() == get_group()) : true);
+    //assert(is_speculative_mode() ? (frame->get_object()->get_group() == get_group()) : true);
     // rvp (pc, frame, sp) only serves others
     //assert(is_rvp_mode() ? frame->get_object() != m_spmt_thread->m_owner : true);
 

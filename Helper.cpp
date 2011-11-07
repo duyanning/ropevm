@@ -421,7 +421,7 @@ bool is_priviledged(MethodBlock* mb)
 }
 
 GroupingPolicyEnum
-get_grouping_policy_self(Object* obj)
+get_policy(Object* obj)
 {
     assert(obj);
 
@@ -442,7 +442,7 @@ get_grouping_policy_self(Object* obj)
 }
 
 GroupingPolicyEnum
-get_grouping_policy_others(Object* obj)
+get_foreign_policy(Object* obj)
 {
     assert(obj);
 

@@ -22,7 +22,7 @@ UncertainMode::step()
 {
     assert(RopeVM::do_spec);
 
-    // 阶段I：检测并处理确定性外部事件（必须处理，推测执行那是你自己的事情，不是必须的，但确定性事件必须响应）
+    // 阶段I：检测并处理确定性外部事件（必须处理，在失去确定控制后是否推测执行那是你自己的事情，不是必须的，但确定性事件是必须响应的。）
     Message* msg = m_spmt_thread->get_certain_msg();
 
     if (msg) {
@@ -54,8 +54,8 @@ UncertainMode::step()
 
     // 阶段II：解释指令
 
-    // 1，移除被收回的消息，更新消息队列
-    // ...
+    // 1，移除被收回的消息，更新消息队列(这步一定要再推测执行之前，免得人家都收回了，你还瞎忙)
+    discard_revoked_msgs();
 
     // 2，加载新的待处理消息
     if (m_spmt_thread->is_waiting_for_spec_msg()) {
@@ -67,6 +67,6 @@ UncertainMode::step()
 
     }
 
-    // 3，解释
+    // 3，取出并解释一条java指令
     fetch_and_interpret_an_instruction();
 }
