@@ -55,11 +55,11 @@ UncertainMode::step()
     // 阶段II：解释指令
 
     // 1，移除被收回的消息，更新消息队列(这步一定要再推测执行之前，免得人家都收回了，你还瞎忙)
-    discard_revoked_msgs();
+    m_spmt_thread->discard_revoked_msgs();
 
     // 2，加载新的待处理消息
-    if (m_spmt_thread->is_waiting_for_spec_msg()) {
-        // 能到这里，必然不是rvp模式，因为处在rvp模式下就不会等待推测消息
+    if (m_spmt_thread->is_spec_mode() and m_spmt_thread->m_need_spec_msg) {
+
         MINILOG(task_load_logger, "#" << m_spmt_thread->id()
                 << " is waiting for task");
 

@@ -36,7 +36,6 @@ Message::get_type()
 
 //------------------------------------------------
 
-// InvokeMsg::InvokeMsg(Object* object, MethodBlock* mb, Frame* caller_frame, Object* calling_object, uintptr_t* args, uintptr_t* caller_sp, CodePntr caller_pc)
 InvokeMsg::InvokeMsg(SpmtThread* source_spmt_thread, Object* target_object, MethodBlock* mb, uintptr_t* args,
                      CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp,
                      bool is_top)
@@ -90,8 +89,6 @@ InvokeMsg::show_detail(std::ostream& os, int id) const
 }
 
 //------------------------------------------------
-// ReturnMsg::ReturnMsg(Object* object, MethodBlock* mb, Frame* caller_frame, Object* calling_object, uintptr_t* rv, int len, uintptr_t* caller_sp, CodePntr caller_pc)
-//ReturnMsg::ReturnMsg(Object* source_obj, Object* target_obj, uintptr_t* rv, int len, bool is_top)
 ReturnMsg::ReturnMsg(uintptr_t* rv, int len,
                      CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp,
                      bool is_top)
@@ -156,7 +153,7 @@ ReturnMsg::show_detail(std::ostream& os, int id) const
 }
 
 //-----------------------------------------------
-//GetMsg::GetMsg(SpmtThread* source_spmt_thread, Object* target_object, FieldBlock* fb, uintptr_t* addr, int size)
+
 GetMsg::GetMsg(SpmtThread* source_spmt_thread, Object* target_object, FieldBlock* fb)
 :
     RoundTripMsg(Message::get, source_spmt_thread, target_object)
@@ -227,9 +224,7 @@ GetMsg::show_detail(std::ostream& os, int id) const
     //os << "#" << id << "\n";
 }
 //-----------------------------------------------
-// PutMsg::PutMsg(SpmtThread* source_spmt_thread,
-//                Object* target_object, FieldBlock* fb, uintptr_t* addr,
-//                uintptr_t* val, int len)
+
 PutMsg::PutMsg(SpmtThread* source_spmt_thread,
                Object* target_object, FieldBlock* fb,
                uintptr_t* val)
@@ -345,7 +340,6 @@ ArrayLoadMsg::show_detail(std::ostream& os, int id) const
 }
 //-----------------------------------------------
 
-//ArrayStoreMsg::ArrayStoreMsg(SpmtThread* source_spmt_thread, Object* array, int index, uintptr_t* slots, int nslots, int type_size)
 ArrayStoreMsg::ArrayStoreMsg(SpmtThread* source_spmt_thread, Object* array, int type_size, int index, uintptr_t* slots)
 
 :

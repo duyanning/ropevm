@@ -43,7 +43,7 @@ public:
     virtual void destroy_frame(Frame* frame) = 0;
 
 
-    void set_core(SpmtThread* core);
+    void set_spmt_thread(SpmtThread* spmt_thread);
 
     virtual uint32_t mode_read(uint32_t* addr) = 0;
     virtual void mode_write(uint32_t* addr, uint32_t value) = 0;

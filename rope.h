@@ -956,8 +956,9 @@ std::ostream& operator<<(std::ostream& os, const FieldBlock& fb)
     return os;
 }
 
-bool is_speculative_object(Object* obj);
-bool is_speculative_class(Class* classobj);
+// bool is_speculative_object(Object* obj);
+// bool is_speculative_class(Class* classobj);
+bool g_is_pure_code_method(MethodBlock* mb);
 
 inline
 void*

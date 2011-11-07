@@ -12,6 +12,7 @@ public:
     void write(Word* addr, Word value);
     void freeze();
     void commit(int ver);
+    void discard(int ver);
     void clear(void* begin, void* end);
     void reset();
     int version();

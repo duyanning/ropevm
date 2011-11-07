@@ -46,7 +46,6 @@ RopeVM::new_spmt_thread()
     if (m_spmt_threads.size() < 1000) {
         spmt_thread = new SpmtThread(get_next_id());
         m_spmt_threads.push_back(spmt_thread);
-        spmt_thread->init();
     }
     else {
         assert(false);

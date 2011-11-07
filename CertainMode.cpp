@@ -112,7 +112,7 @@ CertainMode::do_execute_method(Object* target_object,
 
         // 转入推测模式，但不要执行
         m_spmt_thread->sleep();
-        m_spmt_thread->m_is_waiting_for_task = false;
+        m_spmt_thread->m_need_spec_msg = false;
 
         m_spmt_thread->send_certain_msg(target_spmt_thread, msg);
     }
@@ -142,7 +142,7 @@ CertainMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
     SpmtThread* target_spmt_thread = target_object->get_spmt_thread();
     assert(target_spmt_thread->m_thread == m_spmt_thread->m_thread);
 
-    if (target_spmt_thread == m_spmt_thread) {
+    if (target_spmt_thread == m_spmt_thread or g_is_pure_code_method(new_mb)) {
 
         sp -= new_mb->args_count;
         invoke_impl(target_object, new_mb, sp,
