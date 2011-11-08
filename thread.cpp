@@ -1166,10 +1166,8 @@ Thread::Thread()
     m_initial_spmt_thread = RopeVM::instance()->new_spmt_thread();
     m_initial_spmt_thread->set_thread(this);
 
-    // 初始线程一开始就是确定模式
-    m_initial_spmt_thread->switch_to_certain_mode();
-
     // 初始线程处于确定模式、运行状态、推测模式不需要任务。
+    m_initial_spmt_thread->switch_to_certain_mode();
     m_initial_spmt_thread->wakeup();
 }
 
@@ -1280,13 +1278,7 @@ Thread::set_current_spmt_thread(SpmtThread* st)
 void
 Thread::scan_spmt_threads()
 {
-    using namespace std;
-    // make a copy of cores vector to avoid modification to m_cores while loop
-    vector<SpmtThread*> cores(m_spmt_threads);
-    for (vector<SpmtThread*>::iterator i = cores.begin(); i != cores.end(); ++i) {
-        SpmtThread* spmt_thread = *i;
-        spmt_thread->scan();
-    }
+
 }
 
 
