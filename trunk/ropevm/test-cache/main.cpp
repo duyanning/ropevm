@@ -1,110 +1,110 @@
 #include "std.h"
-#include "Cache.h"
+#include "StatesBuffer.h"
 
 using namespace std;
 
-void read_cache(Cache& cache, Word* addr)
+void read_buf(StatesBuffer& buf, Word* addr)
 {
-    Word value = cache.read(addr);
+    Word value = buf.read(addr);
     cout << "read: (" << addr << ") = " << value << endl;
 }
 
-void write_cache(Cache& cache, Word* addr, Word value)
+void write_buf(StatesBuffer& buf, Word* addr, Word value)
 {
-    cache.write(addr, value);
+    buf.write(addr, value);
     cout << "write: (" << addr << ") = " << value << endl;
 }
 
-void freeze(Cache& cache)
+void freeze(StatesBuffer& buf)
 {
-    cout << "freeze version: " << cache.version() << endl;
-    cache.snapshot();
+    cout << "freeze version: " << buf.version() << endl;
+    buf.freeze();
 }
 
-void commit_to(Cache& cache, int ver)
+void commit_to(StatesBuffer& buf, int ver)
 {
     cout << "commit to version: " << ver << endl;
-    cache.commit(ver);
+    buf.commit(ver);
 }
 
-void show_cache(Cache& cache, bool integer = true)
+void show_buf(StatesBuffer& buf, bool integer = true)
 {
-    show_cache(cout, 0, cache, integer);
+    show_buffer(cout, 0, buf, integer);
 }
 
-void reset_cache(Cache& cache)
+void reset_buf(StatesBuffer& buf)
 {
     cout << "reset" << endl;
-    cache.reset();
+    buf.reset();
 }
 
 int main()
 {
     Word x = 0;
     Word y = 99;
-    Cache cache1;
+    StatesBuffer buf1;
 
-    show_cache(cache1);
-    read_cache(cache1, &x);
-    show_cache(cache1);
-    write_cache(cache1, &x, 1);
-    show_cache(cache1);
-    read_cache(cache1, &x);
-    show_cache(cache1);
-    freeze(cache1);
-    freeze(cache1);
-    freeze(cache1);
-    freeze(cache1);
-    show_cache(cache1);
-    read_cache(cache1, &x);
-    show_cache(cache1);
-    write_cache(cache1, &x, 2);
-    show_cache(cache1);
-    freeze(cache1);
-    show_cache(cache1);
-    read_cache(cache1, &y);
-    freeze(cache1);
-    show_cache(cache1);
-    write_cache(cache1, &y, 98);
-    show_cache(cache1);
-    freeze(cache1);
-    freeze(cache1);
-    show_cache(cache1);
-    write_cache(cache1, &x, 3);
-    show_cache(cache1);
-    commit_to(cache1, 3);
-    show_cache(cache1);
-    commit_to(cache1, 4);
-    show_cache(cache1);
-    commit_to(cache1, 6);
-    show_cache(cache1);
-    commit_to(cache1, 8);
-    show_cache(cache1);
-    write_cache(cache1, &x, 14);
-    write_cache(cache1, &y, 95);
-    show_cache(cache1);
-    reset_cache(cache1);
-    show_cache(cache1);
-    write_cache(cache1, &x, 14);
-    write_cache(cache1, &y, 95);
-    show_cache(cache1);
-    freeze(cache1);
-    freeze(cache1);
-    freeze(cache1);
-    freeze(cache1);
-    freeze(cache1);
-    freeze(cache1);
-    freeze(cache1);
-    show_cache(cache1);
-    write_cache(cache1, &x, 14);
-    write_cache(cache1, &y, 95);
-    show_cache(cache1);
-    commit_to(cache1, 0);
-    show_cache(cache1);
-    commit_to(cache1, 6);
-    show_cache(cache1);
-    commit_to(cache1, 3);
-    show_cache(cache1);
+    show_buf(buf1);
+    read_buf(buf1, &x);
+    show_buf(buf1);
+    write_buf(buf1, &x, 1);
+    show_buf(buf1);
+    read_buf(buf1, &x);
+    show_buf(buf1);
+    freeze(buf1);
+    freeze(buf1);
+    freeze(buf1);
+    freeze(buf1);
+    show_buf(buf1);
+    read_buf(buf1, &x);
+    show_buf(buf1);
+    write_buf(buf1, &x, 2);
+    show_buf(buf1);
+    freeze(buf1);
+    show_buf(buf1);
+    read_buf(buf1, &y);
+    freeze(buf1);
+    show_buf(buf1);
+    write_buf(buf1, &y, 98);
+    show_buf(buf1);
+    freeze(buf1);
+    freeze(buf1);
+    show_buf(buf1);
+    write_buf(buf1, &x, 3);
+    show_buf(buf1);
+    commit_to(buf1, 3);
+    show_buf(buf1);
+    commit_to(buf1, 4);
+    show_buf(buf1);
+    commit_to(buf1, 6);
+    show_buf(buf1);
+    commit_to(buf1, 8);
+    show_buf(buf1);
+    write_buf(buf1, &x, 14);
+    write_buf(buf1, &y, 95);
+    show_buf(buf1);
+    reset_buf(buf1);
+    show_buf(buf1);
+    write_buf(buf1, &x, 14);
+    write_buf(buf1, &y, 95);
+    show_buf(buf1);
+    freeze(buf1);
+    freeze(buf1);
+    freeze(buf1);
+    freeze(buf1);
+    freeze(buf1);
+    freeze(buf1);
+    freeze(buf1);
+    show_buf(buf1);
+    write_buf(buf1, &x, 14);
+    write_buf(buf1, &y, 95);
+    show_buf(buf1);
+    commit_to(buf1, 0);
+    show_buf(buf1);
+    commit_to(buf1, 6);
+    show_buf(buf1);
+    commit_to(buf1, 3);
+    show_buf(buf1);
 
     cout << "x is : " << x << endl;
     cout << "y is : " << y << endl;

@@ -93,6 +93,7 @@ public:
     SpmtThread* get_current_spmt_thread();
     void set_current_spmt_thread(SpmtThread* st);
 
+    // 垃圾回收（尚未实现）
     void scan();
     void scan_spmt_threads();
 

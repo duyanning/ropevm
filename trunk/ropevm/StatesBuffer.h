@@ -24,16 +24,16 @@ private:
     int size() { return m_hashtable.size(); }
     void access(Word* addr);    // for debug
 
-    struct Line {
-        Line(int ver, Word val)
-            : version(ver), value(val)
+    struct Node {
+        Node(int ver, Word val)
+            : start_ver(ver), value(val)
         {
         }
-        int version;
+        int start_ver;
         Word value;
     };
 
-    typedef std::deque<Line> History;
+    typedef std::deque<Node> History;
 
     typedef std::tr1::unordered_map<Word*, History*> Hashtable;
 
