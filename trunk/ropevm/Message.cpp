@@ -7,8 +7,11 @@ using namespace std;
 
 int msg_count = 0;              // just for debug
 
-Message::Message(Type t)
-    : type(t)
+Message::Message(Type t, SpmtThread* target_spmt_thread)
+   :
+    type(t),
+    m_target_spmt_thread(target_spmt_thread)
+
 {
 }
 
@@ -36,11 +39,12 @@ Message::get_type()
 
 //------------------------------------------------
 
-InvokeMsg::InvokeMsg(SpmtThread* source_spmt_thread, Object* target_object, MethodBlock* mb, uintptr_t* args,
+InvokeMsg::InvokeMsg(SpmtThread* source_spmt_thread, SpmtThread* target_spmt_thread,
+                     Object* target_object, MethodBlock* mb, uintptr_t* args,
                      CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp,
                      bool is_top)
 :
-    RoundTripMsg(Message::invoke, source_spmt_thread, target_object)
+    RoundTripMsg(Message::invoke, source_spmt_thread, target_spmt_thread, target_object)
 {
     this->mb = mb;
 
@@ -89,11 +93,12 @@ InvokeMsg::show_detail(std::ostream& os, int id) const
 }
 
 //------------------------------------------------
-ReturnMsg::ReturnMsg(uintptr_t* rv, int len,
+ReturnMsg::ReturnMsg(SpmtThread* target_spmt_thread,
+                     uintptr_t* rv, int len,
                      CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp,
                      bool is_top)
 :
-    Message(Message::ret)
+    Message(Message::ret, target_spmt_thread)
 {
     //this->mb = mb;
 
@@ -154,9 +159,10 @@ ReturnMsg::show_detail(std::ostream& os, int id) const
 
 //-----------------------------------------------
 
-GetMsg::GetMsg(SpmtThread* source_spmt_thread, Object* target_object, FieldBlock* fb)
+GetMsg::GetMsg(SpmtThread* source_spmt_thread, SpmtThread* target_spmt_thread,
+               Object* target_object, FieldBlock* fb)
 :
-    RoundTripMsg(Message::get, source_spmt_thread, target_object)
+    RoundTripMsg(Message::get, source_spmt_thread, target_spmt_thread, target_object)
 {
     // for (int i = 0; i < size; ++i) {
     //     this->val.push_back(addr[i]);
@@ -225,11 +231,11 @@ GetMsg::show_detail(std::ostream& os, int id) const
 }
 //-----------------------------------------------
 
-PutMsg::PutMsg(SpmtThread* source_spmt_thread,
+PutMsg::PutMsg(SpmtThread* source_spmt_thread, SpmtThread* target_spmt_thread,
                Object* target_object, FieldBlock* fb,
                uintptr_t* val)
 :
-    RoundTripMsg(Message::put, source_spmt_thread, target_object)
+    RoundTripMsg(Message::put, source_spmt_thread, target_spmt_thread, target_object)
 {
 
     for (int i = 0; i < fb->field_size(); ++i) {
@@ -294,9 +300,10 @@ PutMsg::show_detail(std::ostream& os, int id) const
 
 //-----------------------------------------------
 
-ArrayLoadMsg::ArrayLoadMsg(SpmtThread* source_spmt_thread, Object* array, int type_size, int index)
+ArrayLoadMsg::ArrayLoadMsg(SpmtThread* source_spmt_thread, SpmtThread* target_spmt_thread,
+                           Object* array, int type_size, int index)
 :
-    RoundTripMsg(Message::arrayload, source_spmt_thread, array)
+    RoundTripMsg(Message::arrayload, source_spmt_thread, target_spmt_thread, array)
 {
     this->type_size = type_size;
     this->index = index;
@@ -340,10 +347,11 @@ ArrayLoadMsg::show_detail(std::ostream& os, int id) const
 }
 //-----------------------------------------------
 
-ArrayStoreMsg::ArrayStoreMsg(SpmtThread* source_spmt_thread, Object* array, int type_size, int index, uintptr_t* slots)
+ArrayStoreMsg::ArrayStoreMsg(SpmtThread* source_spmt_thread, SpmtThread* target_spmt_thread,
+                             Object* array, int type_size, int index, uintptr_t* slots)
 
 :
-    RoundTripMsg(Message::arraystore, source_spmt_thread, array)
+    RoundTripMsg(Message::arraystore, source_spmt_thread, target_spmt_thread, array)
 {
 
     this->type_size = type_size;
@@ -378,7 +386,7 @@ ArrayStoreMsg::show(ostream& os) const
     int nslots = val.size();
     assert(nslots == 1 || nslots == 2);
 
-    os << "array store" << type_size << " " << m_target_object->classobj->name() << "(" << index << ") = ";
+    os << "array store" << type_size << " " << m_object->classobj->name() << "(" << index << ") = ";
 
     if (nslots == 1) {
         int i = *(int*)&val[0];

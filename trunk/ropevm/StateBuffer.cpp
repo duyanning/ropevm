@@ -118,7 +118,8 @@ StateBuffer::commit(int ver)
         // 在历史中找到版本i+1所在节点（因为版本i提交后，版本i及之前版本要从buf从清理出去）
         // （怎么找到某版本x所在节点？ 答：从后向前，倒着找到第一个起始版本小于或等于x的节点）
         History::reverse_iterator reverse_iter_iplus1 =
-            find_if(history->rbegin(), history->rend(), [&ver](Node& node){ return node.start_ver <= ver+1; });
+            find_if(history->rbegin(), history->rend(),
+                    [ver](Node& node){ return node.start_ver <= ver+1; });
 
         // 本节点之前的节点全部扔掉。
         if (reverse_iter_iplus1 != history->rend()) {
@@ -169,7 +170,7 @@ StateBuffer::discard(int ver)
         // 在历史中找到版本i-1所在节点（因为版本i提交后，版本i及之前版本要从buf从清理出去）
         // （怎么找到某版本x所在节点？ 答：从后向前，倒着找到第一个起始版本小于或等于x的节点）
         History::reverse_iterator reverse_iter_iminus1 =
-            find_if(history->rbegin(), history->rend(), [&ver](Node& node){ return node.start_ver <= ver-1; });
+            find_if(history->rbegin(), history->rend(), [ver](Node& node){ return node.start_ver <= ver-1; });
 
         // 将其后节点全部扔掉。
         auto first = reverse_iter_iminus1.base();

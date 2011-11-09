@@ -88,12 +88,12 @@ CertainMode::do_execute_method(Object* target_object,
     if (target_spmt_thread == m_spmt_thread) {
 
         invoke_impl(target_object, new_mb, &jargs[0],
-                    0, dummy, dummy->ostack_base);
+                    m_spmt_thread, 0, dummy, dummy->ostack_base);
 
 
     }
     else {
-        InvokeMsg* msg = new InvokeMsg(m_spmt_thread,
+        InvokeMsg* msg = new InvokeMsg(m_spmt_thread, target_spmt_thread,
                                        target_object, new_mb, &jargs[0],
                                        pc, frame, sp,
                                        true);
@@ -114,7 +114,7 @@ CertainMode::do_execute_method(Object* target_object,
         m_spmt_thread->sleep();
         m_spmt_thread->m_need_spec_msg = false;
 
-        m_spmt_thread->send_certain_msg(target_spmt_thread, msg);
+        m_spmt_thread->send_msg(msg);
     }
 
 
@@ -146,7 +146,7 @@ CertainMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
 
         sp -= new_mb->args_count;
         invoke_impl(target_object, new_mb, sp,
-                    pc, frame, sp);
+                    m_spmt_thread, pc, frame, sp);
 
     }
     else {
@@ -155,7 +155,7 @@ CertainMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
         sp -= new_mb->args_count;
 
         // construct certain msg
-        InvokeMsg* msg = new InvokeMsg(m_spmt_thread,
+        InvokeMsg* msg = new InvokeMsg(m_spmt_thread, target_spmt_thread,
                                        target_object, new_mb, sp,
                                        pc, frame, sp);
 
@@ -169,7 +169,7 @@ CertainMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
         //          // << "("  << frame << ")"
         //          );
 
-        m_spmt_thread->send_certain_msg(target_spmt_thread, msg);
+        m_spmt_thread->send_msg(msg);
 
         MethodBlock* rvp_method = get_rvp_method(new_mb);
 
@@ -271,7 +271,8 @@ CertainMode::do_method_return(int len)
         uintptr_t* rv = sp - len;   // rv points to the beginning of retrun value in this frame's operand stack
         sp -= len;
 
-        ReturnMsg* msg = new ReturnMsg(rv, len,
+        ReturnMsg* msg = new ReturnMsg(target_spmt_thread,
+                                       rv, len,
                                        current_frame->caller_pc,
                                        current_frame->prev,
                                        current_frame->caller_sp,
@@ -281,7 +282,7 @@ CertainMode::do_method_return(int len)
         destroy_frame(current_frame);
 
         m_spmt_thread->switch_to_speculative_mode();
-        m_spmt_thread->send_certain_msg(target_spmt_thread, msg);
+        m_spmt_thread->send_msg(msg);
         m_spmt_thread->launch_next_spec_msg();
     }
 
@@ -290,7 +291,7 @@ CertainMode::do_method_return(int len)
 
 void
 CertainMode::invoke_impl(Object* target_object, MethodBlock* new_mb, uintptr_t* args,
-                             CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp)
+                         SpmtThread* caller, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp)
 {
     MINILOG_IF(debug_scaffold::java_main_arrived,
                invoke_return_logger,
@@ -476,10 +477,10 @@ CertainMode::do_get_field(Object* target_object, FieldBlock* fb,
     }
     else {
         sp -= is_static ? 0 : 1;
-        GetMsg* msg = new GetMsg(m_spmt_thread, target_object, fb);
+        GetMsg* msg = new GetMsg(m_spmt_thread, target_spmt_thread, target_object, fb);
 
         m_spmt_thread->sleep();
-        m_spmt_thread->send_certain_msg(target_spmt_thread, msg);
+        m_spmt_thread->send_msg(msg);
 
     }
 
@@ -526,13 +527,13 @@ CertainMode::do_put_field(Object* target_object, FieldBlock* fb,
     else {
         sp -= size;
 
-        PutMsg* msg = new PutMsg(m_spmt_thread, target_object, fb, sp);
+        PutMsg* msg = new PutMsg(m_spmt_thread, target_spmt_thread, target_object, fb, sp);
 
         sp -= is_static ? 0 : 1;
 
         m_spmt_thread->sleep();
 
-        m_spmt_thread->send_certain_msg(target_spmt_thread, msg);
+        m_spmt_thread->send_msg(msg);
     }
 
 }
@@ -552,17 +553,17 @@ CertainMode::do_array_load(Object* array, int index, int type_size)
 
     if (target_spmt_thread == m_spmt_thread) {
         sp -= 2; // pop up arrayref and index
-        load_from_array(sp, addr, type_size);
+        load_from_array(sp, array, index, type_size);
         sp += nslots;
         pc += 1;
     }
     else {
         sp -= 2; // pop up arrayref and index
-        ArrayLoadMsg* msg = new ArrayLoadMsg(m_spmt_thread,
+        ArrayLoadMsg* msg = new ArrayLoadMsg(m_spmt_thread, target_spmt_thread,
                                              array, type_size, index);
 
         m_spmt_thread->sleep();
-        m_spmt_thread->send_certain_msg(target_spmt_thread, msg);
+        m_spmt_thread->send_msg(msg);
 
     }
 
@@ -586,25 +587,26 @@ CertainMode::do_array_store(Object* array, int index, int type_size)
     SpmtThread* target_spmt_thread = target_object->get_spmt_thread();
     assert(target_spmt_thread->m_thread == m_spmt_thread->m_thread);
 
-    void* addr = array_elem_addr(array, index, type_size);
+    //void* addr = array_elem_addr(array, index, type_size);
     int nslots = size2nslots(type_size); // number of slots for value
 
 
     if (target_spmt_thread == m_spmt_thread) {
         sp -= nslots;
-        store_to_array(sp, addr, type_size);
+        store_to_array(sp, array, index, type_size);
         sp -= 2;                    // pop up arrayref and index
         pc += 1;
     }
     else {
 
         sp -= nslots;
-        ArrayStoreMsg* array_store_msg = new ArrayStoreMsg(m_spmt_thread, array,
+        ArrayStoreMsg* array_store_msg = new ArrayStoreMsg(m_spmt_thread, target_spmt_thread,
+                                                           array,
                                                            type_size, index, sp);
         sp -= 2;                    // pop up arrayref and index
 
         m_spmt_thread->sleep();
-        m_spmt_thread->send_certain_msg(target_spmt_thread, array_store_msg);
+        m_spmt_thread->send_msg(array_store_msg);
 
     }
 
@@ -617,4 +619,11 @@ CertainMode::log_when_invoke_return(bool is_invoke, Object* caller, MethodBlock*
 {
     log_invoke_return(c_invoke_return_logger, is_invoke, m_spmt_thread->id(), "(C)",
                       caller, caller_mb, callee, callee_mb);
+}
+
+
+void
+CertainMode::send_msg(Message* msg)
+{
+    msg->get_target_spmt_thread()->set_certain_msg(msg);
 }

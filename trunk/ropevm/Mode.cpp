@@ -10,6 +10,8 @@
 #include "Loggers.h"
 #include "jni.h"
 
+#include "Message.h"
+
 using namespace std;
 
 Mode::Mode(const char* name)
@@ -184,6 +186,151 @@ Mode::do_array_store(Object* array, int index, int type_size)
     assert(false);
 }
 
+
+void
+Mode::send_msg(Message* msg)
+{
+    assert(false);
+}
+
+
+void
+Mode::invoke_impl(Object* target_object, MethodBlock* new_mb, uintptr_t* args,
+                  SpmtThread* spmt_thread, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp)
+{
+    assert(false);
+}
+
+void
+Mode::process_msg(Message* msg)
+{
+    Message::Type type = msg->get_type();
+
+    if (type == Message::invoke) {
+
+        InvokeMsg* invoke_msg = static_cast<InvokeMsg*>(msg);
+
+        invoke_impl(invoke_msg->get_target_object(),
+                    invoke_msg->mb, &invoke_msg->parameters[0],
+                    invoke_msg->get_source_spmt_thread(),
+                    invoke_msg->caller_pc,
+                    invoke_msg->caller_frame,
+                    invoke_msg->caller_sp);
+    }
+    else if (type == Message::put) {
+        PutMsg* put_msg = static_cast<PutMsg*>(msg);
+
+        uintptr_t* field_addr = put_msg->get_field_addr();
+
+        for (int i = 0; i < put_msg->val.size(); ++i) {
+            write(field_addr + i, put_msg->val[i]);
+        }
+
+        PutReturnMsg* put_return_msg = new PutReturnMsg(put_msg->get_source_spmt_thread());
+
+        send_msg(put_return_msg);
+    }
+    else if (type == Message::get) {
+        GetMsg* get_msg = static_cast<GetMsg*>(msg);
+
+        // 从get消息的指定的字段中读取一个值，并根据该值构造get_return消息
+        uintptr_t* field_addr = get_msg->get_field_addr();
+        int field_size = get_msg->get_field_size();
+        std::vector<uintptr_t> value;
+        for (int i = 0; i < field_size; ++i) {
+            value.push_back(read(field_addr + i));
+        }
+
+
+        GetReturnMsg* get_return_msg = new GetReturnMsg(get_msg->get_source_spmt_thread(),
+                                                        &value[0], value.size());
+
+        send_msg(get_return_msg);
+    }
+    else if (type == Message::arraystore) {
+        ArrayStoreMsg* arraystore_msg = static_cast<ArrayStoreMsg*>(msg);
+
+        Object* array = arraystore_msg->get_target_object();
+        int index = arraystore_msg->index;
+        int type_size = arraystore_msg->type_size;
+        void* addr = array_elem_addr(array, index, type_size);
+
+        store_to_array_from_c(&arraystore_msg->val[0],
+                                          array, index, type_size);
+
+        ArrayStoreReturnMsg* arraystore_return_msg = new ArrayStoreReturnMsg(arraystore_msg->get_source_spmt_thread());
+
+        send_msg(arraystore_return_msg);
+    }
+    else if (type == Message::arrayload) {
+
+        ArrayLoadMsg* arrayload_msg = static_cast<ArrayLoadMsg*>(msg);
+
+        // 从arrayload消息指定的数组的指定索引处读入一个数值
+
+        Object* array = arrayload_msg->get_target_object();
+        int index = arrayload_msg->index;
+        int type_size = arrayload_msg->type_size;
+        void* addr = array_elem_addr(array, index, type_size);
+
+        std::vector<uintptr_t> value(2); // at most 2 slots
+        load_from_array_to_c(&value[0],
+                             array, index, type_size);
+
+        ArrayLoadReturnMsg* arrayload_return_msg = new ArrayLoadReturnMsg(arrayload_msg->get_source_spmt_thread(),
+                                                                          &value[0], value.size());
+
+        send_msg(arrayload_return_msg);
+
+    }
+    else if (type == Message::ret) {
+        ReturnMsg* return_msg = static_cast<ReturnMsg*>(msg);
+
+        // 将返回值写入ostack
+        for (auto i : return_msg->retval) {
+            write(sp++, i);
+        }
+
+        pc += (*pc == OPC_INVOKEINTERFACE_QUICK ? 5 : 3);
+    }
+    else if (type == Message::put_return) {
+        PutReturnMsg* put_return_msg = static_cast<PutReturnMsg*>(msg);
+        // 什么也不需要做
+
+        pc += 3;
+    }
+    else if (type == Message::get_return) {
+
+        GetReturnMsg* get_return_msg = static_cast<GetReturnMsg*>(msg);
+
+        for (auto i : get_return_msg->val) {
+            write(sp++, i);
+        }
+
+        pc += 3;
+    }
+    else if (type == Message::arraystore_return) {
+        // 没有什么需要写入ostack
+
+        pc += 1;
+    }
+    else if (type == Message::arrayload_return) {
+        ArrayLoadReturnMsg* arrayloadreturn_msg = static_cast<ArrayLoadReturnMsg*>(msg);
+
+        // 将读到的值写入ostack
+        for (auto i : arrayloadreturn_msg->val) {
+            write(sp++, i);
+        }
+
+
+        pc += 3;
+    }
+    else {
+        assert(false);
+    }
+
+}
+
 void
 Mode::destroy_frame(Frame* frame)
 {
@@ -285,8 +432,10 @@ show_invoke_return(std::ostream& os, bool is_invoke, int id, const char* tag,
 // 根据模式从数组读数值，根据模式写入ostack
 // refactor: 这些函数第一个参数的名字应该改一下，第二个参数换成数组名字和数组索引
 void
-Mode::load_from_array(uintptr_t* sp, void* elem_addr, int type_size)
+Mode::load_from_array(uintptr_t* sp, Object* array, int index, int type_size)
 {
+    void* elem_addr = array_elem_addr(array, index, type_size);
+
     if (type_size == 1) {
         write(sp, read((int8_t*)elem_addr));
     }
@@ -307,8 +456,10 @@ Mode::load_from_array(uintptr_t* sp, void* elem_addr, int type_size)
 
 // 根据模式从ostack读数值，根据模式写入数组
 void
-Mode::store_to_array(uintptr_t* sp, void* elem_addr, int type_size)
+Mode::store_to_array(uintptr_t* sp, Object* array, int index, int type_size)
 {
+    void* elem_addr = array_elem_addr(array, index, type_size);
+
     if (type_size == 1) {
         write((int8_t*)elem_addr, (int32_t)read(sp));
     }
@@ -329,8 +480,10 @@ Mode::store_to_array(uintptr_t* sp, void* elem_addr, int type_size)
 
 // 根据模式从数组读数值，写入c内存
 void
-Mode::load_from_array_to_c(uintptr_t* sp, void* elem_addr, int type_size)
+Mode::load_from_array_to_c(uintptr_t* sp, Object* array, int index, int type_size)
 {
+    void* elem_addr = array_elem_addr(array, index, type_size);
+
     if (type_size == 1) {
         *sp = read((int8_t*)elem_addr);
     }
@@ -352,8 +505,10 @@ Mode::load_from_array_to_c(uintptr_t* sp, void* elem_addr, int type_size)
 
 // 从c内存中读数值，根据模式写入数组
 void
-Mode::store_to_array_from_c(uintptr_t* sp, void* elem_addr, int type_size)
+Mode::store_to_array_from_c(uintptr_t* sp, Object* array, int index, int type_size)
 {
+    void* elem_addr = array_elem_addr(array, index, type_size);
+
     if (type_size == 1) {
         write((int8_t*)elem_addr, (int32_t)*sp);
     }
@@ -373,8 +528,10 @@ Mode::store_to_array_from_c(uintptr_t* sp, void* elem_addr, int type_size)
 
 
 void
-g_load_from_stable_array_to_c(uintptr_t* sp, void* elem_addr, int type_size)
+g_load_from_stable_array_to_c(uintptr_t* sp, Object* array, int index, int type_size)
 {
+    void* elem_addr = array_elem_addr(array, index, type_size);
+
     if (type_size == 1) {
         *sp = *(int8_t*)elem_addr;
     }

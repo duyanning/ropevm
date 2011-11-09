@@ -67,10 +67,12 @@ public:
     void restore_original_non_certain_mode();
 
 
-    // 向其他线程发送消息
-    void send_certain_msg(SpmtThread* target_thread, Message* msg);
-    void send_spec_msg(SpmtThread* target_thread, Message* msg);
-    void revoke_spec_msg(SpmtThread* target_thread, Message* msg);
+    // 向其他线程发送消息，目标线程已经包含在消息中
+    // void send_certain_msg(Message* msg);
+    // void send_spec_msg(Message* msg);
+    void send_msg(Message* msg);
+    void confirm_spec_msg(Message* msg);
+    void revoke_spec_msg(Message* msg);
 
     // 由其他线程给自己发送消息
     void set_certain_msg(Message* msg);
@@ -80,9 +82,11 @@ public:
     void remove_revoked_msgs();
     void remove_revoked_msg(Message* msg);
 
+
+    void process_msg(Message* msg); // 根据不同的模式对消息进行处理
     // 检测并处理确定消息
     Message* get_certain_msg();
-    void process_certain_msg(Message* msg);
+    //void process_certain_msg(Message* msg);
 
     // 检测并处理推测消息
     // msg queue related
@@ -90,7 +94,7 @@ public:
     void launch_next_spec_msg();
     void launch_spec_msg(Message* msg);
     //Message* current_spec_msg();
-    void process_spec_msg(Message* msg);
+    //void process_spec_msg(Message* msg);
     bool is_waiting_for_spec_msg();
 
     // 提交与丢弃

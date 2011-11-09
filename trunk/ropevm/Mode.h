@@ -30,10 +30,17 @@ public:
     virtual void do_array_load(Object* array, int index, int type_size) = 0;
     virtual void do_array_store(Object* array, int index, int type_size) = 0;
 
-    void load_from_array(uintptr_t* sp, void* elem_addr, int type_size);
-    void store_to_array(uintptr_t* sp, void* elem_addr, int type_size);
-    void load_from_array_to_c(uintptr_t* sp, void* elem_addr, int type_size);
-    void store_to_array_from_c(uintptr_t* sp, void* elem_addr, int type_size);
+    virtual void process_msg(Message* msg);
+    virtual void send_msg(Message* msg);
+
+    virtual void invoke_impl(Object* target_object, MethodBlock* new_mb, uintptr_t* args,
+                             SpmtThread* caller, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp);
+
+
+    void load_from_array(uintptr_t* sp, Object* array, int index, int type_size);
+    void store_to_array(uintptr_t* sp, Object* array, int index, int type_size);
+    void load_from_array_to_c(uintptr_t* sp, Object* array, int index, int type_size);
+    void store_to_array_from_c(uintptr_t* sp, Object* array, int index, int type_size);
 
 
     virtual Frame* create_frame(Object* object, MethodBlock* new_mb, uintptr_t* args,
@@ -132,7 +139,7 @@ Mode::write(T* addr, U value)
 
 
 void
-g_load_from_stable_array_to_c(uintptr_t* sp, void* elem_addr, int type_size);
+g_load_from_stable_array_to_c(uintptr_t* sp, Object* array, int index, int type_size);
 
 
 

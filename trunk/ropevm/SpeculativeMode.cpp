@@ -120,11 +120,11 @@ SpeculativeMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
 
 
         // construct speculative message and send
-        InvokeMsg* msg = new InvokeMsg(m_spmt_thread,
+        InvokeMsg* msg = new InvokeMsg(m_spmt_thread, target_spmt_thread,
                                        target_object, new_mb, &args[0],
                                        pc, frame, sp);
 
-        m_spmt_thread->send_spec_msg(target_spmt_thread, msg);
+        m_spmt_thread->send_msg(msg);
 
 
 
@@ -194,7 +194,8 @@ SpeculativeMode::do_method_return(int len)
         }
 
         // construct speculative message
-        ReturnMsg* msg = new ReturnMsg(&ret_val[0], len,
+        ReturnMsg* msg = new ReturnMsg(target_spmt_thread,
+                                       &ret_val[0], len,
                                        current_frame->caller_pc,
                                        current_frame->prev,
                                        current_frame->caller_sp);
@@ -281,13 +282,14 @@ SpeculativeMode::do_get_field(Object* target_object, FieldBlock* fb, uintptr_t* 
     else {
         sp -= is_static ? 0 : 1;
 
-        GetMsg* get_msg = new GetMsg(m_spmt_thread, target_object, fb);
+        GetMsg* get_msg = new GetMsg(m_spmt_thread, target_spmt_thread,
+                                     target_object, fb);
 
         MINILOG(s_logger, "#" << m_spmt_thread->id()
                 << " (S) add get msg to #"
                 << target_spmt_thread->id() << ": " << *get_msg);
 
-        m_spmt_thread->send_spec_msg(target_spmt_thread, get_msg);
+        m_spmt_thread->send_msg(get_msg);
 
 
         // 直接从稳定内存取数，构造推测性的get_return消息并使用
@@ -295,7 +297,8 @@ SpeculativeMode::do_get_field(Object* target_object, FieldBlock* fb, uintptr_t* 
         for (int i = 0; i < size; ++i) {
             value.push_back(addr[i]);
         }
-        GetReturnMsg* get_return_msg = new GetReturnMsg(&value[0], value.size());
+        GetReturnMsg* get_return_msg = new GetReturnMsg(target_spmt_thread,
+                                                        &value[0], value.size());
         m_spmt_thread->launch_spec_msg(get_return_msg);
 
     }
@@ -332,17 +335,18 @@ SpeculativeMode::do_put_field(Object* target_object, FieldBlock* fb,
 
         sp -= is_static ? 0 : 1;
 
-        PutMsg* put_msg = new PutMsg(m_spmt_thread, target_object, fb, &val[0]);
+        PutMsg* put_msg = new PutMsg(m_spmt_thread, target_spmt_thread,
+                                     target_object, fb, &val[0]);
 
         MINILOG(s_logger, "#" << m_spmt_thread->id()
                 << " (S) add put msg to #"
                 << target_spmt_thread->id() << ": " << *put_msg);
 
-        m_spmt_thread->send_spec_msg(target_spmt_thread, put_msg);
+        m_spmt_thread->send_msg(put_msg);
 
 
         // 构造推测性的put_return消息并使用
-        PutReturnMsg* put_return_msg = new PutReturnMsg();
+        PutReturnMsg* put_return_msg = new PutReturnMsg(m_spmt_thread);
         m_spmt_thread->launch_spec_msg(put_return_msg);
 
     }
@@ -360,12 +364,12 @@ SpeculativeMode::do_array_load(Object* array, int index, int type_size)
     assert(target_spmt_thread->m_thread == m_spmt_thread->m_thread);
 
 
-    void* addr = array_elem_addr(array, index, type_size);
+    //void* addr = array_elem_addr(array, index, type_size);
     int nslots = type_size > 4 ? 2 : 1; // number of slots for value
 
     if (target_spmt_thread == m_spmt_thread) {
         sp -= 2; // pop up arrayref and index
-        load_from_array(sp, addr, type_size);
+        load_from_array(sp, array, index, type_size);
         sp += nslots;
 
         pc += 1;
@@ -374,20 +378,21 @@ SpeculativeMode::do_array_load(Object* array, int index, int type_size)
     else {
 
         sp -= 2; // pop up arrayref and index
-        ArrayLoadMsg* msg = new ArrayLoadMsg(m_spmt_thread,
+        ArrayLoadMsg* msg = new ArrayLoadMsg(m_spmt_thread, target_spmt_thread,
                                              array, type_size, index);
 
         MINILOG(s_logger, "#" << m_spmt_thread->id()
                 << " (S) add arrayload msg to #"
                 << target_spmt_thread->id() << ": " << *msg);
 
-        m_spmt_thread->send_spec_msg(target_spmt_thread, msg);
+        m_spmt_thread->send_msg(msg);
 
 
         // 直接从稳定内存取数，构造推测性的arrayload_return消息并使用
         vector<uintptr_t> value;
-        g_load_from_stable_array_to_c(&value[0], addr, type_size);
-        ArrayLoadReturnMsg* arrayload_return_msg = new ArrayLoadReturnMsg(&value[0], value.size());
+        g_load_from_stable_array_to_c(&value[0], array, index, type_size);
+        ArrayLoadReturnMsg* arrayload_return_msg = new ArrayLoadReturnMsg(m_spmt_thread,
+                                                                          &value[0], value.size());
         m_spmt_thread->launch_spec_msg(arrayload_return_msg);
 
     }
@@ -406,13 +411,13 @@ SpeculativeMode::do_array_store(Object* array, int index, int type_size)
     SpmtThread* target_spmt_thread = target_object->get_spmt_thread();
     assert(target_spmt_thread->m_thread == m_spmt_thread->m_thread);
 
-    void* addr = array_elem_addr(array, index, type_size);
+    //void* addr = array_elem_addr(array, index, type_size);
     int nslots = type_size > 4 ? 2 : 1; // number of slots for value
 
 
     if (target_spmt_thread == m_spmt_thread) {
         sp -= nslots; // pop up value
-        store_to_array(sp, addr, type_size);
+        store_to_array(sp, array, index, type_size);
         sp -= 2;                    // pop arrayref and index
         pc += 1;
 
@@ -428,16 +433,17 @@ SpeculativeMode::do_array_store(Object* array, int index, int type_size)
 
         sp -= 2;
 
-        ArrayStoreMsg* msg = new ArrayStoreMsg(m_spmt_thread, array,
+        ArrayStoreMsg* msg = new ArrayStoreMsg(m_spmt_thread, target_spmt_thread,
+                                               array,
                                                type_size, index, &val[0]);
 
         MINILOG(s_logger, "#" << m_spmt_thread->id()
                 << " (S) add arraystore task to #"
                 << target_spmt_thread->id() << ": " << *msg);
 
-        m_spmt_thread->send_spec_msg(target_spmt_thread, msg);
+        m_spmt_thread->send_msg(msg);
 
-        ArrayStoreReturnMsg* array_store_return_msg = new ArrayStoreReturnMsg();
+        ArrayStoreReturnMsg* array_store_return_msg = new ArrayStoreReturnMsg(m_spmt_thread);
         m_spmt_thread->launch_spec_msg(array_store_return_msg);
 
     }
@@ -468,4 +474,34 @@ SpeculativeMode::log_when_invoke_return(bool is_invoke, Object* caller, MethodBl
 {
     log_invoke_return(s_invoke_return_logger, is_invoke, m_spmt_thread->id(), "(S)",
                       caller, caller_mb, callee, callee_mb);
+}
+
+
+void
+SpeculativeMode::send_msg(Message* msg)
+{
+    Effect* current_effect = m_spmt_thread->m_current_spec_msg->get_effect();
+    current_effect->msg_sent = msg;
+
+    if (g_is_async_msg(msg)) {
+        msg->get_target_spmt_thread()->add_spec_msg(msg);
+    }
+}
+
+
+void
+SpeculativeMode::invoke_impl(Object* target_object, MethodBlock* new_mb, uintptr_t* args,
+                             SpmtThread* caller, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp)
+{
+    Frame* new_frame = create_frame(target_object,
+                                    new_mb,
+                                    args,
+                                    caller,
+                                    caller_pc,
+                                    caller_frame,
+                                    caller_sp);
+
+    pc = (CodePntr)new_frame->mb->code;
+    frame = new_frame;
+    sp = (uintptr_t*)new_frame->ostack_base;
 }
