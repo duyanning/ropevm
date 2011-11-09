@@ -19,22 +19,21 @@ using namespace std;
 
 SpmtThread::SpmtThread(int id)
 :
-    m_id(id)
+    m_id(id),
+    m_thread(0),
+    m_halt(true),
+    m_leader(0),
+    m_certain_message(0),
+    m_need_spec_msg(true),
+    m_quit_step_loop(false),
+    m_result(0)
 {
-    m_thread = 0;
-    m_halt = true;
 
     m_certain_mode.set_spmt_thread(this);
     m_spec_mode.set_spmt_thread(this);
     m_rvp_mode.set_spmt_thread(this);
 
-    m_certain_message = 0;
     m_mode = &m_spec_mode;
-
-    m_need_spec_msg = true;
-
-    m_quit_step_loop = false;
-    m_result = 0;
 
     // stat
     m_count_spec_msgs_sent = 0;
@@ -74,11 +73,19 @@ SpmtThread::set_thread(Thread* thread)
 }
 
 
+void
+SpmtThread::set_leader(Object* leader)
+{
+    m_leader = leader;
+}
+
+
 // void
 // SpmtThread::add_object(Object* obj)
 // {
 //     obj->set_spmt_thread(this);
 // }
+
 
 bool
 SpmtThread::is_halt()
@@ -673,7 +680,7 @@ query_grouping_policy_for_object(Object* object)
         return policy;
 
     // 再问当前线程
-    policy = current_spmt_thread->get_leader_policy();
+    policy = current_spmt_thread->get_policy();
     if (policy != GP_UNSPECIFIED)
         return policy;
 
@@ -904,4 +911,28 @@ SpmtThread::drive_loop()
 
     assert(false);
     return 0;
+}
+
+
+Object*
+SpmtThread::get_current_object()
+{
+    Frame* current_frame = m_mode->frame;
+    return current_frame->get_object();;
+}
+
+
+GroupingPolicyEnum
+SpmtThread::get_policy()
+{
+    /*
+      初始线程无leader。所谓leader，即因其诞生而导致spmt线程被创建的对象
+      如果有leader，返回leader的policy
+      否则，说不知道。
+     */
+    if (m_leader) {
+        return get_foreign_policy(m_leader);
+    }
+
+    return GP_UNSPECIFIED;
 }
