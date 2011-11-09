@@ -7,7 +7,7 @@
 #include "SpeculativeMode.h"
 #include "RvpMode.h"
 
-#include "StatesBuffer.h"
+#include "StateBuffer.h"
 #include "RvpBuffer.h"
 
 class Thread;
@@ -75,10 +75,10 @@ public:
     // 由其他线程给自己发送消息
     void set_certain_msg(Message* msg);
     void add_spec_msg(Message* msg);
-    void remove_spec_msg(Message* msg);
+    void add_revoked_spec_msg(Message* msg);
 
-    void discard_revoked_msgs();
-    void discard_revoked_msg(Message* msg);
+    void remove_revoked_msgs();
+    void remove_revoked_msg(Message* msg);
 
     // 检测并处理确定消息
     Message* get_certain_msg();
@@ -96,7 +96,7 @@ public:
     // 提交与丢弃
     void commit_effect(Effect* effect);
     void discard_effect(Effect* effect);
-    void discard_all_effect();
+    void abort_uncertain_execution();
 
 
     void enter_certain_mode();
@@ -186,7 +186,7 @@ private:
 
 
     // 不同模式下读写的去处
-    StatesBuffer m_state_buffer;
+    StateBuffer m_state_buffer;
     RvpBuffer m_rvp_buffer;
     std::vector<Frame*> V;
 

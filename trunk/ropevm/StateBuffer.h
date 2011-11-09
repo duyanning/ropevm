@@ -1,13 +1,13 @@
-#ifndef STATESBUFFER_H
-#define STATESBUFFER_H
+#ifndef STATEBUFFER_H
+#define STATEBUFFER_H
 
 //typedef uint8_t Word;
 typedef uint32_t Word;
 
-class StatesBuffer {
+class StateBuffer {
 public:
-    StatesBuffer();
-    ~StatesBuffer();
+    StateBuffer();
+    ~StateBuffer();
     Word read(Word* addr);
     void write(Word* addr, Word value);
     void freeze();
@@ -15,7 +15,7 @@ public:
     void discard(int ver);
     void clear(void* begin, void* end);
     void reset();
-    int version();
+    int latest_ver();
     void scan();                // gc
     // log
     void show(std::ostream& os = std::cout, int id = 0, bool integer = false);
@@ -38,17 +38,20 @@ private:
     typedef std::tr1::unordered_map<Word*, History*> Hashtable;
 
     Hashtable m_hashtable;
-    int m_version;
+
+    int m_oldest_ver;
+    int m_latest_ver;
+    static const int m_initial_ver = 0;
 };
 
 inline
 int
-StatesBuffer::version()
+StateBuffer::latest_ver()
 {
-    return m_version;
+    return m_latest_ver;
 }
 
 void
-show_buffer(std::ostream& os, int id, StatesBuffer& buffer, bool integer = false);
+show_buffer(std::ostream& os, int id, StateBuffer& buffer, bool integer = false);
 
-#endif // STATESBUFFER_H
+#endif // STATEBUFFER_H
