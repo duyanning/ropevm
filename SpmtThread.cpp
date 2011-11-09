@@ -56,11 +56,13 @@ SpmtThread::~SpmtThread()
 {
 }
 
-// void
-// SpmtThread::set_group(Group* group)
-// {
-//     m_group = group;
-// }
+
+Thread*
+SpmtThread::get_thread()
+{
+    return m_thread;
+}
+
 
 void
 SpmtThread::set_thread(Thread* thread)
@@ -153,13 +155,6 @@ SpmtThread::sleep()
 }
 
 
-// void
-// SpmtThread::send_certain_msg(Message* msg)
-// {
-//     msg->get_target_spmt_thread()->set_msg(msg);
-// }
-
-
 void
 SpmtThread::set_certain_msg(Message* msg)
 {
@@ -174,7 +169,7 @@ SpmtThread::get_certain_msg()
 {
     Message* msg = 0;
     if (m_certain_message) {
-        assert(is_valid_certain_msg(m_certain_message));
+        assert(g_is_async_msg(m_certain_message));
         msg = m_certain_message;
         m_certain_message = 0;
     }
@@ -274,24 +269,6 @@ SpmtThread::switch_to_rvp_mode()
 
     m_mode = &m_rvp_mode;
 }
-
-
-// void
-// SpmtThread::send_spec_msg(Message* msg)
-// {
-//     Effect* current_effect = m_current_spec_msg->get_effect();
-//     current_effect->msg_sent = msg;
-
-//     if (g_is_async_msg(msg)) {
-//         msg->get_target_spmt_thread()->add_spec_msg(msg);
-//     }
-
-
-//     // MINILOG(s_logger,
-//     //         "#" << this->id() << " (S) add invoke task to #"
-//     //         << target_thread->id() << ": " << *msg);
-
-// }
 
 
 void
@@ -598,6 +575,7 @@ SpmtThread::abort_uncertain_execution()
 void
 SpmtThread::verify_speculation(Message* certain_msg)
 {
+    assert(is_certain_mode());
 
     // if 无待验证消息
     //     处理确定消息
@@ -645,157 +623,6 @@ SpmtThread::verify_speculation(Message* certain_msg)
     }
 
 }
-
-
-// 该方法跟process_spec_msg有很多重复，可以考虑合并为一个方法process_msg放在Mode中
-// void
-// SpmtThread::process_certain_msg(Message* msg)
-// {
-//     Message::Type type = msg->get_type();
-
-//     if (type == Message::invoke) {
-
-//         InvokeMsg* msg = static_cast<InvokeMsg*>(msg);
-
-//         m_certain_mode.invoke_impl(msg->get_target_object(),
-//                                        msg->mb, &msg->parameters[0],
-//                                        msg->caller_pc,
-//                                        msg->caller_frame,
-//                                        msg->caller_sp);
-
-//     }
-//     else if (type == Message::put) {
-
-//         PutMsg* put_msg = static_cast<PutMsg*>(msg);
-
-//         // 向put消息指定的字段写入一个指定的数值
-//         uintptr_t* field_addr = put_msg->get_field_addr();
-//         for (int i = 0; i < put_msg->val.size(); ++i) {
-//             m_certain_mode.write(field_addr + i, put_msg->val[i]);
-//         }
-
-//         PutReturnMsg* put_return_msg = new PutReturnMsg(put_msg->get_source_spmt_thread());
-
-//         send_certain_msg(put_return_msg);
-
-
-//     }
-//     else if (type == Message::get) {
-
-//         GetMsg* get_msg = static_cast<GetMsg*>(msg);
-
-//         // 从get消息的指定的字段中读取一个值，并根据该值构造get_return消息
-//         uintptr_t* field_addr = get_msg->get_field_addr();
-//         int field_size = get_msg->get_field_size();
-//         std::vector<uintptr_t> value;
-//         for (int i = 0; i < field_size; ++i) {
-//             value.push_back(m_certain_mode.read(field_addr + i));
-//         }
-
-
-//         GetReturnMsg* get_return_msg = new GetReturnMsg(get_msg->get_source_spmt_thread(),
-//                                                         &value[0],
-//                                                         value.size());
-
-//         send_certain_msg(get_return_msg);
-
-//     }
-//     else if (type == Message::arraystore) {
-
-//         ArrayStoreMsg* arraystore_msg = static_cast<ArrayStoreMsg*>(msg);
-
-//         // 向arraystore消息指定的数组的指定索引处写入一个指定的数值
-
-//         Object* array = arraystore_msg->get_target_object();
-//         int index = arraystore_msg->index;
-//         int type_size = arraystore_msg->type_size;
-//         void* addr = array_elem_addr(array, index, type_size);
-
-//         m_certain_mode.store_to_array_from_c(&arraystore_msg->val[0],
-//                                              array, index, type_size);
-
-//         ArrayStoreReturnMsg* arraystore_return_msg = new ArrayStoreReturnMsg(arraystore_msg->get_source_spmt_thread());
-//         send_certain_msg(arraystore_return_msg);
-
-//     }
-//     else if (type == Message::arrayload) {
-
-//         ArrayLoadMsg* arrayload_msg = static_cast<ArrayLoadMsg*>(msg);
-
-//         // 从arrayload消息指定的数组的指定索引处读入一个数值
-
-//         Object* array = arrayload_msg->get_target_object();
-//         int index = arrayload_msg->index;
-//         int type_size = arrayload_msg->type_size;
-//         void* addr = array_elem_addr(array, index, type_size);
-
-//         std::vector<uintptr_t> value(2); // at most 2 slots
-//         m_certain_mode.load_from_array_to_c(&value[0],
-//                                             array, index, type_size);
-
-//         ArrayLoadReturnMsg* arrayload_return_msg = new ArrayLoadReturnMsg(arrayload_msg->get_source_spmt_thread(), &value[0], value.size());
-//         send_certain_msg(arrayload_return_msg);
-
-
-//     }
-//     else if (type == Message::ret) {
-
-//         ReturnMsg* msg = static_cast<ReturnMsg*>(msg);
-
-//         m_certain_mode.pc = msg->caller_pc;
-//         m_certain_mode.frame = msg->caller_frame;
-//         m_certain_mode.sp = msg->caller_sp;
-
-//         // 将返回值写入ostack
-//         for (auto i : msg->retval) {
-//             *m_certain_mode.sp++ = i;
-//         }
-
-//         m_certain_mode.pc += (*m_certain_mode.pc == OPC_INVOKEINTERFACE_QUICK ? 5 : 3);
-
-//     }
-//     else if (type == Message::put_return) {
-
-//         PutReturnMsg* put_return_msg = static_cast<PutReturnMsg*>(msg);
-//         // 什么也不需要做
-
-//         m_certain_mode.pc += 3;
-
-//     }
-//     else if (type == Message::get_return) {
-
-//         GetReturnMsg* get_return_msg = static_cast<GetReturnMsg*>(msg);
-
-//         for (auto i : get_return_msg->val) {
-//             *m_certain_mode.sp++ = i;
-//         }
-
-//         m_certain_mode.pc += 3;
-
-//     }
-//     else if (type == Message::arraystore_return) {
-//         // 没有什么需要写入ostack
-
-//         m_spec_mode.pc += 1;
-//     }
-//     else if (type == Message::arrayload_return) {
-//         ArrayLoadMsg* arrayload_msg = static_cast<ArrayLoadMsg*>(msg);
-
-//         // 将读到的值写入ostack
-//         // for (auto i : msg->val) {
-//         //     m_spec_mode.write(m_spec_mode.sp++, i);
-//         // }
-//         // load_from_array_to_c(m_spec_mode.sp,
-
-//         //                       );
-
-//         m_spec_mode.pc += 3;
-//     }
-//     else {
-//         assert(false);
-//     }
-
-// }
 
 
 void
@@ -884,161 +711,17 @@ SpmtThread::get_current_mode()
     return m_mode;
 }
 
+void
+SpmtThread::send_msg(Message* msg)
+{
+    m_mode->send_msg(msg);
+}
 
 void
 SpmtThread::process_msg(Message* msg)
 {
     m_mode->process_msg(msg);
 }
-
-// void
-// SpmtThread::process_spec_msg(Message* msg)
-// {
-//     m_need_spec_msg = false;
-
-//     MINILOG(task_load_logger, "#" << id() << " spec msg loaded: " << *msg);
-
-//     Message::Type type = msg->get_type();
-
-//     if (type == Message::invoke) {
-
-//         InvokeMsg* invoke_msg = static_cast<InvokeMsg*>(msg);
-
-//         Frame* new_frame = m_spec_mode.create_frame(invoke_msg->get_target_object(),
-//                                                     invoke_msg->mb,
-//                                                     &invoke_msg->parameters[0],
-//                                                     invoke_msg->get_source_spmt_thread(),
-//                                                     0,
-//                                                     0,
-//                                                     0);
-
-
-//         m_spec_mode.sp = (uintptr_t*)new_frame->ostack_base;
-//         m_spec_mode.frame = new_frame;
-//         m_spec_mode.pc = (CodePntr)new_frame->mb->code;
-//     }
-//     else if (type == Message::put) {
-//         PutMsg* put_msg = static_cast<PutMsg*>(msg);
-
-//         uintptr_t* field_addr = put_msg->get_field_addr();
-
-//         for (int i = 0; i < put_msg->val.size(); ++i) {
-//             m_spec_mode.write(field_addr + i, put_msg->val[i]);
-//         }
-
-//         PutReturnMsg* put_return_msg = new PutReturnMsg(put_msg->get_source_spmt_thread());
-//         // 将put_return消息记录在effect中
-//         send_spec_msg(put_return_msg);
-
-//         launch_next_spec_msg();
-//     }
-//     else if (type == Message::get) {
-//         GetMsg* get_msg = static_cast<GetMsg*>(msg);
-
-//         // 从get消息的指定的字段中读取一个值，并根据该值构造get_return消息
-//         uintptr_t* field_addr = get_msg->get_field_addr();
-//         int field_size = get_msg->get_field_size();
-//         std::vector<uintptr_t> value;
-//         for (int i = 0; i < field_size; ++i) {
-//             value.push_back(m_spec_mode.read(field_addr + i));
-//         }
-
-
-//         GetReturnMsg* get_return_msg = new GetReturnMsg(get_msg->get_source_spmt_thread(),
-//                                                         &value[0], value.size());
-
-//         // 将get_return消息记录在effect中
-//         send_spec_msg(get_return_msg);
-
-//         launch_next_spec_msg();
-//     }
-//     else if (type == Message::arraystore) {
-//         ArrayStoreMsg* arraystore_msg = static_cast<ArrayStoreMsg*>(msg);
-
-//         Object* array = arraystore_msg->get_target_object();
-//         int index = arraystore_msg->index;
-//         int type_size = arraystore_msg->type_size;
-//         void* addr = array_elem_addr(array, index, type_size);
-
-//         m_spec_mode.store_to_array_from_c(&arraystore_msg->val[0],
-//                                           array, index, type_size);
-
-//         ArrayStoreReturnMsg* arraystore_return_msg = new ArrayStoreReturnMsg(arraystore_msg->get_source_spmt_thread());
-//         // 将消息记入effect
-//         send_spec_msg(arraystore_return_msg);
-
-//         launch_next_spec_msg();
-//     }
-//     else if (type == Message::arrayload) {
-
-//         ArrayLoadMsg* arrayload_msg = static_cast<ArrayLoadMsg*>(msg);
-
-//         // 从arrayload消息指定的数组的指定索引处读入一个数值
-
-//         Object* array = arrayload_msg->get_target_object();
-//         int index = arrayload_msg->index;
-//         int type_size = arrayload_msg->type_size;
-//         void* addr = array_elem_addr(array, index, type_size);
-
-//         std::vector<uintptr_t> value(2); // at most 2 slots
-//         m_certain_mode.load_from_array_to_c(&value[0],
-//                                             array, index, type_size);
-
-//         ArrayLoadReturnMsg* arrayload_return_msg = new ArrayLoadReturnMsg(arrayload_msg->get_source_spmt_thread(),
-//                                                                           &value[0], value.size());
-
-//         // 将消息记入effect
-//         send_spec_msg(arrayload_return_msg);
-
-//         launch_next_spec_msg();
-//     }
-//     else if (type == Message::ret) {
-//         ReturnMsg* return_msg = static_cast<ReturnMsg*>(msg);
-
-//         // 将返回值写入ostack
-//         for (auto i : return_msg->retval) {
-//             m_spec_mode.write(m_spec_mode.sp++, i);
-//         }
-
-//         m_spec_mode.pc += (*m_spec_mode.pc == OPC_INVOKEINTERFACE_QUICK ? 5 : 3);
-//     }
-//     else if (type == Message::put_return) {
-//         PutReturnMsg* put_return_msg = static_cast<PutReturnMsg*>(msg);
-//         // 什么也不需要做
-
-//         m_spec_mode.pc += 3;
-//     }
-//     else if (type == Message::get_return) {
-
-//         GetReturnMsg* get_return_msg = static_cast<GetReturnMsg*>(msg);
-
-//         for (auto i : get_return_msg->val) {
-//             m_spec_mode.write(m_spec_mode.sp++, i);
-//         }
-
-//         m_spec_mode.pc += 3;
-//     }
-//     else if (type == Message::arraystore_return) {
-//         // 没有什么需要写入ostack
-
-//         m_spec_mode.pc += 1;
-//     }
-//     else if (type == Message::arrayload_return) {
-//         ArrayLoadReturnMsg* arrayloadreturn_msg = static_cast<ArrayLoadReturnMsg*>(msg);
-
-//         // 将读到的值写入ostack
-//         for (auto i : arrayloadreturn_msg->val) {
-//             m_spec_mode.write(m_spec_mode.sp++, i);
-//         }
-
-
-//         m_spec_mode.pc += 3;
-//     }
-//     else {
-//         assert(false);
-//     }
-
-// }
 
 
 bool

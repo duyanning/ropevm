@@ -204,9 +204,9 @@ Mode::invoke_impl(Object* target_object, MethodBlock* new_mb, uintptr_t* args,
 void
 Mode::process_msg(Message* msg)
 {
-    Message::Type type = msg->get_type();
+    MsgType type = msg->get_type();
 
-    if (type == Message::invoke) {
+    if (type == MsgType::INVOKE) {
 
         InvokeMsg* invoke_msg = static_cast<InvokeMsg*>(msg);
 
@@ -217,7 +217,7 @@ Mode::process_msg(Message* msg)
                     invoke_msg->caller_frame,
                     invoke_msg->caller_sp);
     }
-    else if (type == Message::put) {
+    else if (type == MsgType::PUT) {
         PutMsg* put_msg = static_cast<PutMsg*>(msg);
 
         uintptr_t* field_addr = put_msg->get_field_addr();
@@ -230,7 +230,7 @@ Mode::process_msg(Message* msg)
 
         send_msg(put_return_msg);
     }
-    else if (type == Message::get) {
+    else if (type == MsgType::GET) {
         GetMsg* get_msg = static_cast<GetMsg*>(msg);
 
         // 从get消息的指定的字段中读取一个值，并根据该值构造get_return消息
@@ -247,7 +247,7 @@ Mode::process_msg(Message* msg)
 
         send_msg(get_return_msg);
     }
-    else if (type == Message::arraystore) {
+    else if (type == MsgType::ARRAYSTORE) {
         ArrayStoreMsg* arraystore_msg = static_cast<ArrayStoreMsg*>(msg);
 
         Object* array = arraystore_msg->get_target_object();
@@ -262,7 +262,7 @@ Mode::process_msg(Message* msg)
 
         send_msg(arraystore_return_msg);
     }
-    else if (type == Message::arrayload) {
+    else if (type == MsgType::ARRAYLOAD) {
 
         ArrayLoadMsg* arrayload_msg = static_cast<ArrayLoadMsg*>(msg);
 
@@ -283,7 +283,7 @@ Mode::process_msg(Message* msg)
         send_msg(arrayload_return_msg);
 
     }
-    else if (type == Message::ret) {
+    else if (type == MsgType::RETURN) {
         ReturnMsg* return_msg = static_cast<ReturnMsg*>(msg);
 
         // 将返回值写入ostack
@@ -293,13 +293,13 @@ Mode::process_msg(Message* msg)
 
         pc += (*pc == OPC_INVOKEINTERFACE_QUICK ? 5 : 3);
     }
-    else if (type == Message::put_return) {
+    else if (type == MsgType::PUT_RET) {
         PutReturnMsg* put_return_msg = static_cast<PutReturnMsg*>(msg);
         // 什么也不需要做
 
         pc += 3;
     }
-    else if (type == Message::get_return) {
+    else if (type == MsgType::GET_RET) {
 
         GetReturnMsg* get_return_msg = static_cast<GetReturnMsg*>(msg);
 
@@ -309,12 +309,12 @@ Mode::process_msg(Message* msg)
 
         pc += 3;
     }
-    else if (type == Message::arraystore_return) {
+    else if (type == MsgType::ARRAYSTORE_RET) {
         // 没有什么需要写入ostack
 
         pc += 1;
     }
-    else if (type == Message::arrayload_return) {
+    else if (type == MsgType::ARRAYLOAD_RET) {
         ArrayLoadReturnMsg* arrayloadreturn_msg = static_cast<ArrayLoadReturnMsg*>(msg);
 
         // 将读到的值写入ostack

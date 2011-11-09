@@ -16,38 +16,33 @@ class Effect;
 
 /*
   消息的构造函数中读出数值，一律从确定内存中读取。不考虑模式。
+  消息中的数值不紧致。
  */
 
-// enum class MsgType {
-//     INVOKE, RETURN,
-//     GET, GET_RETURN,
-//     PUT, PUT_RETURN,
-//     LOAD, LOAD_RETURN,
-//     STORE, STORE_RETURN
-// };
+enum class MsgType {
+    INVOKE, RETURN,
+    GET, GET_RET,
+    PUT, PUT_RET,
+    ARRAYLOAD, ARRAYLOAD_RET,
+    ARRAYSTORE, ARRAYSTORE_RET
+};
 
 
 class Message {
 public:
-    enum Type {
-        invoke, ret,
-        get, get_return,
-        put, put_return,
-        arrayload, arrayload_return,
-        arraystore, arraystore_return
-    };
-    Message(Type t, SpmtThread* target_spmt_thread);
-    virtual bool equal(Message& msg);
-    Type get_type();
-    Effect* get_effect();
+    Message(MsgType type, SpmtThread* target_spmt_thread);
     virtual ~Message();
+
+    MsgType get_type();
+    SpmtThread* get_target_spmt_thread();
+    Effect* get_effect();
+
+    virtual bool equal(Message* msg);
     virtual void show(std::ostream& os) const = 0;
     virtual void show_detail(std::ostream& os, int id) const = 0;
-    SpmtThread* get_target_spmt_thread() { return m_target_spmt_thread; }
-
 
 protected:
-    Type type;
+    MsgType m_type;
     SpmtThread* m_target_spmt_thread; // 该消息去往哪个spmt线程
 	Effect* m_effect;  // 处理该消息所形成的effect
 };
@@ -55,10 +50,10 @@ protected:
 
 class RoundTripMsg : public Message {
 public:
-    RoundTripMsg(Type t,
+    RoundTripMsg(MsgType type,
                  SpmtThread* source_spmt_thread, SpmtThread* target_spmt_thread,
                  Object* target_object)
-        : Message(t, target_spmt_thread)
+        : Message(type, target_spmt_thread)
     {
     }
     SpmtThread* get_source_spmt_thread() { return m_source_spmt_thread; }
@@ -81,7 +76,7 @@ public:
               bool is_top = false);
     bool is_top() { return m_is_top; }
 
-    virtual bool equal(Message& msg);
+    virtual bool equal(Message* msg);
     void show(std::ostream& os) const;
     virtual void show_detail(std::ostream& os, int id) const;
 
@@ -105,7 +100,7 @@ public:
               bool is_top = false);
     bool is_top() { return m_is_top; }
 
-    virtual bool equal(Message& msg);
+    virtual bool equal(Message* msg);
     void show(std::ostream& os) const;
     virtual void show_detail(std::ostream& os, int id) const;
 
@@ -125,7 +120,7 @@ public:
            Object* target_object, FieldBlock* fb);
     uintptr_t* get_field_addr();
     int get_field_size();
-    virtual bool equal(Message& msg);
+    virtual bool equal(Message* msg);
     void show(std::ostream& os) const;
     virtual void show_detail(std::ostream& os, int id) const;
 
@@ -136,7 +131,7 @@ public:
 class GetReturnMsg : public Message {
 public:
     GetReturnMsg(SpmtThread* target_spmt_thread, uintptr_t* val, int size);
-    virtual bool equal(Message& msg);
+    virtual bool equal(Message* msg);
     void show(std::ostream& os) const;
     virtual void show_detail(std::ostream& os, int id) const;
 
@@ -150,7 +145,7 @@ public:
            Object* target_object, FieldBlock* fb,
            uintptr_t* val);
     uintptr_t* get_field_addr();
-    virtual bool equal(Message& msg);
+    virtual bool equal(Message* msg);
     void show(std::ostream& os) const;
     virtual void show_detail(std::ostream& os, int id) const;
 
@@ -162,7 +157,7 @@ public:
 class PutReturnMsg : public Message {
 public:
     PutReturnMsg(SpmtThread* target_spmt_thread);
-    virtual bool equal(Message& msg);
+    virtual bool equal(Message* msg);
     void show(std::ostream& os) const;
     virtual void show_detail(std::ostream& os, int id) const;
 };
@@ -172,7 +167,7 @@ class ArrayStoreMsg : public RoundTripMsg {
 public:
     ArrayStoreMsg(SpmtThread* source_spmt_thread, SpmtThread* target_spmt_thread,
                   Object* array, int type_size, int index, uintptr_t* slots);
-    virtual bool equal(Message& msg);
+    virtual bool equal(Message* msg);
     void show(std::ostream& os) const;
     virtual void show_detail(std::ostream& os, int id) const;
 
@@ -185,7 +180,7 @@ public:
 class ArrayStoreReturnMsg : public Message {
 public:
     ArrayStoreReturnMsg(SpmtThread* target_spmt_thread);
-    virtual bool equal(Message& msg);
+    virtual bool equal(Message* msg);
     void show(std::ostream& os) const;
     virtual void show_detail(std::ostream& os, int id) const;
 };
@@ -195,7 +190,7 @@ class ArrayLoadMsg : public RoundTripMsg {
 public:
     ArrayLoadMsg(SpmtThread* source_spmt_thread, SpmtThread* target_spmt_thread,
                  Object* array, int type_size, int index);
-    virtual bool equal(Message& msg);
+    virtual bool equal(Message* msg);
     void show(std::ostream& os) const;
     virtual void show_detail(std::ostream& os, int id) const;
 
@@ -207,7 +202,7 @@ public:
 class ArrayLoadReturnMsg : public Message {
 public:
     ArrayLoadReturnMsg(SpmtThread* target_spmt_thread, uintptr_t* val, int size);
-    virtual bool equal(Message& msg);
+    virtual bool equal(Message* msg);
     void show(std::ostream& os) const;
     virtual void show_detail(std::ostream& os, int id) const;
 
@@ -215,7 +210,7 @@ public:
 };
 
 
-// 消息中数值的紧致性。
+
 
 bool g_equal_msg_content(Message* msg1, Message* msg2); // refactor
 bool operator==(Message& msg1, Message& msg2); // refactor: remove

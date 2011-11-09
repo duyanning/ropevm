@@ -20,9 +20,10 @@ UncertainMode::UncertainMode(const char* name)
 void
 UncertainMode::step()
 {
-    assert(RopeVM::do_spec);
+    assert(RopeVM::do_spec);    // 退化的rope模型下，不可能至此
 
-    // 阶段I：检测并处理确定性外部事件（必须处理，在失去确定控制后是否推测执行那是你自己的事情，不是必须的，但确定性事件是必须响应的。）
+
+    // 阶段I：检测并处理确定性外部事件（在失去确定控制后是否推测执行那是你自己的事情，不是必须的，但确定性事件是必须响应的。）
     Message* msg = m_spmt_thread->get_certain_msg();
 
     if (msg) {
@@ -30,7 +31,7 @@ UncertainMode::step()
         // 进入确定模式
         m_spmt_thread->enter_certain_mode();
 
-        if (msg->get_type() == Message::invoke) {
+        if (msg->get_type() == MsgType::INVOKE) {
             InvokeMsg* invoke_msg = static_cast<InvokeMsg*>(msg);
             if (invoke_msg->is_top()) {
                 m_spmt_thread->on_event_top_invoke(invoke_msg);
@@ -38,7 +39,7 @@ UncertainMode::step()
             }
         }
 
-        if (msg->get_type() == Message::ret) {
+        if (msg->get_type() == MsgType::RETURN) {
             ReturnMsg* return_msg = static_cast<ReturnMsg*>(msg);
             if (return_msg->is_top()) {
                 m_spmt_thread->on_event_top_return(return_msg);
