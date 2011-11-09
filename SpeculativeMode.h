@@ -21,6 +21,13 @@ public:
     virtual void do_array_load(Object* array, int index, int type_size);
     virtual void do_array_store(Object* array, int index, int type_size);
 
+    virtual void send_msg(Message* msg);
+    virtual void process_msg(Message* msg);
+
+
+    virtual void invoke_impl(Object* target_object, MethodBlock* new_mb, uintptr_t* args,
+                             SpmtThread* caller, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp);
+
     virtual Frame* create_frame(Object* object, MethodBlock* new_mb, uintptr_t* args,
                                 SpmtThread* caller, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp);
 
