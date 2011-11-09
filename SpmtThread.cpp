@@ -190,7 +190,7 @@ SpmtThread::log_when_leave_certain()
     MINILOG(when_leave_certain_logger,
             "#" << id() << " ---------------------------");
     MINILOG(when_leave_certain_logger,
-            "#" << id() << " now use cache ver(" << m_state_buffer.version() << ")");
+            "#" << id() << " now use cache ver(" << m_state_buffer.latest_ver() << ")");
     MINILOG(when_leave_certain_logger,
             "#" << id() << " SPEC details:");
     // MINILOGPROC(when_leave_certain_logger,
@@ -236,7 +236,7 @@ SpmtThread::enter_certain_mode()
     MINILOG(when_enter_certain_logger,
             "#" << id() << " ---------------------------");
     MINILOG(when_enter_certain_logger,
-            "#" << id() << " cache ver(" << m_state_buffer.version() << ")");
+            "#" << id() << " cache ver(" << m_state_buffer.latest_ver() << ")");
 
     MINILOG(when_enter_certain_logger,
             "#" << id() << " ---------------------------");
@@ -418,7 +418,7 @@ SpmtThread::commit_effect(Effect* effect)
         m_certain_mode.sp = snapshot->sp;
     }
     else {
-        m_state_buffer.commit(m_state_buffer.version());
+        m_state_buffer.commit(m_state_buffer.latest_ver());
 
         m_certain_mode.pc = m_spec_mode.pc;
         m_certain_mode.frame = m_spec_mode.frame;
@@ -437,31 +437,31 @@ SpmtThread::commit_effect(Effect* effect)
 void
 SpmtThread::revoke_spec_msg(SpmtThread* target_thread, Message* msg)
 {
-    target_thread->remove_spec_msg(msg);
+    target_thread->add_revoked_spec_msg(msg);
 }
 
 
 void
-SpmtThread::remove_spec_msg(Message* msg)
+SpmtThread::add_revoked_spec_msg(Message* msg)
 {
     m_revoked_msgs.push_back(msg);
 }
 
 
 void
-SpmtThread::discard_revoked_msgs()
+SpmtThread::remove_revoked_msgs()
 {
     if (m_revoked_msgs.empty())
         return;
 
     for (Message* msg : m_revoked_msgs) {
-        discard_revoked_msg(msg);
+        remove_revoked_msg(msg);
     }
 }
 
 
 void
-SpmtThread::discard_revoked_msg(Message* msg)
+SpmtThread::remove_revoked_msg(Message* msg)
 {
     /*
       if 队列中找不到该消息
@@ -535,7 +535,7 @@ SpmtThread::discard_effect(Effect* effect)
         m_state_buffer.discard(effect->snapshot->version);
     }
     else {
-        m_state_buffer.discard(m_state_buffer.version());
+        m_state_buffer.discard(m_state_buffer.latest_ver());
     }
 
     // 收回消息（如果是往返消息，则收回）
@@ -551,7 +551,7 @@ SpmtThread::discard_effect(Effect* effect)
 
 
 void
-SpmtThread::discard_all_effect()
+SpmtThread::abort_uncertain_execution()
 {
     MINILOG0_IF(debug_scaffold::java_main_arrived,
                 "#" << id() << " discard uncertain execution");
@@ -627,7 +627,7 @@ SpmtThread::verify_speculation(Message* certain_msg)
         m_spec_msg_queue.pop_front();
     }
     else {
-        discard_all_effect();
+        abort_uncertain_execution();
 
         if (g_is_async_msg(certain_msg)) {
         }
@@ -1101,7 +1101,7 @@ SpmtThread::snapshot(bool pin)
 {
     Snapshot* snapshot = new Snapshot;
 
-    snapshot->version = m_state_buffer.version();
+    snapshot->version = m_state_buffer.latest_ver();
     m_state_buffer.freeze();
 
     snapshot->pc = m_spec_mode.pc;
