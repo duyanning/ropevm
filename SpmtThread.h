@@ -135,7 +135,7 @@ public:
     SpmtThread* assign_spmt_thread_for(Object* obj);
 
     Object* get_current_object();
-    GroupingPolicyEnum get_leader_policy();
+    GroupingPolicyEnum get_policy();
     void set_leader(Object* leader);
     //Object* get_leader();
 
@@ -193,6 +193,8 @@ private:
     StateBuffer m_state_buffer;
     RvpBuffer m_rvp_buffer;
     std::vector<Frame*> V;
+
+    Object* m_leader;
 
 
 private:

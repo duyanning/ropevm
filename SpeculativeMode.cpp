@@ -85,7 +85,7 @@ SpeculativeMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
 
     SpmtThread* target_spmt_thread = target_object->get_spmt_thread();
 
-    if (target_spmt_thread == m_spmt_thread) {
+    if (target_spmt_thread == m_spmt_thread or g_is_pure_code_method(new_mb)) {
 
         sp -= new_mb->args_count;
 
