@@ -194,8 +194,7 @@ CodePntr
 findCatchBlock(Class *exception)
 {
     //Frame *frame = getExecEnv()->last_frame;
-	//assert(getExecEnv()->last_frame == threadSelf()->get_current_spmt_thread()->get_current_mode()->frame);
-    Frame* frame = threadSelf()->get_current_spmt_thread()->get_current_mode()->frame;
+    Frame* frame = g_get_current_spmt_thread()->get_current_mode()->frame;
     CodePntr handler_pc = NULL;
 
     MINILOG(c_exception_logger, "#" << threadSelf()->get_current_spmt_thread()->id() << " finding handler"

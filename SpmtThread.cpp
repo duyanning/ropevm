@@ -357,6 +357,8 @@ SpmtThread::commit_effect(Effect* effect)
     if (effect->msg_sent) {
         confirm_spec_msg(effect->msg_sent);
     }
+
+    delete effect;
 }
 
 
@@ -391,7 +393,10 @@ SpmtThread::remove_revoked_msgs()
 
     for (Message* msg : m_revoked_msgs) {
         remove_revoked_msg(msg);
+        delete msg;
     }
+
+    m_revoked_msgs.clear();
 }
 
 
@@ -414,23 +419,24 @@ SpmtThread::remove_revoked_msg(Message* msg)
               iter_next指向下一个
           从队列中删除iter_to_revoke所指
       else
-          从后向前遍历区间[iter_to_revoke, iter_next)内的消息
+          从后向前遍历区间[iter_to_revoke + 1, iter_next)内的消息
               丢弃与消息关联的effect
               if 消息是异步消息
                   让iter_next指向该位置
               else
                   释放该消息
                   移除该消息
+          从队列中删除被收回的消息
      */
 
     Message* revoked_msg = *iter_revoked_msg;
-    if (revoked_msg->get_effect() == nullptr) {
+    if (revoked_msg->get_effect() == nullptr) { // 被收回的消息在待处理部分
         if (iter_revoked_msg == m_iter_next_spec_msg) {
             ++m_iter_next_spec_msg;
         }
         m_spec_msg_queue.erase(iter_revoked_msg);
     }
-    else {
+    else {                      // 被收回的消息在待验证部分
         auto reverse_iter_msg = reverse_iterator<decltype(m_iter_next_spec_msg)>(m_iter_next_spec_msg);
         auto reverse_iter_revoked_msg = reverse_iterator<decltype(iter_revoked_msg)>(iter_revoked_msg);
 
@@ -438,18 +444,32 @@ SpmtThread::remove_revoked_msg(Message* msg)
             Message* msg = *reverse_iter_msg;
             discard_effect(msg->get_effect());
             if (g_is_async_msg(msg)) {
+                // 从待验证部分拿掉异步消息时不销毁，而是进入待处理部分。
                 m_iter_next_spec_msg = reverse_iter_msg.base();
                 --m_iter_next_spec_msg;
             }
             else {
+                // 从待验证部分拿掉同步消息时销毁消息
                 delete msg;
                 ++reverse_iter_msg;
                 m_spec_msg_queue.erase(reverse_iter_msg.base());
             }
         }
 
+        // 拿掉被收回的消息
+        assert(iter_revoked_msg == m_iter_next_spec_msg); // 经过上面的循环，此处必相等。
+        ++m_iter_next_spec_msg;
+        m_spec_msg_queue.erase(iter_revoked_msg);
+
+        m_need_spec_msg = false; // 表明推测执行需要加载推测消息（因为收回消息把人家正在处理的消息下马了）
+        switch_to_speculative_mode();
+        wakeup();
+
     }
 }
+
+
+
 
 
 /*
@@ -473,15 +493,23 @@ SpmtThread::discard_effect(Effect* effect)
         m_state_buffer.discard(m_state_buffer.latest_ver());
     }
 
-    // 收回消息（如果是往返消息，则收回）
-    if (effect->msg_sent and g_is_async_msg(effect->msg_sent)) {
-        revoke_spec_msg(effect->msg_sent);
+    // 收回消息（如果是异步消息，则收回）
+    if (effect->msg_sent) {
+        if (g_is_async_msg(effect->msg_sent)) {
+            revoke_spec_msg(effect->msg_sent);
+        }
+        else {
+            delete effect->msg_sent;
+        }
     }
+
+    delete effect;
 
     // 释放RVP栈帧
     for (Frame* f : V) {
         delete f;
     }
+    V.clear();
 }
 
 
@@ -491,32 +519,34 @@ SpmtThread::abort_uncertain_execution()
     MINILOG0_IF(debug_scaffold::java_main_arrived,
                 "#" << id() << " discard uncertain execution");
 
+    /*
+      for each 队列中每个消息
+          如果有关联的effect，丢弃effect。
+          如果是同步消息，拿掉。
+    */
+    for (auto n = m_spec_msg_queue.begin(); n != m_iter_next_spec_msg; ) {
+        auto i = n++;
 
-    // for each 队列中每个消息
-    //     收回effect中发出的消息
-    //     处理effect中记录的栈帧
-    //     释放effect
-
-    // 清空state buffer与rvp buffer
-
-    for (auto i = m_spec_msg_queue.begin(); i != m_iter_next_spec_msg; ++i) {
         Message* msg = *i;
         Effect* effect = msg->get_effect();
 
-        revoke_spec_msg(effect->msg_sent);
-
-        for (auto frame : effect->C) {
-            delete frame;
+        if (effect) {
+            discard_effect(effect);
         }
 
-        delete effect;
+        if (not g_is_async_msg(msg)) {
+            delete msg;
+            m_spec_msg_queue.erase(i);
+        }
+
     }
 
+    // 所有消息变为待处理
+    m_iter_next_spec_msg = m_spec_msg_queue.begin();
 
+    // 清空state buffer与rvp buffer
     m_state_buffer.reset();
     m_rvp_buffer.clear();
-
-    m_need_spec_msg = false;
 
 }
 
@@ -531,6 +561,7 @@ SpmtThread::verify_speculation(Message* certain_msg)
     //     结束
     if (m_spec_msg_queue.begin() == m_iter_next_spec_msg) {
         process_msg(certain_msg);
+        delete certain_msg;
         return;
     }
 
@@ -557,18 +588,37 @@ SpmtThread::verify_speculation(Message* certain_msg)
     //         收回该消息
     //     处理确定消息
     if (success) {
+        // 验证成功时，确定消息得销毁
+        delete certain_msg;
+
         Effect* effect = spec_msg->get_effect();
+        assert(effect);
         commit_effect(effect);
-        delete effect;
+
         m_spec_msg_queue.pop_front();
+
+        // 验证成功时，推测消息无论是异步还是同步，都要销毁。
+        delete spec_msg;
     }
     else {
         abort_uncertain_execution();
 
+        // 验证失败时，确定消息如果是同步的，就立即销毁，如果是异步的，还得从队列中拿掉，此时再删除。
         if (g_is_async_msg(certain_msg)) {
             remove_revoked_msg(certain_msg);
         }
+
         process_msg(certain_msg);
+
+        if (not g_is_async_msg(certain_msg)) {
+            delete certain_msg;
+        }
+
+        // 验证失败时，推测消息只有同步的才销毁，异步的仍在队列中。
+        if (not g_is_async_msg(spec_msg)) {
+            delete spec_msg;
+        }
+
     }
 
 }
@@ -667,6 +717,8 @@ SpmtThread::launch_next_spec_msg()
     //        or type == Message::arraystore
     //        or type == Message::arrayload);
     m_current_spec_msg = *m_iter_next_spec_msg;
+    m_current_spec_msg->set_effect(new Effect); // 处理前给消息配上effect
+    m_need_spec_msg = false;
     process_msg(m_current_spec_msg);
 }
 
@@ -681,6 +733,8 @@ SpmtThread::launch_spec_msg(Message* msg)
     m_spec_msg_queue.insert(m_iter_next_spec_msg, msg);
 
     m_current_spec_msg = msg;
+    m_current_spec_msg->set_effect(new Effect); // 处理前给消息配上effect
+    m_need_spec_msg = false;
     process_msg(m_current_spec_msg);
     // if 刚处理的是get,put等，就要加载下一条。
 }
@@ -738,7 +792,8 @@ SpmtThread::snapshot(bool pin)
 void
 SpmtThread::on_event_top_invoke(InvokeMsg* msg)
 {
-    // assert 必为确定模式
+    assert(is_certain_mode());
+
     abort_uncertain_execution();
 
     // 按正常处理invoke消息那样处理

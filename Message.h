@@ -36,6 +36,7 @@ public:
     MsgType get_type();
     SpmtThread* get_target_spmt_thread();
     Effect* get_effect();
+    void set_effect(Effect* effect);
 
     virtual bool equal(Message* msg);
     virtual void show(std::ostream& os) const = 0;

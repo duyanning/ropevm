@@ -138,6 +138,8 @@ CertainMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
 
     //if (intercept_vm_backdoor(target_object, new_mb)) return;
 
+    frame->last_pc = pc;
+
     SpmtThread* target_spmt_thread = target_object->get_spmt_thread();
     assert(target_spmt_thread->m_thread == m_spmt_thread->m_thread);
 
@@ -158,7 +160,6 @@ CertainMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
                                               target_object, new_mb, sp,
                                               pc, frame, sp);
 
-        frame->last_pc = pc;
 
         // MINILOG0("#" << m_spmt_thread->m_id << " i>>>transfers to #" << target_spmt_thread->id()
         //          // << " " << info(current_object) << " => " << info(target_object)
@@ -298,8 +299,6 @@ CertainMode::invoke_impl(Object* target_object, MethodBlock* new_mb, uintptr_t* 
     }
     //}}} just for debug
 
-
-    caller_frame->last_pc = pc;
 
     frame = create_frame(target_object, new_mb, args,
                          m_spmt_thread, caller_pc, caller_frame, caller_sp);

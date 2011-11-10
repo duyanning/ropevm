@@ -42,7 +42,6 @@ SpeculativeMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
 {
     if (intercept_vm_backdoor(target_object, new_mb)) return;
 
-    //log_when_invoke_return(true, m_user, frame->mb, target_object, new_mb);
 
     MINILOG(s_logger, "#" << m_spmt_thread->id()
             << " (S) is to invoke method: " << *new_mb);
@@ -53,6 +52,8 @@ SpeculativeMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
         m_spmt_thread->sleep();
         return;
     }
+
+    frame->last_pc = pc;
 
     SpmtThread* target_spmt_thread = target_object->get_spmt_thread();
 
@@ -67,8 +68,6 @@ SpeculativeMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
 
         invoke_impl(target_object, new_mb, &args[0],
                     m_spmt_thread, pc, frame, sp);
-
-        frame->last_pc = pc;
 
 
     }
