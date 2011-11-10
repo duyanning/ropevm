@@ -63,16 +63,14 @@ RvpMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
 {
     //if (intercept_vm_backdoor(target_object, new_mb)) return;
 
-    //log_when_invoke_return(true, m_user, frame->mb, target_object, new_mb);
-
     SpmtThread* target_spmt_thread = target_object->get_spmt_thread();
     assert(target_spmt_thread->m_thread == m_spmt_thread->m_thread);
 
-    assert(target_spmt_thread != m_spmt_thread); // object reentry
+    assert(target_spmt_thread != m_spmt_thread); // 目前暂不考虑对象重入
 
     if (is_priviledged(new_mb)) {
-        MINILOG(r_logger,
-                "#" << m_spmt_thread->id() << " (R) is to invoke native/sync method: " << *new_mb);
+        MINILOG(r_logger, "#" << m_spmt_thread->id()
+                << " (R) is to invoke native/sync method: " << *new_mb);
         m_spmt_thread->sleep();
         return;
     }
@@ -86,23 +84,17 @@ RvpMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
 
     MethodBlock* rvp_mb = get_rvp_method(new_mb);
 
-    Frame* new_frame =
-        create_frame(target_object, rvp_mb, &args[0], 0, pc, frame, sp);
+    // MINILOG_IF(debug_scaffold::java_main_arrived,
+    //            r_frame_logger,
+    //            "#" << m_spmt_thread->id()
+    //            << " (R) enter "
+    //            << new_frame->mb->full_name()
+    //            << "  <---  "
+    //            << frame->mb->full_name()
+    //            );
 
-
-    MINILOG_IF(debug_scaffold::java_main_arrived,
-               r_frame_logger,
-               "#" << m_spmt_thread->id()
-               << " (R) enter "
-               << new_frame->mb->full_name()
-               << "  <---  "
-               << frame->mb->full_name()
-               );
-
-    //frame->last_pc = pc;
-    sp = (uintptr_t*)new_frame->ostack_base;
-    frame = new_frame;
-    pc = (CodePntr)frame->mb->code;
+    // 除了最外层的rvp栈帧，里层的rvp栈帧的caller都为0。
+    invoke_impl(target_object, rvp_mb, &args[0], 0, pc, frame, sp);
 }
 
 
@@ -112,14 +104,14 @@ RvpMode::do_method_return(int len)
     assert(len == 0 || len == 1 || len == 2);
     assert(not is_priviledged(frame->mb));
 
-    MINILOG_IF(debug_scaffold::java_main_arrived,
-               r_frame_logger,
-               "#" << m_spmt_thread->id()
-               << " (R) leave "
-               << frame->mb->full_name()
-               << "  --->  "
-               << frame->prev->mb->full_name()
-               );
+    // MINILOG_IF(debug_scaffold::java_main_arrived,
+    //            r_frame_logger,
+    //            "#" << m_spmt_thread->id()
+    //            << " (R) leave "
+    //            << frame->mb->full_name()
+    //            << "  --->  "
+    //            << frame->prev->mb->full_name()
+    //            );
 
     Frame* current_frame = frame;
 
@@ -146,7 +138,7 @@ RvpMode::do_method_return(int len)
         destroy_frame(current_frame);
         pc += (*pc == OPC_INVOKEINTERFACE_QUICK ? 5 : 3);
     }
-    else { // 从最顶层的rvp栈帧返回
+    else { // 从最外层的rvp栈帧返回
 
         sp -= len;
 
@@ -157,10 +149,12 @@ RvpMode::do_method_return(int len)
             rv.push_back(read(&sp[i]));
         }
 
-        // 根据该返回值构造推测性的return消息
+        // 根据该返回值构造推测性的return_msg
         ReturnMsg* return_msg = new ReturnMsg(current_frame->caller,
                                               &rv[0], len,
-                                              0, 0, 0);
+                                              current_frame->caller_pc,
+                                              current_frame->prev,
+                                              current_frame->caller_sp);
 
         m_spmt_thread->m_rvp_buffer.clear();
 
@@ -273,7 +267,6 @@ RvpMode::do_array_load(Object* array, int index, int type_size)
 {
     sp -= 2;                    // pop arrayref and index
 
-    void* addr = array_elem_addr(array, index, type_size);
     load_from_array(sp, array, index, type_size);
     sp += type_size > 4 ? 2 : 1;
 
@@ -285,7 +278,6 @@ RvpMode::do_array_store(Object* array, int index, int type_size)
 {
     sp -= type_size > 4 ? 2 : 1; // pop up value
 
-    void* addr = array_elem_addr(array, index, type_size);
     store_to_array(sp, array, index, type_size);
 
     sp -= 2;                    // pop arrayref and index
@@ -311,4 +303,22 @@ RvpMode::log_when_invoke_return(bool is_invoke, Object* caller, MethodBlock* cal
 {
     log_invoke_return(r_invoke_return_logger, is_invoke, m_spmt_thread->id(), "(R)",
                       caller, caller_mb, callee, callee_mb);
+}
+
+
+void
+RvpMode::invoke_impl(Object* target_object, MethodBlock* new_mb, uintptr_t* args,
+                     SpmtThread* caller, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp)
+{
+    Frame* new_frame = create_frame(target_object,
+                                    new_mb,
+                                    args,
+                                    caller,
+                                    caller_pc,
+                                    caller_frame,
+                                    caller_sp);
+
+    pc = (CodePntr)new_frame->mb->code;
+    frame = new_frame;
+    sp = (uintptr_t*)new_frame->ostack_base;
 }

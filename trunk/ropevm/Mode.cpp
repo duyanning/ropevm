@@ -194,22 +194,24 @@ Mode::send_msg(Message* msg)
 }
 
 
-void
-Mode::invoke_impl(Object* target_object, MethodBlock* new_mb, uintptr_t* args,
-                  SpmtThread* spmt_thread, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp)
-{
-    assert(false);
-}
+// void
+// Mode::invoke_impl(Object* target_object, MethodBlock* new_mb, uintptr_t* args,
+//                   SpmtThread* spmt_thread, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp)
+// {
+//     assert(false);
+// }
 
+
+// 在确定模式下处理确定消息，在推测模式下处理推测消息。
 void
 Mode::process_msg(Message* msg)
 {
     MsgType type = msg->get_type();
 
     if (type == MsgType::INVOKE) {
-
         InvokeMsg* invoke_msg = static_cast<InvokeMsg*>(msg);
 
+        // 为invoke_msg指定的方法及参数创建栈帧并设置
         invoke_impl(invoke_msg->get_target_object(),
                     invoke_msg->mb, &invoke_msg->parameters[0],
                     invoke_msg->get_source_spmt_thread(),
@@ -220,20 +222,21 @@ Mode::process_msg(Message* msg)
     else if (type == MsgType::PUT) {
         PutMsg* put_msg = static_cast<PutMsg*>(msg);
 
+        // 向put_msg指定的字段写入一个值
         uintptr_t* field_addr = put_msg->get_field_addr();
-
         for (int i = 0; i < put_msg->val.size(); ++i) {
             write(field_addr + i, put_msg->val[i]);
         }
 
-        PutReturnMsg* put_return_msg = new PutReturnMsg(put_msg->get_source_spmt_thread());
+        // 构造put_ret_msg作为回复
+        PutReturnMsg* put_ret_msg = new PutReturnMsg(put_msg->get_source_spmt_thread());
 
-        send_msg(put_return_msg);
+        send_msg(put_ret_msg);
     }
     else if (type == MsgType::GET) {
         GetMsg* get_msg = static_cast<GetMsg*>(msg);
 
-        // 从get消息的指定的字段中读取一个值，并根据该值构造get_return消息
+        // 从get_msg指定的字段读出一个值
         uintptr_t* field_addr = get_msg->get_field_addr();
         int field_size = get_msg->get_field_size();
         std::vector<uintptr_t> value;
@@ -241,52 +244,56 @@ Mode::process_msg(Message* msg)
             value.push_back(read(field_addr + i));
         }
 
+        // 构造get_ret_msg作为回复
+        GetReturnMsg* get_ret_msg = new GetReturnMsg(get_msg->get_source_spmt_thread(),
+                                                     &value[0], value.size());
 
-        GetReturnMsg* get_return_msg = new GetReturnMsg(get_msg->get_source_spmt_thread(),
-                                                        &value[0], value.size());
-
-        send_msg(get_return_msg);
+        send_msg(get_ret_msg);
     }
     else if (type == MsgType::ARRAYSTORE) {
         ArrayStoreMsg* arraystore_msg = static_cast<ArrayStoreMsg*>(msg);
 
+        // 向arraystore_msg指定的数组的指定位置处写入一个值
         Object* array = arraystore_msg->get_target_object();
         int index = arraystore_msg->index;
         int type_size = arraystore_msg->type_size;
-        void* addr = array_elem_addr(array, index, type_size);
 
         store_to_array_from_c(&arraystore_msg->val[0],
-                                          array, index, type_size);
+                              array, index, type_size);
 
-        ArrayStoreReturnMsg* arraystore_return_msg = new ArrayStoreReturnMsg(arraystore_msg->get_source_spmt_thread());
+        // 构造arraystore_ret_msg作为回复
+        ArrayStoreReturnMsg* arraystore_ret_msg = new ArrayStoreReturnMsg(arraystore_msg->get_source_spmt_thread());
 
-        send_msg(arraystore_return_msg);
+        send_msg(arraystore_ret_msg);
     }
     else if (type == MsgType::ARRAYLOAD) {
-
         ArrayLoadMsg* arrayload_msg = static_cast<ArrayLoadMsg*>(msg);
 
-        // 从arrayload消息指定的数组的指定索引处读入一个数值
-
+        // 从arrayload_msg指定的数组的指定位置处读出一个值
         Object* array = arrayload_msg->get_target_object();
         int index = arrayload_msg->index;
         int type_size = arrayload_msg->type_size;
-        void* addr = array_elem_addr(array, index, type_size);
 
         std::vector<uintptr_t> value(2); // at most 2 slots
         load_from_array_to_c(&value[0],
                              array, index, type_size);
 
-        ArrayLoadReturnMsg* arrayload_return_msg = new ArrayLoadReturnMsg(arrayload_msg->get_source_spmt_thread(),
-                                                                          &value[0], value.size());
+        // 构造arrayload_ret_msg作为回复
+        ArrayLoadReturnMsg* arrayload_ret_msg = new ArrayLoadReturnMsg(arrayload_msg->get_source_spmt_thread(),
+                                                                       &value[0], value.size());
 
-        send_msg(arrayload_return_msg);
+        send_msg(arrayload_ret_msg);
 
     }
     else if (type == MsgType::RETURN) {
         ReturnMsg* return_msg = static_cast<ReturnMsg*>(msg);
 
-        // 将返回值写入ostack
+        // 方法重入会导致这些东西改变，所以需要按消息中的重新设置。
+        pc = return_msg->caller_pc;
+        frame = return_msg->caller_frame;
+        sp = return_msg->caller_sp;
+
+        // 将return_msg携带的返回值写入ostack
         for (auto i : return_msg->retval) {
             write(sp++, i);
         }
@@ -294,34 +301,32 @@ Mode::process_msg(Message* msg)
         pc += (*pc == OPC_INVOKEINTERFACE_QUICK ? 5 : 3);
     }
     else if (type == MsgType::PUT_RET) {
-        PutReturnMsg* put_return_msg = static_cast<PutReturnMsg*>(msg);
-        // 什么也不需要做
+        //PutReturnMsg* put_ret_msg = static_cast<PutReturnMsg*>(msg);
 
         pc += 3;
     }
     else if (type == MsgType::GET_RET) {
+        GetReturnMsg* get_ret_msg = static_cast<GetReturnMsg*>(msg);
 
-        GetReturnMsg* get_return_msg = static_cast<GetReturnMsg*>(msg);
-
-        for (auto i : get_return_msg->val) {
+        // 将get_ret_msg携带的值写入ostack
+        for (auto i : get_ret_msg->val) {
             write(sp++, i);
         }
 
         pc += 3;
     }
     else if (type == MsgType::ARRAYSTORE_RET) {
-        // 没有什么需要写入ostack
+        //ArrayStoreReturnMsg* arraystore_ret_msg = static_cast<ArrayStoreReturnMsg*>(msg);
 
         pc += 1;
     }
     else if (type == MsgType::ARRAYLOAD_RET) {
-        ArrayLoadReturnMsg* arrayloadreturn_msg = static_cast<ArrayLoadReturnMsg*>(msg);
+        ArrayLoadReturnMsg* arrayload_ret_msg = static_cast<ArrayLoadReturnMsg*>(msg);
 
-        // 将读到的值写入ostack
-        for (auto i : arrayloadreturn_msg->val) {
+        // 将arrayload_ret_msg携带的值写入ostack
+        for (auto i : arrayload_ret_msg->val) {
             write(sp++, i);
         }
-
 
         pc += 3;
     }
