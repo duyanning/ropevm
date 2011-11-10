@@ -844,12 +844,10 @@ uintptr_t *unwrapAndWidenObject(Class *type, Object *arg, uintptr_t *pntr) {
 }
 
 Object*
-invoke(Object *ob, MethodBlock *mb, Object *arg_array, Object *param_types, int check_access)
+invoke(Object* ob, MethodBlock* mb, Object* arg_array, Object* param_types, int check_access)
 {
-
-    //assert(false);              // todo
     Object **args = (Object**)ARRAY_DATA(arg_array);
-//     Class **types = (Object**)ARRAY_DATA(param_types);
+    // Class **types = (Object**)ARRAY_DATA(param_types);
     Class **types = (Class**)ARRAY_DATA(param_types);
     int args_len = arg_array ? ARRAY_LEN(arg_array) : 0;
     int types_len = ARRAY_LEN(param_types);
@@ -874,14 +872,18 @@ invoke(Object *ob, MethodBlock *mb, Object *arg_array, Object *param_types, int 
     void* ret;
 
     Thread* this_thread = threadSelf();
-    SpmtThread* this_core = this_thread->get_current_spmt_thread();
+    SpmtThread* this_spmt_thread = this_thread->get_current_spmt_thread();
 
     std::vector<uintptr_t> arguments(mb->args_count);
     uintptr_t* arg = &arguments[0];
 
+
+    // 准备好参数
+    // this是方法的第一个参数（静态方法的参数中没有this）
     if (ob)
         *arg++ = (uintptr_t)ob;
 
+    // 其他参数
     for(i = 0; i < args_len; i++)
         if((arg = unwrapAndWidenObject(*types++, *args++, arg)) == NULL) {
             assert(false);      // todo
@@ -889,9 +891,8 @@ invoke(Object *ob, MethodBlock *mb, Object *arg_array, Object *param_types, int 
             return NULL;
         }
 
-    //ret = this_core->get_current_mode()->do_execute_method((ob ? ob : classobj), mb, arguments);
     assert(ob);
-    ret = this_core->get_current_mode()->do_execute_method(ob, mb, arguments);
+    ret = this_spmt_thread->get_current_mode()->do_execute_method(ob, mb, arguments);
 
 
     if((excep = exceptionOccurred())) {

@@ -115,25 +115,6 @@ SpmtThread::idle()
 
 
 void
-SpmtThread::record_current_non_certain_mode()
-{
-    assert(not m_mode->is_certain_mode());
-
-	m_previous_mode = m_mode;
-    //MINILOG0("#" << id() << " record " << m_mode->get_name());
-}
-
-void
-SpmtThread::restore_original_non_certain_mode()
-{
-    assert(m_mode->is_certain_mode());
-
-	m_mode = m_previous_mode;
-    MINILOG0("#" << id() << " restore to " << m_mode->get_name());
-}
-
-
-void
 SpmtThread::wakeup()
 {
     if (m_id == 5) {
@@ -212,42 +193,6 @@ SpmtThread::log_when_leave_certain()
             "#" << id() << " ---------------------------");
 }
 
-void
-SpmtThread::sync_speculative_with_certain()
-{
-    m_spec_mode.pc = m_certain_mode.pc;
-    m_spec_mode.frame = m_certain_mode.frame;
-    m_spec_mode.sp = m_certain_mode.sp;
-}
-
-
-void
-SpmtThread::enter_certain_mode()
-{
-    assert(not m_mode->is_certain_mode());
-
-    //m_thread->set_certain_core(this);
-
-    record_current_non_certain_mode();
-    switch_to_certain_mode();
-
-
-    MINILOG(when_enter_certain_logger,
-            "#" << id() << " when enter certain mode");
-    MINILOG(when_enter_certain_logger,
-            "#" << id() << " ---------------------------");
-    MINILOG(when_enter_certain_logger,
-            "#" << id() << " cache ver(" << m_state_buffer.latest_ver() << ")");
-
-    MINILOG(when_enter_certain_logger,
-            "#" << id() << " ---------------------------");
-
-    MINILOG(when_enter_certain_logger,
-            "#" << id() << " SPEC details:");
-
-
-}
-
 
 void
 SpmtThread::switch_to_certain_mode()
@@ -269,10 +214,6 @@ SpmtThread::switch_to_rvp_mode()
 
     MINILOG0("#" << id() << " enter RVP mode");
 
-//     m_rvp_mode.pc = m_spec_mode.pc;
-//     m_rvp_mode.frame = m_spec_mode.frame;
-//     m_rvp_mode.ostack = m_spec_mode.ostack;
-
     m_mode = &m_rvp_mode;
 }
 
@@ -280,6 +221,7 @@ SpmtThread::switch_to_rvp_mode()
 void
 SpmtThread::switch_to_previous_mode()
 {
+    assert(is_certain_mode());
     m_mode = m_previous_mode;
 }
 
@@ -344,7 +286,7 @@ SpmtThread::scan()
 }
 
 void
-SpmtThread::clear_frame_in_states_buffer(Frame* f)
+SpmtThread::clear_frame_in_state_buffer(Frame* f)
 {
     m_state_buffer.clear(f->lvars, f->lvars + f->mb->max_locals);
     m_state_buffer.clear(f->ostack_base, f->ostack_base + f->mb->max_stack);
@@ -651,68 +593,6 @@ SpmtThread::after_alloc_object(Object* obj)
 }
 
 
-GroupingPolicyEnum
-default_policy(Object* obj)
-{
-    if (is_normal_obj(obj))
-        return GP_CURRENT_GROUP;
-
-    if (is_class_obj(obj))
-        return GP_NO_GROUP;
-
-    assert(false);  // todo
-}
-
-
-GroupingPolicyEnum
-query_grouping_policy_for_object(Object* object)
-{
-    // 先问新对象自己
-    GroupingPolicyEnum policy = get_policy(object);
-    if (policy != GP_UNSPECIFIED)
-        return policy;
-
-    // 再问当前对象
-    SpmtThread* current_spmt_thread = g_get_current_spmt_thread();
-    Object* current_object = current_spmt_thread->get_current_object();
-    policy = get_foreign_policy(current_object);
-    if (policy != GP_UNSPECIFIED)
-        return policy;
-
-    // 再问当前线程
-    policy = current_spmt_thread->get_policy();
-    if (policy != GP_UNSPECIFIED)
-        return policy;
-
-    // 最后采用缺省策略
-    return ::default_policy(object);
-
-}
-
-
-SpmtThread*
-SpmtThread::assign_spmt_thread_for(Object* object)
-{
-    GroupingPolicyEnum policy = ::query_grouping_policy_for_object(object);
-
-    SpmtThread* spmt_thread = 0;
-
-    if (policy == GP_NEW_GROUP) {
-        spmt_thread = RopeVM::instance()->create_spmt_thread();
-        spmt_thread->set_thread(this->get_thread());
-        spmt_thread->set_leader(object);
-    }
-    else if (policy == GP_CURRENT_GROUP)
-        spmt_thread = this;
-    else if (policy == GP_NO_GROUP)
-        spmt_thread = g_get_current_thread()->get_initial_spmt_thread();
-
-    assert(spmt_thread);
-
-    return spmt_thread;
-}
-
-
 Mode*
 SpmtThread::get_current_mode()
 {
@@ -720,6 +600,8 @@ SpmtThread::get_current_mode()
 }
 
 
+// 如果是确定模式下send_msg，发出去的就是确定消息。如果是推测模式下
+// send_msg，发出去的就是推测消息。
 void
 SpmtThread::send_msg(Message* msg)
 {

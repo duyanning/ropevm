@@ -74,24 +74,24 @@ public:
 
     SpmtThread* m_initial_spmt_thread; // 每个java线程一产生，就有一个spmt线程。
 
-
+    // 因为多个java线程可能都会访问同一个对象，所以一个对象不再属于一个
+    // spmt线程，而是属于几个spmt线程，而这些spmt线程分属于不同的java线
+    // 程。对象中记录的spmt线程是创建对象的java线程中的spmt线程，其他
+    // spmt线程，记录在各自的java线程中。此处即为此从对象到spmt线程的映
+    // 射表。
     typedef std::map<Object*, SpmtThread*> Object2SpmtThreadMap;
     Object2SpmtThreadMap m_object_to_spmt_thread;
     void register_object_spmt_thread(Object* object, SpmtThread* spmt_thread);
     SpmtThread* spmt_thread_of(Object* obj);
-    //SpmtThread* assign_spmt_thread_for(Object* obj, Object* current_object);
-    //void add_spmt_thread(SpmtThread* core);
+
+    SpmtThread* assign_spmt_thread_for(Object* obj); // 为对象分配spmt线程
     Thread();
     ~Thread();
     bool create();
 
 
-    //uintptr_t* drive_loop();
-
     SpmtThread* get_initial_spmt_thread();
-
     SpmtThread* get_current_spmt_thread();
-    void set_current_spmt_thread(SpmtThread* st);
 
     // 垃圾回收（尚未实现）
     void scan();
