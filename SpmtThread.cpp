@@ -25,8 +25,7 @@ SpmtThread::SpmtThread(int id)
     m_leader(0),
     m_certain_message(0),
     m_need_spec_msg(true),
-    m_quit_step_loop(false),
-    m_result(0)
+    m_quit_drive_loop(false)
 {
 
     m_certain_mode.set_spmt_thread(this);
@@ -120,7 +119,7 @@ SpmtThread::record_current_non_certain_mode()
 {
     assert(not m_mode->is_certain_mode());
 
-	m_old_mode = m_mode;
+	m_previous_mode = m_mode;
     //MINILOG0("#" << id() << " record " << m_mode->get_name());
 }
 
@@ -129,7 +128,7 @@ SpmtThread::restore_original_non_certain_mode()
 {
     assert(m_mode->is_certain_mode());
 
-	m_mode = m_old_mode;
+	m_mode = m_previous_mode;
     MINILOG0("#" << id() << " restore to " << m_mode->get_name());
 }
 
@@ -279,6 +278,12 @@ SpmtThread::switch_to_rvp_mode()
 
 
 void
+SpmtThread::switch_to_previous_mode()
+{
+    m_mode = m_previous_mode;
+}
+
+void
 SpmtThread::add_spec_msg(Message* msg)
 {
     // stat
@@ -302,28 +307,21 @@ SpmtThread::destroy_frame(Frame* frame)
 
 
 bool
-SpmtThread::check_quit_step_loop()
+SpmtThread::check_quit_drive_loop()
 {
-    bool quit = m_quit_step_loop;
+    bool quit = m_quit_drive_loop;
     if (quit) {
-        m_quit_step_loop = false;
+        m_quit_drive_loop = false;
     }
     return quit;
 }
 
 void
-SpmtThread::signal_quit_step_loop(uintptr_t* result)
+SpmtThread::signal_quit_drive_loop()
 {
     assert(m_mode->is_certain_mode());
 
-    m_quit_step_loop = true;
-    m_result = result;
-}
-
-uintptr_t*
-SpmtThread::get_result()
-{
-    return m_result;
+    m_quit_drive_loop = true;
 }
 
 
@@ -424,7 +422,9 @@ void
 SpmtThread::confirm_spec_msg(Message* msg)
 {
     assert(is_certain_mode());
-    send_msg(msg);
+
+    switch_to_previous_mode();  // 转入之前的模式：推测模式或rvp模式
+    msg->get_target_spmt_thread()->set_certain_msg(msg);
 }
 
 void
@@ -712,17 +712,31 @@ SpmtThread::assign_spmt_thread_for(Object* object)
     return spmt_thread;
 }
 
+
 Mode*
 SpmtThread::get_current_mode()
 {
     return m_mode;
 }
 
+
 void
 SpmtThread::send_msg(Message* msg)
 {
     m_mode->send_msg(msg);
 }
+
+
+/*
+  为了在模式已经改变的情况下，按照原来的模式发出消息，所以提供了这个函
+  数。
+ */
+// void
+// SpmtThread::send_msg(Message* msg, Mode* mode)
+// {
+//     mode->send_msg(msg);
+// }
+
 
 void
 SpmtThread::process_msg(Message* msg)
@@ -864,11 +878,11 @@ SpmtThread::on_event_top_return(ReturnMsg* msg)
 
     // 不需要调整pc，因为dummy frame没有对应的方法
 
-    signal_quit_step_loop(0);
+    signal_quit_drive_loop();
 }
 
 
-uintptr_t*
+void
 SpmtThread::drive_loop()
 {
     using namespace std;
@@ -896,12 +910,11 @@ SpmtThread::drive_loop()
             st->step();
 
 
-            bool quit = st->check_quit_step_loop();
+            bool quit = st->check_quit_drive_loop();
             if (quit) {
-                uintptr_t* result = st->get_result();
 
                 m_thread->m_current_spmt_thread = current_spmt_thread_of_outer_loop;
-                return result;
+                return;
             }
 
         }
@@ -910,7 +923,6 @@ SpmtThread::drive_loop()
     }
 
     assert(false);
-    return 0;
 }
 
 

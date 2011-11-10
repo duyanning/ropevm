@@ -56,6 +56,7 @@ public:
     void switch_to_certain_mode();
     void switch_to_speculative_mode();
     void switch_to_rvp_mode();
+    void switch_to_previous_mode();
 
     bool is_spec_mode();
     bool is_certain_mode();
@@ -71,6 +72,7 @@ public:
     // void send_certain_msg(Message* msg);
     // void send_spec_msg(Message* msg);
     void send_msg(Message* msg);
+    //void send_msg(Message* msg, Mode* mode);
     void confirm_spec_msg(Message* msg);
     void revoke_spec_msg(Message* msg);
 
@@ -122,10 +124,8 @@ public:
 
 
 
-    bool check_quit_step_loop();
-    void signal_quit_step_loop(uintptr_t* result); // refactor: 不需要这个参数
-    uintptr_t* get_result();
-
+    bool check_quit_drive_loop();
+    void signal_quit_drive_loop();
 
 
     void before_signal_exception(Class *exception_class);
@@ -148,7 +148,7 @@ public:
 
     // 多os实现下，os线程运行S_threadStart，该函数再调用spmt_thread->drive_loop()
     static void S_threadStart(SpmtThread* spmt_thread);
-    uintptr_t* drive_loop();
+    void drive_loop();
 
 private:
 
@@ -168,14 +168,14 @@ private:
 
     int m_id;
 
-    bool m_quit_step_loop;
-    uintptr_t* m_result;        // refactor: to remove
+    bool m_quit_drive_loop;
+
 
     SpeculativeMode m_spec_mode;
     CertainMode m_certain_mode;
     RvpMode m_rvp_mode;
     Mode* m_mode;               // 当前模式
-    Mode* m_old_mode;
+    Mode* m_previous_mode;
 
 
     // 确定消息

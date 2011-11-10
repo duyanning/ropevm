@@ -44,12 +44,6 @@ CertainMode::step()
     }
     //}}} just for debug
 
-    // Message* msg = m_spmt_thread->get_certain_msg();
-    // if (msg) {
-    //     process_certain_message(msg);
-    //     return;
-    // }
-
     fetch_and_interpret_an_instruction();
 }
 
@@ -76,7 +70,7 @@ CertainMode::do_execute_method(Object* target_object,
 
     //????frame->last_pc = pc;
 
-    Object* current_object = frame->get_object();
+    //Object* current_object = frame->get_object();
 
     assert(target_object);
 
@@ -85,24 +79,27 @@ CertainMode::do_execute_method(Object* target_object,
 
     assert(target_spmt_thread->get_thread() == g_get_current_thread());
 
-    if (target_spmt_thread == m_spmt_thread) {
+    if (target_spmt_thread == m_spmt_thread or g_is_pure_code_method(new_mb)) {
 
+        // 对top method的调用是从native代码中发出，所以caller的pc设为0
+        // dummy frame作为顶级方法的上级，用来接收top frame的返回值
         invoke_impl(target_object, new_mb, &jargs[0],
                     m_spmt_thread, 0, dummy, dummy->ostack_base);
 
 
     }
     else {
-        InvokeMsg* msg = new InvokeMsg(m_spmt_thread, target_spmt_thread,
-                                       target_object, new_mb, &jargs[0],
-                                       pc, frame, sp,
-                                       true);
+        // 构造确定性的invoke_msg发送给目标线程
+        InvokeMsg* invoke_msg = new InvokeMsg(m_spmt_thread, target_spmt_thread,
+                                              target_object, new_mb, &jargs[0],
+                                              pc, frame, sp,
+                                              true);
 
 
         MINILOG0("#" << m_spmt_thread->id() << " e>>>transfers to #" << target_spmt_thread->id()
                  // << " " << info(current_object) << " => " << info(target_object)
                  // << " (" << current_object << "=>" << target_object << ")"
-                 << " because: " << *msg
+                 << " because: " << *invoke_msg
                  << " in: "  << info(frame)
                  // << "("  << frame << ")"
                  << " offset: " << pc-(CodePntr)frame->mb->code
@@ -111,15 +108,17 @@ CertainMode::do_execute_method(Object* target_object,
         //frame->last_pc = pc;
 
         // 转入推测模式，但不要执行
-        m_spmt_thread->sleep();
-        m_spmt_thread->m_need_spec_msg = false;
+        m_spmt_thread->sleep(); // 睡等其他线程完成顶级方法的执行
+        //m_spmt_thread->m_need_spec_msg = false;
 
-        m_spmt_thread->send_msg(msg);
+        m_spmt_thread->send_msg(invoke_msg);
     }
 
 
-    //g_drive_loop();
+    // 进入内层drive_loop
     m_spmt_thread->drive_loop();
+    // 已从内层drive_loop退出
+
 
     assert(m_spmt_thread->m_mode->is_certain_mode());
 
@@ -154,10 +153,10 @@ CertainMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
         // pop up arguments
         sp -= new_mb->args_count;
 
-        // construct certain msg
-        InvokeMsg* msg = new InvokeMsg(m_spmt_thread, target_spmt_thread,
-                                       target_object, new_mb, sp,
-                                       pc, frame, sp);
+        // 构造确定性的invoke_msg发送给目标线程
+        InvokeMsg* invoke_msg = new InvokeMsg(m_spmt_thread, target_spmt_thread,
+                                              target_object, new_mb, sp,
+                                              pc, frame, sp);
 
         frame->last_pc = pc;
 
@@ -169,25 +168,22 @@ CertainMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
         //          // << "("  << frame << ")"
         //          );
 
-        m_spmt_thread->send_msg(msg);
+
+        m_spmt_thread->send_msg(invoke_msg);
+
 
         MethodBlock* rvp_method = get_rvp_method(new_mb);
 
         MINILOG0("#" << m_spmt_thread->m_id
-                 << " (S)invokes rvp-method: " << *rvp_method);
+                 << " (C)invokes rvp-method: " << *rvp_method);
 
-        Frame* rvp_frame = m_spmt_thread->m_rvp_mode.create_frame(target_object,
-                                                                  rvp_method,
-                                                                  sp,
-                                                                  0,
-                                                                  pc, frame, sp);
-
-        m_spmt_thread->m_rvp_mode.pc = (CodePntr)rvp_method->code;
-        m_spmt_thread->m_rvp_mode.frame = rvp_frame;
-        m_spmt_thread->m_rvp_mode.sp = rvp_frame->ostack_base;
+        m_spmt_thread->m_rvp_mode.invoke_impl(target_object,
+                                              rvp_method,
+                                              sp,
+                                              m_spmt_thread,
+                                              pc, frame, sp);
 
         m_spmt_thread->switch_to_rvp_mode();
-
     }
 
 }
@@ -198,12 +194,10 @@ CertainMode::do_method_return(int len)
 //     if (is_application_class(frame->mb->classobj)) {
 //         MINILOG0("#" << m_spmt_thread->id() << " (C)return from " << *frame->mb);
 //     }
-    //log_when_invoke_return(false, frame->calling_object, frame->prev->mb, m_user, frame->mb);
 
     assert(len == 0 || len == 1 || len == 2);
 
-    Frame* current_frame = frame; // some funcitons below will change this->frame, so we save it to destroy
-
+    Frame* current_frame = frame; // 因为后边的处理可能会改变frame，所以我们先保存一下
 
     // 给同步方法解锁
     if (current_frame->mb->is_synchronized()) {
@@ -228,7 +222,7 @@ CertainMode::do_method_return(int len)
 
     if (target_spmt_thread == m_spmt_thread) {
 
-        uintptr_t* rv = sp - len;   // rv points to the beginning of retrun value in this frame's operand stack
+        uintptr_t* rv = sp - len;   // 返回值在ostack中占用了几个slot，我们让rv指向其起始位置
         sp -= len;
 
         // 将返回值写入主调方法的ostack
@@ -251,7 +245,7 @@ CertainMode::do_method_return(int len)
             //          << "because top frame return"
             //          );
 
-            m_spmt_thread->signal_quit_step_loop(0);
+            m_spmt_thread->signal_quit_drive_loop();
 
         }
 
@@ -268,21 +262,20 @@ CertainMode::do_method_return(int len)
         //          );
 
 
-        uintptr_t* rv = sp - len;   // rv points to the beginning of retrun value in this frame's operand stack
+        uintptr_t* rv = sp - len;
         sp -= len;
 
-        ReturnMsg* msg = new ReturnMsg(target_spmt_thread,
-                                       rv, len,
-                                       current_frame->caller_pc,
-                                       current_frame->prev,
-                                       current_frame->caller_sp,
-                                       current_frame->is_top_frame());
-        // state buffer中应无任何东西
-        // m_spmt_thread->clear_frame_in_state_buffer(current_frame);
+        // 构造确定性的return_msg发送给目标线程
+        ReturnMsg* return_msg = new ReturnMsg(target_spmt_thread,
+                                              rv, len,
+                                              current_frame->caller_pc,
+                                              current_frame->prev,
+                                              current_frame->caller_sp,
+                                              current_frame->is_top_frame());
+
         destroy_frame(current_frame);
 
-        m_spmt_thread->switch_to_speculative_mode();
-        m_spmt_thread->send_msg(msg);
+        m_spmt_thread->send_msg(return_msg);
         m_spmt_thread->launch_next_spec_msg();
     }
 
@@ -392,7 +385,7 @@ CertainMode::do_throw_exception()
             x++;
         }
         //}}} just for debug
-        m_spmt_thread->signal_quit_step_loop(0);
+        m_spmt_thread->signal_quit_drive_loop();
         return;
     }
 
@@ -477,10 +470,11 @@ CertainMode::do_get_field(Object* target_object, FieldBlock* fb,
     }
     else {
         sp -= is_static ? 0 : 1;
-        GetMsg* msg = new GetMsg(m_spmt_thread, target_spmt_thread, target_object, fb);
+        // 构造确定性的get_msg发送给目标线程
+        GetMsg* get_msg = new GetMsg(m_spmt_thread, target_spmt_thread, target_object, fb);
 
         m_spmt_thread->sleep();
-        m_spmt_thread->send_msg(msg);
+        m_spmt_thread->send_msg(get_msg);
 
     }
 
@@ -527,13 +521,14 @@ CertainMode::do_put_field(Object* target_object, FieldBlock* fb,
     else {
         sp -= size;
 
-        PutMsg* msg = new PutMsg(m_spmt_thread, target_spmt_thread, target_object, fb, sp);
+        // 构造确定性的put_msg发送给目标线程
+        PutMsg* put_msg = new PutMsg(m_spmt_thread, target_spmt_thread, target_object, fb, sp);
 
         sp -= is_static ? 0 : 1;
 
-        m_spmt_thread->sleep();
+        m_spmt_thread->sleep(); // 睡等其他线程完成put，此为确定模式睡眠
 
-        m_spmt_thread->send_msg(msg);
+        m_spmt_thread->send_msg(put_msg);
     }
 
 }
@@ -547,8 +542,6 @@ CertainMode::do_array_load(Object* array, int index, int type_size)
     SpmtThread* target_spmt_thread = target_object->get_spmt_thread();
     assert(target_spmt_thread->m_thread == m_spmt_thread->m_thread);
 
-
-    void* addr = array_elem_addr(array, index, type_size);
     int nslots = type_size > 4 ? 2 : 1; // number of slots for value
 
     if (target_spmt_thread == m_spmt_thread) {
@@ -559,11 +552,13 @@ CertainMode::do_array_load(Object* array, int index, int type_size)
     }
     else {
         sp -= 2; // pop up arrayref and index
-        ArrayLoadMsg* msg = new ArrayLoadMsg(m_spmt_thread, target_spmt_thread,
-                                             array, type_size, index);
+
+        // 构造确定性的arrayload_msg发送给目标线程
+        ArrayLoadMsg* arrayload_msg = new ArrayLoadMsg(m_spmt_thread, target_spmt_thread,
+                                                       array, type_size, index);
 
         m_spmt_thread->sleep();
-        m_spmt_thread->send_msg(msg);
+        m_spmt_thread->send_msg(arrayload_msg);
 
     }
 
@@ -598,15 +593,16 @@ CertainMode::do_array_store(Object* array, int index, int type_size)
         pc += 1;
     }
     else {
-
         sp -= nslots;
-        ArrayStoreMsg* array_store_msg = new ArrayStoreMsg(m_spmt_thread, target_spmt_thread,
-                                                           array,
-                                                           type_size, index, sp);
+
+        // 构造确定性的arraystore_msg发送给目标线程
+        ArrayStoreMsg* arraystore_msg = new ArrayStoreMsg(m_spmt_thread, target_spmt_thread,
+                                                          array,
+                                                          type_size, index, sp);
         sp -= 2;                    // pop up arrayref and index
 
         m_spmt_thread->sleep();
-        m_spmt_thread->send_msg(array_store_msg);
+        m_spmt_thread->send_msg(arraystore_msg);
 
     }
 
@@ -622,8 +618,15 @@ CertainMode::log_when_invoke_return(bool is_invoke, Object* caller, MethodBlock*
 }
 
 
+/*
+  转交确定模式，必须自己先放弃确定模式，然后再发出确定消息。如果你先发
+  出确定消息，然后才放弃确定模式，在多os线程实现方式下，这之间其他spmt
+  线程可能会运行，检测到确定消息从而进入确定模式，从而导致出现两个具有
+  确定模式的spmt线程。
+ */
 void
 CertainMode::send_msg(Message* msg)
 {
+    m_spmt_thread->switch_to_speculative_mode();
     msg->get_target_spmt_thread()->set_certain_msg(msg);
 }
