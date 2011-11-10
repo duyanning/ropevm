@@ -66,7 +66,7 @@ Mode::after_alloc_object(Object* new_object)
 {
     //if (not RopeVM::do_spec) return;
 
-    SpmtThread* spmt_thread = m_spmt_thread->assign_spmt_thread_for(new_object);
+    SpmtThread* spmt_thread = m_spmt_thread->get_thread()->assign_spmt_thread_for(new_object);
     // assign_spmt_thread_for后要么跟set_spmt_thread，要么跟join_spmt_thread_in_other_threads
     new_object->set_spmt_thread(spmt_thread);
 }

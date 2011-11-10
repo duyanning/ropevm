@@ -206,7 +206,7 @@ SpeculativeMode::destroy_frame(Frame* frame)
         }
         // m_spmt_thread->m_state_buffer.clear(frame->lvars, frame->lvars + frame->mb->max_locals);
         // m_spmt_thread->m_state_buffer.clear(frame->ostack_base, frame->ostack_base + frame->mb->max_stack);
-        m_spmt_thread->clear_frame_in_states_buffer(frame);
+        m_spmt_thread->clear_frame_in_state_buffer(frame);
         //delete frame;
         Mode::destroy_frame(frame);
     }

@@ -185,20 +185,6 @@ RvpMode::do_throw_exception()
     assert(false);
 }
 
-// void
-// RvpMode::step()
-// {
-//     Message* msg = m_spmt_thread->get_certain_msg();
-//     if (msg) {
-//         // m_spmt_thread->enter_certain_mode();
-//         // m_spmt_thread->verify_and_commit(msg);
-//         process_certain_message(msg);
-//         return;
-//     }
-//     //else
-//     exec_an_instr();
-// }
-
 
 Frame*
 RvpMode::create_frame(Object* object, MethodBlock* new_mb, uintptr_t* args,

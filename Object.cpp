@@ -37,7 +37,7 @@ Object::get_spmt_thread()
 
     // 如果没有对应的spmt线程，说明这是本java线程第一次访问这个对象，为其安排spmt线程
     //spmt_thread = thread->assign_spmt_thread_for(this);
-    spmt_thread = thread->get_current_spmt_thread()->assign_spmt_thread_for(this);
+    spmt_thread = thread->assign_spmt_thread_for(this);
     // assign_spmt_thread_for后要么跟set_spmt_thread，要么跟join_spmt_thread_in_other_threads
     // 现在的问题，哪些设置在assign_spmt_thread_for中进行？哪些在之后进行？
     // 设置 spmt_thread 的java线程，设置与对象的关联，设置leader。

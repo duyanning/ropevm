@@ -1211,69 +1211,21 @@ Thread::~Thread()
 
 // }
 
-
-// uintptr_t*
-// Thread::drive_loop()
-// {
-//     using namespace std;
-
-//     SpmtThread* current_spmt_thread_of_outer_loop = m_current_spmt_thread;
-
-//     for (;;) {
-
-//         // make a copy to avoid modification to m_spmt_threads while looping
-//         vector<SpmtThread*> spmt_threads(m_spmt_threads);
-
-//         int non_idle_total = 0;
-//         for (auto st : spmt_threads) {
-//             m_current_spmt_thread = st;
-
-//             if (m_current_spmt_thread->is_halt()) {
-//                 m_current_spmt_thread->idle(); // only serve for statistics
-//                 continue;
-//             }
-
-//             non_idle_total++;
-
-
-//             m_current_spmt_thread->step();
-
-
-//             bool quit = m_current_spmt_thread->check_quit_step_loop();
-//             if (quit) {
-//                 uintptr_t* result = m_current_spmt_thread->get_result();
-
-//                 m_current_spmt_thread = current_spmt_thread_of_outer_loop;
-//                 return result;
-//             }
-
-//         }
-
-//         assert(non_idle_total > 0);
-//     }
-
-//     assert(false);
-//     return 0;
-// }
-
-
 SpmtThread*
 Thread::get_initial_spmt_thread()
 {
     return m_initial_spmt_thread;
 }
 
+
+// 在多os线程实现方式下，应该是调用os_api_current_os_thread()获得当前的
+// os线程，然后再从thread local strage中获得指向SpmtThread*
 SpmtThread*
 Thread::get_current_spmt_thread()
 {
     return m_current_spmt_thread;
 }
 
-void
-Thread::set_current_spmt_thread(SpmtThread* st)
-{
-    m_current_spmt_thread = st;
-}
 
 void
 Thread::scan_spmt_threads()
@@ -1297,6 +1249,68 @@ void
 Thread::register_object_spmt_thread(Object* object, SpmtThread* spmt_thread)
 {
     m_object_to_spmt_thread[object] = spmt_thread;
+}
+
+
+GroupingPolicyEnum
+default_policy(Object* obj)
+{
+    if (is_normal_obj(obj))
+        return GP_CURRENT_GROUP;
+
+    if (is_class_obj(obj))
+        return GP_NO_GROUP;
+
+    assert(false);  // todo
+}
+
+
+GroupingPolicyEnum
+query_grouping_policy_for_object(Object* object)
+{
+    // 先问新对象自己
+    GroupingPolicyEnum policy = get_policy(object);
+    if (policy != GP_UNSPECIFIED)
+        return policy;
+
+    // 再问当前对象
+    SpmtThread* current_spmt_thread = g_get_current_spmt_thread();
+    Object* current_object = current_spmt_thread->get_current_object();
+    policy = get_foreign_policy(current_object);
+    if (policy != GP_UNSPECIFIED)
+        return policy;
+
+    // 再问当前spmt线程
+    policy = current_spmt_thread->get_policy();
+    if (policy != GP_UNSPECIFIED)
+        return policy;
+
+    // 最后采用缺省策略
+    return ::default_policy(object);
+
+}
+
+
+SpmtThread*
+Thread::assign_spmt_thread_for(Object* object)
+{
+    GroupingPolicyEnum policy = ::query_grouping_policy_for_object(object);
+
+    SpmtThread* spmt_thread = 0;
+
+    if (policy == GP_NEW_GROUP) {
+        spmt_thread = RopeVM::instance()->create_spmt_thread();
+        spmt_thread->set_thread(this);
+        spmt_thread->set_leader(object);
+    }
+    else if (policy == GP_CURRENT_GROUP)
+        spmt_thread = g_get_current_spmt_thread();
+    else if (policy == GP_NO_GROUP)
+        spmt_thread = get_initial_spmt_thread();
+
+    assert(spmt_thread);
+
+    return spmt_thread;
 }
 
 

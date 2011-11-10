@@ -29,7 +29,8 @@ UncertainMode::step()
     if (msg) {
 
         // 进入确定模式
-        m_spmt_thread->enter_certain_mode();
+        m_spmt_thread->m_previous_mode = this;
+        m_spmt_thread->switch_to_certain_mode();
 
         if (msg->get_type() == MsgType::INVOKE) {
             InvokeMsg* invoke_msg = static_cast<InvokeMsg*>(msg);
