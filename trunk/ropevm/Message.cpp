@@ -42,6 +42,13 @@ Message::get_effect()
 }
 
 
+void
+Message::set_effect(Effect* effect)
+{
+    m_effect = effect;
+}
+
+
 bool
 Message::equal(Message* msg)
 {
