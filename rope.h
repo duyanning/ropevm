@@ -481,7 +481,8 @@ typedef struct prop {
 } Property;
 
 typedef struct InitArgs {
-    int do_spec;
+    //int do_spec;
+    int model;
     int do_log;
 
     int noasyncgc;

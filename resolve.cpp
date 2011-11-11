@@ -2,6 +2,7 @@
 #include "rope.h"
 #include "symbol.h"
 #include "excep.h"
+#include "Loggers.h"
 
 MethodBlock *findMethod(Class *classobj, const char* methodname, const char* type) {
    ClassBlock *cb = CLASS_CB(classobj);
@@ -396,7 +397,7 @@ get_rvp_method(MethodBlock* complete)
     rvpmb = lookupMethod(complete->classobj, copyUtf8(method_name.c_str()), complete->type);
 
     if (rvpmb == 0) {
-        MINILOG0("WARNING: no rvpet for " << *complete << ", use complete method");
+        MINILOG(r_logger, "WARNING: no rvpet for " << *complete << ", use complete method");
         //assert(simplified);
         return complete;
     }

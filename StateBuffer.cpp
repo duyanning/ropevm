@@ -260,8 +260,10 @@ StateBuffer::clear(void* begin, void* end)
 
 StateBuffer::StateBuffer()
 :
+    m_hashtable(),
     m_oldest_ver(m_initial_ver),
     m_latest_ver(m_initial_ver)
+
 {
 }
 

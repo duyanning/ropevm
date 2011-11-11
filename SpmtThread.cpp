@@ -25,7 +25,8 @@ SpmtThread::SpmtThread(int id)
     m_leader(0),
     m_certain_message(0),
     m_need_spec_msg(true),
-    m_quit_drive_loop(false)
+    m_quit_drive_loop(false),
+    m_quit_causer(0)
 {
 
     m_certain_mode.set_spmt_thread(this);
@@ -105,6 +106,7 @@ SpmtThread::step()
     }
     catch (DeepBreak& e) {
         //assert(false);          // caution needed
+        cout << "DeepBreak" << endl;
     }
 }
 
@@ -198,12 +200,14 @@ SpmtThread::log_when_leave_certain()
 void
 SpmtThread::switch_to_certain_mode()
 {
+    MINILOG0("#" << id() << " CERT mode");
     m_mode = &m_certain_mode;
 }
 
 void
 SpmtThread::switch_to_speculative_mode()
 {
+    MINILOG0("#" << id() << " SPEC mode");
     m_mode = &m_spec_mode;
 }
 
@@ -213,7 +217,7 @@ SpmtThread::switch_to_rvp_mode()
     // stat
     m_count_rvp++;
 
-    MINILOG0("#" << id() << " enter RVP mode");
+    MINILOG0("#" << id() << " RVP mode");
 
     m_mode = &m_rvp_mode;
 }
@@ -853,6 +857,7 @@ SpmtThread::drive_loop()
 
             bool quit = st->check_quit_drive_loop();
             if (quit) {
+                m_quit_causer = st;
 
                 m_thread->m_current_spmt_thread = current_spmt_thread_of_outer_loop;
                 return;

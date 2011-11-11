@@ -1,6 +1,9 @@
 #ifndef LOGGERS_H
 #define LOGGERS_H
 
+extern MiniLogger top_method_logger;
+extern MiniLogger inter_spmt_thread_logger;
+extern MiniLogger control_transfer_logger;
 extern MiniLogger owner_change_logger;
 extern MiniLogger user_change_logger;
 extern MiniLogger c_user_change_logger;
@@ -39,7 +42,6 @@ extern MiniLogger s_invoke_return_logger;
 extern MiniLogger r_invoke_return_logger;
 extern MiniLogger cache_logger;
 extern MiniLogger free_frames_logger;
-extern MiniLogger mark_frame_certain_logger;
 extern MiniLogger delete_frame_logger;
 extern MiniLogger invoke_return_logger;
 

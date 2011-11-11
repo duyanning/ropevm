@@ -8,6 +8,10 @@ GetReturnMsg::GetReturnMsg(SpmtThread* target_spmt_thread, uintptr_t* val, int s
 :
     Message(MsgType::GET_RET, target_spmt_thread)
 {
+    for (int i = 0; i < size; ++i) {
+        this->val.push_back(val[i]);
+    }
+
 }
 
 

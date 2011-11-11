@@ -6,6 +6,6 @@ export ROPECLASSPATH=$ROPEVMROOT/ropeclasses
 export CLASSPATH=.:$ROPECLASSPATH
 export PATH=$ROPEVMROOT/debug:$ROPEVMROOT/tools:$PATH
 
-export spec=1
+export model=3
 export log=0
 

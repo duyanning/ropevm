@@ -408,6 +408,16 @@ get_bool(const char* val, const char* defval)
     assert(false);
 }
 
+
+int
+get_int(const char* val, const char* defval)
+{
+    if (val == 0)
+        val = defval;
+
+    return atoi(val);
+}
+
 bool is_priviledged(MethodBlock* mb)
 {
     // if (mb->classobj->name() == copyUtf8("java/lang/VMMath")
