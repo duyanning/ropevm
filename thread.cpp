@@ -1165,6 +1165,7 @@ Thread::Thread()
 {
     m_initial_spmt_thread = RopeVM::instance()->new_spmt_thread();
     m_initial_spmt_thread->set_thread(this);
+    m_current_spmt_thread = m_initial_spmt_thread;
 
     // 初始线程处于确定模式、运行状态、推测模式不需要任务。
     m_initial_spmt_thread->switch_to_certain_mode();
@@ -1276,9 +1277,11 @@ query_grouping_policy_for_object(Object* object)
     // 再问当前对象
     SpmtThread* current_spmt_thread = g_get_current_spmt_thread();
     Object* current_object = current_spmt_thread->get_current_object();
-    policy = get_foreign_policy(current_object);
-    if (policy != GP_UNSPECIFIED)
-        return policy;
+    if (current_object) {
+        policy = get_foreign_policy(current_object);
+        if (policy != GP_UNSPECIFIED)
+            return policy;
+    }
 
     // 再问当前spmt线程
     policy = current_spmt_thread->get_policy();

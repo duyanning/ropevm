@@ -53,10 +53,7 @@ class RoundTripMsg : public Message {
 public:
     RoundTripMsg(MsgType type,
                  SpmtThread* source_spmt_thread, SpmtThread* target_spmt_thread,
-                 Object* target_object)
-        : Message(type, target_spmt_thread)
-    {
-    }
+                 Object* target_object);
     //virtual bool equal(Message* msg);
     virtual void show(std::ostream& os) const = 0;
     virtual void show_detail(std::ostream& os, int id) const = 0;

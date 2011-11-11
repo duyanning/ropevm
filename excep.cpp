@@ -264,14 +264,20 @@ Object *setStackTrace0(int max_depth)
     // for(; last->mb != NULL && isInstanceOf(throw_class, last->mb->classobj);
     //       last = last->prev);
     while (last->mb != NULL and isInstanceOf(throw_class, last->mb->classobj)) {
-          last = last->prev;
+        last = last->prev;
     }
 
     bottom = last;
     do {
-        for(; last->mb != NULL; last = last->prev, depth++)
+        // for(; last->mb != NULL; last = last->prev, depth++)
+        //     if(depth == max_depth)
+        //         goto out;
+        while (last->mb != NULL) {
             if(depth == max_depth)
                 goto out;
+            last = last->prev;
+            depth++;
+        }
     } while((last = last->prev)->prev != NULL);
 
 out:

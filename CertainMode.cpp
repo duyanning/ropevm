@@ -92,7 +92,7 @@ CertainMode::do_execute_method(Object* target_object,
         // 构造确定性的invoke_msg发送给目标线程
         InvokeMsg* invoke_msg = new InvokeMsg(m_spmt_thread, target_spmt_thread,
                                               target_object, new_mb, &jargs[0],
-                                              pc, frame, sp,
+                                              0, dummy, dummy->ostack_base,
                                               true);
 
 
@@ -232,12 +232,6 @@ CertainMode::do_method_return(int len)
             *caller_sp++ = rv[i];
         }
 
-        pc = current_frame->caller_pc;
-        frame = current_frame->prev;
-        sp = caller_sp;
-
-        destroy_frame(current_frame);
-        pc += (*pc == OPC_INVOKEINTERFACE_QUICK ? 5 : 3);
 
         if (current_frame->is_top_frame()) {
 
@@ -249,7 +243,15 @@ CertainMode::do_method_return(int len)
             m_spmt_thread->signal_quit_drive_loop();
 
         }
+        else {                  // top frame之上是无代码的dummy frame，这些对于dummy frame都无意义。
+            pc = current_frame->caller_pc;
+            frame = current_frame->prev;
+            sp = caller_sp;
 
+            pc += (*pc == OPC_INVOKEINTERFACE_QUICK ? 5 : 3);
+        }
+
+        destroy_frame(current_frame);
 
     }
     else {
@@ -313,9 +315,9 @@ CertainMode::invoke_impl(Object* target_object, MethodBlock* new_mb, uintptr_t* 
 
     // 如果是native方法，在此处立即执行其native code
     if (new_mb->is_native()) {
-        // // copy args to ostack
-        // if (args)
-        //     std::copy(args, args + new_mb->args_count, frame->ostack_base);
+        // 将参数复制到ostack。create_frame只把参数复制到了lvars。native方法比较特殊。
+        if (args)
+            std::copy(args, args + new_mb->args_count, frame->ostack_base);
 
         sp = (*(uintptr_t *(*)(Class*, MethodBlock*, uintptr_t*))
               new_mb->native_invoker)(new_mb->classobj, new_mb,
@@ -626,6 +628,9 @@ CertainMode::log_when_invoke_return(bool is_invoke, Object* caller, MethodBlock*
 void
 CertainMode::send_msg(Message* msg)
 {
+    if (not RopeVM::do_spec)
+        m_spmt_thread->sleep();
+
     m_spmt_thread->switch_to_speculative_mode();
     msg->get_target_spmt_thread()->set_certain_msg(msg);
 }
