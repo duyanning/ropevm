@@ -69,11 +69,13 @@ RopeVM::create_spmt_thread()
 }
 
 
-bool RopeVM::do_spec;
+//bool RopeVM::do_spec;
+int RopeVM::model;
 
 void initialiseJvm(InitArgs *args)
 {
-    RopeVM::do_spec = args->do_spec;
+    //RopeVM::do_spec = args->do_spec;
+    RopeVM::model = args->model;
 }
 
 void

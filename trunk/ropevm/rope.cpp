@@ -226,9 +226,12 @@ int parseCommandLine(int argc, char *argv[], InitArgs *args) {
 
         } else if(strcmp(argv[i], "-Xcompactalways") == 0) {
             args->compact_specified = args->do_compact = TRUE;
-        } else if (strncmp(argv[i], "-Xspec:", 7) == 0) {
-            const char* val = argv[i] + 7;
-            args->do_spec = get_bool(val);
+        // } else if (strncmp(argv[i], "-Xspec:", 7) == 0) {
+        //     const char* val = argv[i] + 7;
+        //     args->do_spec = get_bool(val);
+        } else if (strncmp(argv[i], "-Xmodel:", 8) == 0) {
+            const char* val = argv[i] + 8;
+            args->model = get_int(val);
         } else if (strncmp(argv[i], "-Xlog:", 6) == 0) {
             const char* val = argv[i] + 6;
             args->do_log = get_bool(val);
@@ -258,7 +261,7 @@ int main(int argc, char *argv[])
     setDefaultInitArgs(&args);
     //std::cout << "spec: " << args.do_spec << ", log: " << args.do_log << "\n";
     class_arg = parseCommandLine(argc, argv, &args);
-    std::cout << "spec: " << args.do_spec << ", log: " << args.do_log << "\n";
+    std::cout << "model: " << args.model << ", log: " << args.do_log << "\n";
 
     args.main_stack_base = &array_class;
 
@@ -327,13 +330,12 @@ int main(int argc, char *argv[])
     //{{{ statistic
     Statistic::instance()->report_stat(std::cout);
 
-    const char* fname = 0;
-    if (RopeVM::do_spec)
-        fname = "stat-report-spec.txt";
-    else
-        fname = "stat-report-nonspec.txt";
+    std::string fname = 0;
+    std::stringstream ss;
+    ss << RopeVM::model;
+    fname = "stat-report" + ss.str() + ".txt";
 
-    std::ofstream ofs(fname);
+    std::ofstream ofs(fname.c_str());
     RopeVM::instance()->report_stat(ofs);
     ofs << std::endl;
     //}}} statistic

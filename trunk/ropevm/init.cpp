@@ -10,13 +10,15 @@ void
 use_env_args(InitArgs *args)
 {
     args->do_log = get_bool(getenv("log"), "1");
-    args->do_spec = get_bool(getenv("spec"), "1");
+    //args->do_spec = get_bool(getenv("spec"), "1");
+    args->model = get_int(getenv("model"), "3");
 }
 
 /* Setup default values for command line args */
 void setDefaultInitArgs(InitArgs *args) {
     args->do_log = FALSE;
-    args->do_spec = FALSE;
+    //args->do_spec = FALSE;
+    args->model = 3;
 
     args->noasyncgc = FALSE;
 

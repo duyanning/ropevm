@@ -1297,6 +1297,10 @@ query_grouping_policy_for_object(Object* object)
 SpmtThread*
 Thread::assign_spmt_thread_for(Object* object)
 {
+    if (RopeVM::model < 2) {
+        return get_initial_spmt_thread();
+    }
+
     GroupingPolicyEnum policy = ::query_grouping_policy_for_object(object);
 
     SpmtThread* spmt_thread = 0;

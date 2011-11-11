@@ -14,12 +14,15 @@ cmd在各个test目录下
 然后用执行javajavac和ropejavac运行。
 
 =========================
-export spec=1
+export model=1
 export log=1
 
 命令行参数
--Xspec:<on/off>
+-Xmodel:<1/2/3>
 -Xlog:<on/off>
+
+日志开关
+三种执行模型：1-串行模型；2-退化的rope模型；3-rope模型。
 ================================================================
 ropeclasses 用于标注分组策略的java annotation
 env-vars 一些环境变量，每次使用之前要 . env-vars
@@ -36,5 +39,7 @@ tools 一些脚本
 ================================================================
 epmacs的设置
 当前目录 包含.java文件的目录
-命令行参数 -cp bin-javac -Xspec:off -Xlog:off Hello
+命令行参数 -cp bin-javac -Xmodel:1 -Xlog:off Hello
+================================================================
+
 

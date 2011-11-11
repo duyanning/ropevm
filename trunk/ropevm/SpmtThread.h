@@ -128,6 +128,7 @@ private:
     Object* m_leader;
     bool m_halt;
     bool m_quit_drive_loop;
+    SpmtThread* m_quit_causer;
 
     // 模式相关
     SpeculativeMode m_spec_mode;

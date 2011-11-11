@@ -47,7 +47,7 @@ RvpMode::mode_write(uint32_t* addr, uint32_t value)
 void
 RvpMode::before_alloc_object()
 {
-    //MINILOG(r_new_logger, "#" << m_spmt_thread->id() << " (R) hits NEW " << classobj->name());
+    MINILOG(r_new_logger, "#" << m_spmt_thread->id() << " (R) hits NEW ");
     m_spmt_thread->sleep();
     throw DeepBreak();
 }

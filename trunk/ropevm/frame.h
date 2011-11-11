@@ -34,6 +34,9 @@ public:
     bool is_alive() { return magic == 1978; }
     bool is_dead() { return magic == 2009; }
     bool is_bad() { return magic != 1978 && magic != 2009; }
+private:
+    Frame(const Frame&);
+    Frame& operator=(const Frame&);
 };
 
 /* typedef struct jni_frame { */

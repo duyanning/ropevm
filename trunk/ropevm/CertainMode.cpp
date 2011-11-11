@@ -70,14 +70,14 @@ CertainMode::do_execute_method(Object* target_object,
 
     //????frame->last_pc = pc;
 
-    //Object* current_object = frame->get_object();
-
     assert(target_object);
-
 
     SpmtThread* target_spmt_thread = target_object->get_spmt_thread();
 
     assert(target_spmt_thread->get_thread() == g_get_current_thread());
+
+    MINILOG(top_method_logger, "#" << m_spmt_thread->m_id
+            << " top-invoke " << "#" << target_spmt_thread->m_id << " " << *new_mb);
 
     if (target_spmt_thread == m_spmt_thread or g_is_pure_code_method(new_mb)) {
 
@@ -89,6 +89,9 @@ CertainMode::do_execute_method(Object* target_object,
 
     }
     else {
+        MINILOG(inter_spmt_thread_logger, "#" << m_spmt_thread->m_id
+                << " inter-invoke(top) " << "#" << target_spmt_thread->m_id << " " << *new_mb);
+
         // 构造确定性的invoke_msg发送给目标线程
         InvokeMsg* invoke_msg = new InvokeMsg(m_spmt_thread, target_spmt_thread,
                                               target_object, new_mb, &jargs[0],
@@ -120,7 +123,7 @@ CertainMode::do_execute_method(Object* target_object,
     // 已从内层drive_loop退出
 
 
-    assert(m_spmt_thread->m_mode->is_certain_mode());
+    //assert(m_spmt_thread->m_mode->is_certain_mode());
 
     // restore (pc, frame, sp) of outer drive_loop
     pc = old_pc;
@@ -151,6 +154,8 @@ CertainMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
 
     }
     else {
+        MINILOG(inter_spmt_thread_logger, "#" << m_spmt_thread->m_id
+                << " inter-invoke " << "#" << target_spmt_thread->m_id << " " << *new_mb);
 
         // pop up arguments
         sp -= new_mb->args_count;
@@ -213,6 +218,10 @@ CertainMode::do_method_return(int len)
     assert(target_spmt_thread->m_thread == m_spmt_thread->m_thread);
 
 
+    MINILOG_IF(current_frame->is_top_frame(), top_method_logger, "#" << m_spmt_thread->m_id
+               << " top-return " << "#" << target_spmt_thread->m_id << " " << *current_frame->mb);
+
+
     /*
     if 目标线程是当前线程
         返回值写入上级frame的ostack（if 是从top frame返回，上级frame为dummy frame，并结束drive_loop）
@@ -256,6 +265,9 @@ CertainMode::do_method_return(int len)
     }
     else {
 
+        MINILOG(inter_spmt_thread_logger, "#" << m_spmt_thread->m_id
+                << " inter-return" << (current_frame->is_top_frame()? "(top) " : " ") << "#" << target_spmt_thread->m_id << " " << *current_frame->mb);
+
         // MINILOG0("#" << m_spmt_thread->id() << " r<<<transfers to #" << target_spmt_thread->id()
         //          // << " " << info(current_object) << " => " << info(target_object)
         //          // << " (" << current_object << "=>" << target_object << ")"
@@ -267,6 +279,20 @@ CertainMode::do_method_return(int len)
 
         uintptr_t* rv = sp - len;
         sp -= len;
+
+        // if (strcmp(current_frame->mb->name, "loadClass") == 0) {
+        //     // and strcmp(current_frame->mb->classobj->name(), "java/lang/ClassLoader") == 0) {
+        //     int x = 0;
+        //     x++;
+        // }
+
+        //if (target_spmt_thread->m_id == 5 and m_spmt_thread->m_id == 0 and current_frame->is_top_frame()) {
+        if (target_spmt_thread->m_id == 0 and m_spmt_thread->m_id == 5) {
+
+            int x = 0;
+            x++;
+        }
+
 
         // 构造确定性的return_msg发送给目标线程
         ReturnMsg* return_msg = new ReturnMsg(target_spmt_thread,
@@ -303,7 +329,7 @@ CertainMode::invoke_impl(Object* target_object, MethodBlock* new_mb, uintptr_t* 
 
 
     frame = create_frame(target_object, new_mb, args,
-                         m_spmt_thread, caller_pc, caller_frame, caller_sp);
+                         caller, caller_pc, caller_frame, caller_sp);
 
     // 给同步方法加锁
     if (frame->mb->is_synchronized()) {
@@ -628,9 +654,15 @@ CertainMode::log_when_invoke_return(bool is_invoke, Object* caller, MethodBlock*
 void
 CertainMode::send_msg(Message* msg)
 {
-    if (not RopeVM::do_spec)
+    if (not RopeVM::model < 3)
         m_spmt_thread->sleep();
 
     m_spmt_thread->switch_to_speculative_mode();
+
+    MINILOG(control_transfer_logger,
+            "#" << m_spmt_thread->id()
+            << " transfer control to "
+            << "#" << msg->get_target_spmt_thread()->id());
+
     msg->get_target_spmt_thread()->set_certain_msg(msg);
 }

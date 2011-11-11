@@ -13,7 +13,8 @@ public:
     SpmtThread* create_spmt_thread();
 
     static RopeVM* instance();
-    static bool do_spec;
+    //static bool do_spec;
+    static int model;           // 1-sequential; 2-degraded rope; 3-rope
 
 protected:
     RopeVM();

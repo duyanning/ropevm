@@ -22,6 +22,7 @@ bool is_sp_ok(uintptr_t* sp, Frame* frame);
 bool is_pc_ok(CodePntr pc, MethodBlock* mb);
 
 bool get_bool(const char* val, const char* defval = "1");
+int get_int(const char* val, const char* defval = "3");
 
 class MethodBlock;
 bool is_priviledged(MethodBlock* mb);
