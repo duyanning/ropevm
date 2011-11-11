@@ -34,6 +34,8 @@ SpmtThread::SpmtThread(int id)
 
     m_mode = &m_spec_mode;
 
+    m_iter_next_spec_msg = m_spec_msg_queue.begin();
+
     // stat
     m_count_spec_msgs_sent = 0;
     m_count_spec_msgs_used = 0;
@@ -156,7 +158,6 @@ SpmtThread::get_certain_msg()
 {
     Message* msg = 0;
     if (m_certain_message) {
-        assert(g_is_async_msg(m_certain_message));
         msg = m_certain_message;
         m_certain_message = 0;
     }
@@ -800,7 +801,10 @@ SpmtThread::on_event_top_invoke(InvokeMsg* msg)
     m_certain_mode.invoke_impl(msg->get_target_object(),
                                msg->mb, &msg->parameters[0],
                                msg->get_source_spmt_thread(),
-                               0, 0, 0);
+                               msg->caller_pc,
+                               msg->caller_frame,
+                               msg->caller_sp);
+
 
 }
 

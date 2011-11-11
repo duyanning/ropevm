@@ -20,8 +20,6 @@ UncertainMode::UncertainMode(const char* name)
 void
 UncertainMode::step()
 {
-    assert(RopeVM::do_spec);    // 退化的rope模型下，不可能至此
-
 
     // 阶段I：检测并处理确定性外部事件（在失去确定控制后是否推测执行那是你自己的事情，不是必须的，但确定性事件是必须响应的。）
     Message* msg = m_spmt_thread->get_certain_msg();
