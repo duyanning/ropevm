@@ -269,7 +269,7 @@ void initialiseJavaStack(Thread* thread) {
     top->mb = mb;
 
     //thread->ee->last_frame = top;
-    assert(*thread->get_current_spmt_thread()->get_current_mode()->get_name() == 'C');
+    assert(g_get_current_spmt_thread()->is_certain_mode());
     thread->get_current_spmt_thread()->get_current_mode()->frame = top;
 }
 
@@ -1149,6 +1149,7 @@ Thread::Thread()
     blocking(0),
     interrupted(0),
     interrupting(0),
+    exception(0),
     stack_top(0),
     stack_base(0),
     wait_mon(0),

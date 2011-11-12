@@ -349,7 +349,7 @@ CertainMode::invoke_impl(Object* target_object, MethodBlock* new_mb, uintptr_t* 
               new_mb->native_invoker)(new_mb->classobj, new_mb,
                                       frame->ostack_base);
 
-        if (exception) {
+        if (m_spmt_thread->get_thread()->exception) {
             throw_exception;
         }
         else {
@@ -376,59 +376,59 @@ CertainMode::before_signal_exception(Class *exception_class)
     // do nothing
 }
 
-void
-CertainMode::do_throw_exception()
-{
-    MINILOG(c_exception_logger, "#" << m_spmt_thread->id() << " (C) throw exception"
-            << " in: " << info(frame)
-            << " on: #" << frame->get_object()->get_spmt_thread()->id()
-            );
-    //{{{ just for debug
-    if (debug_scaffold::java_main_arrived && m_spmt_thread->id() == 7) {
-        int x = 0;
-        x++;
-    }
-    //}}} just for debug
+// void
+// CertainMode::do_throw_exception()
+// {
+//     MINILOG(c_exception_logger, "#" << m_spmt_thread->id() << " (C) throw exception"
+//             << " in: " << info(frame)
+//             << " on: #" << frame->get_object()->get_spmt_thread()->id()
+//             );
+//     //{{{ just for debug
+//     if (debug_scaffold::java_main_arrived && m_spmt_thread->id() == 7) {
+//         int x = 0;
+//         x++;
+//     }
+//     //}}} just for debug
 
-    //ExecEnv *ee = getExecEnv();
-    Object *excep = exception;
-    exception = NULL;
+//     //ExecEnv *ee = getExecEnv();
+//     Object *excep = exception;
+//     exception = NULL;
 
-    CodePntr old_pc = pc;      // for debug
-    pc = findCatchBlock(excep->classobj);
-    MINILOG(c_exception_logger, "#" << m_spmt_thread->id() << " (C) handler found"
-            << " in: " << info(frame)
-            << " on: #" << frame->get_object()->get_spmt_thread()->id()
-            );
+//     CodePntr old_pc = pc;      // for debug
+//     pc = findCatchBlock(excep->classobj);
+//     MINILOG(c_exception_logger, "#" << m_spmt_thread->id() << " (C) handler found"
+//             << " in: " << info(frame)
+//             << " on: #" << frame->get_object()->get_spmt_thread()->id()
+//             );
 
-    /* If we didn't find a handler, restore exception and
-       return to previous invocation */
-    if (pc == NULL) {
-        //assert(false);          // when uncaughed exception ocurr, we get here
-        exception = excep;
-        //{{{ just for debug
-        if (m_spmt_thread->id() == 7) {
-            int x = 0;
-            x++;
-        }
-        //}}} just for debug
-        m_spmt_thread->signal_quit_drive_loop();
-        return;
-    }
+//     /* If we didn't find a handler, restore exception and
+//        return to previous invocation */
+//     if (pc == NULL) {
+//         //assert(false);          // when uncaughed exception ocurr, we get here
+//         exception = excep;
+//         //{{{ just for debug
+//         if (m_spmt_thread->id() == 7) {
+//             int x = 0;
+//             x++;
+//         }
+//         //}}} just for debug
+//         m_spmt_thread->signal_quit_drive_loop();
+//         return;
+//     }
 
-    // /* If we're handling a stack overflow, reduce the stack
-    //    back past the red zone to enable handling of further
-    //    overflows */
-    // if (ee->overflow) {
-    //     ee->overflow = FALSE;
-    //     ee->stack_end -= STACK_RED_ZONE_SIZE;
-    // }
+//     // /* If we're handling a stack overflow, reduce the stack
+//     //    back past the red zone to enable handling of further
+//     //    overflows */
+//     // if (ee->overflow) {
+//     //     ee->overflow = FALSE;
+//     //     ee->stack_end -= STACK_RED_ZONE_SIZE;
+//     // }
 
-    /* Setup intepreter to run the found catch block */
-    //frame = ee->last_frame;
-    sp = frame->ostack_base;
-    *sp++ = (uintptr_t)excep;
-}
+//     /* Setup intepreter to run the found catch block */
+//     //frame = ee->last_frame;
+//     sp = frame->ostack_base;
+//     *sp++ = (uintptr_t)excep;
+// }
 
 
 Frame*

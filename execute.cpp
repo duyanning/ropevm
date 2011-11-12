@@ -68,8 +68,7 @@ void *executeMethodArgs(Object *ob, Class *classobj, MethodBlock *mb, ...) {
 void *executeMethodVaList(Object *ob, Class *classobj, MethodBlock *mb, va_list jargs) {
     void *ret;
 
-    Thread* this_thread = threadSelf();
-    SpmtThread* this_core = this_thread->get_current_spmt_thread();
+    SpmtThread* current_spmt_thread = g_get_current_spmt_thread();
 
 //     int args_count = ob ? mb->args_count - 1 : mb->args_count;
 //     std::vector<uintptr_t> args(args_count);
@@ -83,7 +82,7 @@ void *executeMethodVaList(Object *ob, Class *classobj, MethodBlock *mb, va_list 
 
     char *sig = mb->type;
     SCAN_SIG(sig, VA_DOUBLE(jargs, arg), VA_SINGLE(jargs, arg));
-    ret = this_core->get_current_mode()->do_execute_method((ob ? ob : classobj), mb, arguments);
+    ret = current_spmt_thread->get_current_mode()->do_execute_method((ob ? ob : classobj), mb, arguments);
 
     return ret;
 }
@@ -91,8 +90,7 @@ void *executeMethodVaList(Object *ob, Class *classobj, MethodBlock *mb, va_list 
 void *executeMethodList(Object *ob, Class *classobj, MethodBlock *mb, u8 *jargs) {
     void *ret;
 
-    Thread* this_thread = threadSelf();
-    SpmtThread* this_core = this_thread->get_current_spmt_thread();
+    SpmtThread* current_spmt_thread = g_get_current_spmt_thread();
 
 //     int args_count = ob ? mb->args_count - 1 : mb->args_count;
 //     std::vector<uintptr_t> args(args_count);
@@ -106,7 +104,7 @@ void *executeMethodList(Object *ob, Class *classobj, MethodBlock *mb, u8 *jargs)
 
     char *sig = mb->type;
     SCAN_SIG(sig, JA_DOUBLE(jargs, arg), JA_SINGLE(jargs, arg));
-    ret = this_core->get_current_mode()->do_execute_method((ob ? ob : classobj), mb, arguments);
+    ret = current_spmt_thread->get_current_mode()->do_execute_method((ob ? ob : classobj), mb, arguments);
 
     return ret;
 }

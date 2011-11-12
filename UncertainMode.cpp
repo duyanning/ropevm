@@ -22,8 +22,15 @@ UncertainMode::step()
 {
 
     // 阶段I：检测并处理确定性外部事件（在失去确定控制后是否推测执行那是你自己的事情，不是必须的，但确定性事件是必须响应的。）
-    Message* msg = m_spmt_thread->get_certain_msg();
+    Object* excep = m_spmt_thread->get_exception_threw_to_me();
+    if (excep) {
+        m_spmt_thread->switch_to_certain_mode();
+        m_spmt_thread->on_event_exception_throw_to_me(excep);
+        return;
+    }
 
+
+    Message* msg = m_spmt_thread->get_certain_msg();
     if (msg) {
 
         // 进入确定模式

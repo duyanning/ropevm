@@ -31,23 +31,6 @@ Mode::get_name()
     return m_name;
 }
 
-bool
-Mode::is_certain_mode()
-{
-    return *m_name == 'C';
-}
-
-bool
-Mode::is_speculative_mode()
-{
-    return *m_name == 'S';
-}
-
-bool
-Mode::is_rvp_mode()
-{
-    return *m_name == 'R';
-}
 
 void
 Mode::set_spmt_thread(SpmtThread* spmt_thread)

@@ -61,7 +61,7 @@ Mode::fetch_and_interpret_an_instruction()
 
     //{{{ statistic
     if (debug_scaffold::java_main_arrived
-        && is_certain_mode()
+        && m_spmt_thread->is_certain_mode()
         && is_app_obj(mb->classobj)
         ) {
         m_spmt_thread->m_count_certain_instr++;
@@ -69,14 +69,14 @@ Mode::fetch_and_interpret_an_instruction()
     }
 
     if (debug_scaffold::java_main_arrived
-        && is_speculative_mode()
+        && m_spmt_thread->is_spec_mode()
         && is_app_obj(mb->classobj)
         ) {
         m_spmt_thread->m_count_spec_instr++;
     }
 
     if (debug_scaffold::java_main_arrived
-        && is_rvp_mode()
+        && m_spmt_thread->is_rvp_mode()
         && is_app_obj(mb->classobj)
         ) {
         m_spmt_thread->m_count_rvp_instr++;
