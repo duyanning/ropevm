@@ -4,8 +4,9 @@
 
 using namespace std;
 
+MiniLogger order_logger(cout, true);
 MiniLogger top_method_logger(cout, false);
-MiniLogger inter_spmt_thread_logger(cout, true);
+MiniLogger inter_spmt_thread_logger(cout, false);
 MiniLogger control_transfer_logger(cout, false);
 
 MiniLogger owner_change_logger(cout, false);

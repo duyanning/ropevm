@@ -99,14 +99,14 @@ CertainMode::do_execute_method(Object* target_object,
                                               true);
 
 
-        MINILOG0("#" << m_spmt_thread->id() << " e>>>transfers to #" << target_spmt_thread->id()
-                 // << " " << info(current_object) << " => " << info(target_object)
-                 // << " (" << current_object << "=>" << target_object << ")"
-                 << " because: " << *invoke_msg
-                 << " in: "  << info(frame)
-                 // << "("  << frame << ")"
-                 << " offset: " << pc-(CodePntr)frame->mb->code
-                 );
+        // MINILOG0("#" << m_spmt_thread->id() << " e>>>transfers to #" << target_spmt_thread->id()
+        //          // << " " << info(current_object) << " => " << info(target_object)
+        //          // << " (" << current_object << "=>" << target_object << ")"
+        //          << " because: " << *invoke_msg
+        //          << " in: "  << info(frame)
+        //          // << "("  << frame << ")"
+        //          << " offset: " << pc-(CodePntr)frame->mb->code
+        //          );
 
         //frame->last_pc = pc;
 
@@ -139,7 +139,7 @@ CertainMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
 {
     assert(target_object);
 
-    //if (intercept_vm_backdoor(target_object, new_mb)) return;
+    MINILOG_IF((m_spmt_thread->m_id == 0 or m_spmt_thread->m_id >= 5), order_logger, "invoke " << *new_mb);
 
     frame->last_pc = pc;
 
@@ -180,8 +180,8 @@ CertainMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
 
         MethodBlock* rvp_method = get_rvp_method(new_mb);
 
-        MINILOG0("#" << m_spmt_thread->m_id
-                 << " (C)invokes rvp-method: " << *rvp_method);
+        // MINILOG0("#" << m_spmt_thread->m_id
+        //          << " (C)invokes rvp-method: " << *rvp_method);
 
         m_spmt_thread->m_rvp_mode.invoke_impl(target_object,
                                               rvp_method,
@@ -204,6 +204,8 @@ CertainMode::do_method_return(int len)
     assert(len == 0 || len == 1 || len == 2);
 
     Frame* current_frame = frame; // 因为后边的处理可能会改变frame，所以我们先保存一下
+
+    MINILOG_IF((m_spmt_thread->m_id == 0 or m_spmt_thread->m_id >= 5), order_logger, "return " << *current_frame->mb);
 
     // 给同步方法解锁
     if (current_frame->mb->is_synchronized()) {
@@ -436,7 +438,7 @@ CertainMode::create_frame(Object* object, MethodBlock* new_mb, uintptr_t* args,
                           SpmtThread* caller,
                           CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp)
 {
-    Frame* new_frame = g_create_frame(object, new_mb, args,
+    Frame* new_frame = g_create_frame(m_spmt_thread, object, new_mb, args,
                                       caller,
                                       caller_pc, caller_frame, caller_sp);
 
@@ -483,6 +485,8 @@ CertainMode::do_get_field(Object* target_object, FieldBlock* fb,
                           uintptr_t* addr, int size, bool is_static)
 {
     assert(size == 1 || size == 2);
+
+    MINILOG_IF((m_spmt_thread->m_id == 0 or m_spmt_thread->m_id >= 5), order_logger, "get " << *fb);
 
     SpmtThread* target_spmt_thread = target_object->get_spmt_thread();
     assert(target_spmt_thread->m_thread == m_spmt_thread->m_thread);
@@ -532,6 +536,8 @@ CertainMode::do_put_field(Object* target_object, FieldBlock* fb,
 {
     assert(size == 1 || size == 2);
 
+    MINILOG_IF((m_spmt_thread->m_id == 0 or m_spmt_thread->m_id >= 5), order_logger, "put " << *fb);
+
     SpmtThread* target_spmt_thread = target_object->get_spmt_thread();
     assert(target_spmt_thread->m_thread == m_spmt_thread->m_thread);
 
@@ -563,6 +569,8 @@ CertainMode::do_put_field(Object* target_object, FieldBlock* fb,
 void
 CertainMode::do_array_load(Object* array, int index, int type_size)
 {
+
+    MINILOG_IF((m_spmt_thread->m_id == 0 or m_spmt_thread->m_id >= 5), order_logger, "arrayload " << index << ", " << type_size);
 
     Object* target_object = array;
 
@@ -604,6 +612,8 @@ nslots 表示占几个ostack的位置，一个位置四个字节。
 void
 CertainMode::do_array_store(Object* array, int index, int type_size)
 {
+    MINILOG_IF((m_spmt_thread->m_id == 0 or m_spmt_thread->m_id >= 5), order_logger, "arraystore " << index << ", " << type_size);
+
     Object* target_object = array;
 
     SpmtThread* target_spmt_thread = target_object->get_spmt_thread();

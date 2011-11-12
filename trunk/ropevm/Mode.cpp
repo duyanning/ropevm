@@ -261,7 +261,7 @@ Mode::process_msg(Message* msg)
 
         // 构造arrayload_ret_msg作为回复
         ArrayLoadReturnMsg* arrayload_ret_msg = new ArrayLoadReturnMsg(arrayload_msg->get_source_spmt_thread(),
-                                                                       &value[0], value.size());
+                                                                       &value[0], size2nslots(type_size));
 
         send_msg(arrayload_ret_msg);
 
@@ -309,7 +309,7 @@ Mode::process_msg(Message* msg)
             write(sp++, i);
         }
 
-        pc += 3;
+        pc += 1;
     }
     else {
         assert(false);
@@ -416,20 +416,19 @@ show_invoke_return(std::ostream& os, bool is_invoke, int id, const char* tag,
  */
 
 // 根据模式从数组读数值，根据模式写入ostack
-// refactor: 这些函数第一个参数的名字应该改一下，第二个参数换成数组名字和数组索引
 void
 Mode::load_from_array(uintptr_t* sp, Object* array, int index, int type_size)
 {
     void* elem_addr = array_elem_addr(array, index, type_size);
 
     if (type_size == 1) {
-        write(sp, read((int8_t*)elem_addr));
+        write(sp, read((uint8_t*)elem_addr));
     }
     else if (type_size == 2) {
-        write(sp, read((int16_t*)elem_addr));
+        write(sp, read((uint16_t*)elem_addr));
     }
     else if (type_size == 4) {
-        write(sp, read((int32_t*)elem_addr));
+        write(sp, read((uint32_t*)elem_addr));
     }
     else if (type_size == 8) {
         write((uint64_t*)sp, read((uint64_t*)elem_addr));
@@ -447,13 +446,13 @@ Mode::store_to_array(uintptr_t* sp, Object* array, int index, int type_size)
     void* elem_addr = array_elem_addr(array, index, type_size);
 
     if (type_size == 1) {
-        write((int8_t*)elem_addr, (int32_t)read(sp));
+        write((uint8_t*)elem_addr, (uint32_t)read(sp));
     }
     else if (type_size == 2) {
-        write((int16_t*)elem_addr, (int32_t)read(sp));
+        write((uint16_t*)elem_addr, (uint32_t)read(sp));
     }
     else if (type_size == 4) {
-        write((int32_t*)elem_addr, (int32_t)read(sp));
+        write((uint32_t*)elem_addr, (uint32_t)read(sp));
     }
     else if (type_size == 8) {
         write((uint64_t*)elem_addr, read((uint64_t*)sp));
@@ -471,13 +470,13 @@ Mode::load_from_array_to_c(uintptr_t* sp, Object* array, int index, int type_siz
     void* elem_addr = array_elem_addr(array, index, type_size);
 
     if (type_size == 1) {
-        *sp = read((int8_t*)elem_addr);
+        *sp = read((uint8_t*)elem_addr);
     }
     else if (type_size == 2) {
-        *sp = read((int16_t*)elem_addr);
+        *sp = read((uint16_t*)elem_addr);
     }
     else if (type_size == 4) {
-        *sp = read((int32_t*)elem_addr);
+        *sp = read((uint32_t*)elem_addr);
     }
     else if (type_size == 8) {
         *(uint64_t*)sp = read((uint64_t*)elem_addr);
@@ -496,13 +495,13 @@ Mode::store_to_array_from_c(uintptr_t* sp, Object* array, int index, int type_si
     void* elem_addr = array_elem_addr(array, index, type_size);
 
     if (type_size == 1) {
-        write((int8_t*)elem_addr, (int32_t)*sp);
+        write((uint8_t*)elem_addr, (uint32_t)*sp);
     }
     else if (type_size == 2) {
-        write((int16_t*)elem_addr, (int32_t)*sp);
+        write((uint16_t*)elem_addr, (uint32_t)*sp);
     }
     else if (type_size == 4) {
-        write((int32_t*)elem_addr, (int32_t)*sp);
+        write((uint32_t*)elem_addr, (uint32_t)*sp);
     }
     else if (type_size == 8) {
         write((uint64_t*)elem_addr, *(uint64_t*)sp);
@@ -519,13 +518,13 @@ g_load_from_stable_array_to_c(uintptr_t* sp, Object* array, int index, int type_
     void* elem_addr = array_elem_addr(array, index, type_size);
 
     if (type_size == 1) {
-        *sp = *(int8_t*)elem_addr;
+        *sp = *(uint8_t*)elem_addr;
     }
     else if (type_size == 2) {
-        *sp = *(int16_t*)elem_addr;
+        *sp = *(uint16_t*)elem_addr;
     }
     else if (type_size == 4) {
-        *sp = *(int32_t*)elem_addr;
+        *sp = *(uint32_t*)elem_addr;
     }
     else if (type_size == 8) {
         *(uint64_t*)sp = *(uint64_t*)elem_addr;

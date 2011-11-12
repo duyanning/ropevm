@@ -3,8 +3,10 @@
 export ROPEVMROOT=~/work/ropevm
 export ROPECLASSPATH=$ROPEVMROOT/ropeclasses
 
+export FIXEDJAMROOT=~/work/ropevm
+
 export CLASSPATH=.:$ROPECLASSPATH
-export PATH=$ROPEVMROOT/debug:$ROPEVMROOT/tools:$PATH
+export PATH=$ROPEVMROOT/debug:$ROPEVMROOT/tools:$FIXEDJAMROOT/debug:$PATH
 
 export model=3
 export log=0

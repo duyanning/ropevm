@@ -1,0 +1,6 @@
+#!/usr/bin/env sh
+
+
+. cmd
+jamvm -cp bin-javac $APP $PARMS
+

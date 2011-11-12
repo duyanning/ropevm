@@ -1,13 +1,13 @@
-#!/usr/bin/env sh
+#!/bin/bash
 
-ropejavac > b.txt  2>&1
+ropejavac > log-model-$model.txt  2>&1
 
-x=0
-while [ $x -lt 40 ]
-do
-	grep -n "#$x" b.txt > b$x.txt
-	x=`echo "$x + 1" | bc`
-done
+# x=0
+# while [ $x -lt 40 ]
+# do
+# 	grep -n "#$x" b.txt > b$x.txt
+# 	x=`echo "$x + 1" | bc`
+# done
 
 #egrep '#5 use spec|#5 spec msg|#5 comt spec|#5 veri spec|#5 reset spec' b.txt > specsnapshot.txt
 #egrep '#5 use spec|#5 spec msg|#5 reset spec' specsnapshot.txt > spec.txt
