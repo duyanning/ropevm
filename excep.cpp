@@ -57,13 +57,13 @@ void initialiseException() {
 
 Object *exceptionOccurred() {
     //return getExecEnv()->exception;
-    return threadSelf()->get_current_spmt_thread()->get_current_mode()->exception;
+    return g_get_current_thread()->exception;
 }
 
 void setException(Object *exp) {
     //getExecEnv()->exception = exp;
     assert(g_get_current_spmt_thread()->is_certain_mode());
-    threadSelf()->get_current_spmt_thread()->get_current_mode()->exception = exp;
+    g_get_current_thread()->exception = exp;
 }
 
 void clearException() {
@@ -75,7 +75,7 @@ void clearException() {
 //         //        ee->stack_end -= STACK_RED_ZONE_SIZE;
 //     }
     //ee->exception = NULL;
-    threadSelf()->get_current_spmt_thread()->get_current_mode()->exception = 0;
+    g_get_current_thread()->exception = 0;
 }
 
 void signalChainedExceptionClass(Class *exception, const char* message, Object *cause) {
@@ -134,7 +134,7 @@ void signalChainedExceptionEnum(int excep_enum, const char* message, Object *cau
 void printException() {
     //ExecEnv *ee = getExecEnv();
     //Object *exception = ee->exception;
-    Object *exception = threadSelf()->get_current_spmt_thread()->get_current_mode()->exception;
+    Object *exception = g_get_current_thread()->exception;
 
     if(exception != NULL) {
         MethodBlock *mb = lookupMethod(exception->classobj, SYMBOL(printStackTrace),
@@ -146,10 +146,10 @@ void printException() {
          * OutOfMemory, but then been unable to print any part of it!  In
          * this case the VM just seems to stop... */
         //if(ee->exception) {
-        if(threadSelf()->get_current_spmt_thread()->get_current_mode()->exception) {
+        if(g_get_current_thread()->exception) {
             jam_fprintf(stderr, "Exception occurred while printing exception (%s)...\n",
                         //CLASS_CB(ee->exception->classobj)->name);
-                            CLASS_CB(threadSelf()->get_current_spmt_thread()->get_current_mode()->exception->classobj)->name);
+                            CLASS_CB(g_get_current_thread()->exception->classobj)->name);
             jam_fprintf(stderr, "Original exception was %s\n", CLASS_CB(exception->classobj)->name);
         }
     }

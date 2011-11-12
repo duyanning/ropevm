@@ -16,13 +16,11 @@ using namespace std;
 
 Mode::Mode(const char* name)
 :
+    pc(0),
+    frame(0),
+    sp(0),
     m_name(name)
 {
-    exception = 0;
-
-    frame = 0;
-    sp = 0;
-    pc = 0;
 }
 
 const char*

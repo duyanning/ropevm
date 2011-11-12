@@ -21,12 +21,12 @@ SpmtThread::SpmtThread(int id)
 :
     m_id(id),
     m_thread(0),
-    m_halt(true),
     m_leader(0),
-    m_certain_message(0),
-    m_need_spec_msg(true),
+    m_halt(true),
     m_quit_drive_loop(false),
     m_quit_causer(0),
+    m_certain_message(0),
+    m_need_spec_msg(true),
     m_excep_threw_to_me(0)
 {
 
@@ -937,6 +937,7 @@ SpmtThread::do_throw_exception()
 
 
 
+extern CodePntr findCatchBlockInMethod(MethodBlock *mb, Class *exception, CodePntr pc_pntr);
 void
 SpmtThread::process_exception(Object* excep)
 {
@@ -956,7 +957,7 @@ SpmtThread::process_exception(Object* excep)
           如果是自己的栈帧，又不是 dummy frame，则开始在其中查找。
      */
     Frame* current_frame = m_certain_mode.frame;
-    CodePntr handler_pc = findCatchBlockInMethod(current_frame->mb, excep, current_frame->last_pc);
+    CodePntr handler_pc = findCatchBlockInMethod(current_frame->mb, excep->classobj, current_frame->last_pc);
     while (handler_pc == NULL) {
         if (current_frame->is_top_frame()) {
             break;
@@ -973,7 +974,7 @@ SpmtThread::process_exception(Object* excep)
         }
 
         current_frame = current_frame->prev;
-        handler_pc = findCatchBlockInMethod(current_frame->mb, excep, current_frame->last_pc);
+        handler_pc = findCatchBlockInMethod(current_frame->mb, excep->classobj, current_frame->last_pc);
 
     }
     // MINILOG(c_exception_logger, "#" << threadSelf()->get_current_spmt_thread()->id() << " finding handler"

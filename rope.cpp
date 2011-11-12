@@ -330,12 +330,10 @@ int main(int argc, char *argv[])
     //{{{ statistic
     Statistic::instance()->report_stat(std::cout);
 
-    std::string fname = 0;
-    std::stringstream ss;
-    ss << RopeVM::model;
-    fname = "stat-report" + ss.str() + ".txt";
+    std::stringstream ssfilename;
+    ssfilename << "stat-report-model" << RopeVM::model << ".txt";
 
-    std::ofstream ofs(fname.c_str());
+    std::ofstream ofs(ssfilename.str());
     RopeVM::instance()->report_stat(ofs);
     ofs << std::endl;
     //}}} statistic
