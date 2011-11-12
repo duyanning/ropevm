@@ -26,7 +26,8 @@ SpmtThread::SpmtThread(int id)
     m_certain_message(0),
     m_need_spec_msg(true),
     m_quit_drive_loop(false),
-    m_quit_causer(0)
+    m_quit_causer(0),
+    m_excep_threw_to_me(0)
 {
 
     m_certain_mode.set_spmt_thread(this);
@@ -266,7 +267,7 @@ SpmtThread::check_quit_drive_loop()
 void
 SpmtThread::signal_quit_drive_loop()
 {
-    assert(m_mode->is_certain_mode());
+    assert(is_certain_mode());
 
     m_quit_drive_loop = true;
 }
@@ -893,4 +894,115 @@ SpmtThread::get_policy()
     }
 
     return GP_UNSPECIFIED;
+}
+
+
+Object*
+SpmtThread::get_exception_threw_to_me()
+{
+    Object* excep = 0;
+    if (m_excep_threw_to_me) {
+        excep = m_excep_threw_to_me;
+        m_excep_threw_to_me = 0;
+    }
+
+    return excep;
+}
+
+
+void
+SpmtThread::set_exception_threw_to_me(Object* exception)
+{
+    m_excep_threw_to_me = exception;
+
+    wakeup();
+}
+
+
+void
+SpmtThread::on_event_exception_throw_to_me(Object* exception)
+{
+    // 废弃推测状态
+    process_exception(exception);
+}
+
+
+void
+SpmtThread::do_throw_exception()
+{
+    Object* excep = m_thread->exception;
+    m_thread->exception = NULL;
+    process_exception(excep);
+}
+
+
+
+void
+SpmtThread::process_exception(Object* excep)
+{
+    // MINILOG(c_exception_logger, "#" << m_id << " (C) throw exception"
+    //         << " in: " << info(frame)
+    //         << " on: #" << frame->get_object()->get_spmt_thread()->id()
+    //         );
+
+
+    /*
+      在当前栈帧中查找异常处理器
+      如果找到，结束。
+      如果没找到
+          在去上级栈帧找之前，先看上级栈帧是不是属于其他线程，或者是dummy frame
+          如果上级栈帧属于其他线程，就通知该线程有异常。
+          如果是dummy，结束。
+          如果是自己的栈帧，又不是 dummy frame，则开始在其中查找。
+     */
+    Frame* current_frame = m_certain_mode.frame;
+    CodePntr handler_pc = findCatchBlockInMethod(current_frame->mb, excep, current_frame->last_pc);
+    while (handler_pc == NULL) {
+        if (current_frame->is_top_frame()) {
+            break;
+        }
+
+        if (current_frame->prev->caller != this) {
+            // 通知current_frame->prev->caller有异常。
+            return;
+        }
+
+        if (current_frame->mb->is_synchronized()) { // 解开栈帧之前要给同步方法解锁
+            Object *sync_ob = current_frame->get_object();
+            objectUnlock(sync_ob);
+        }
+
+        current_frame = current_frame->prev;
+        handler_pc = findCatchBlockInMethod(current_frame->mb, excep, current_frame->last_pc);
+
+    }
+    // MINILOG(c_exception_logger, "#" << threadSelf()->get_current_spmt_thread()->id() << " finding handler"
+    //         << " in: " << info(frame)
+    //         << " on: #" << frame->get_object()->get_spmt_thread()->id()
+    //         );
+
+    // MINILOG(c_exception_logger, "#" << m_spmt_thread->id() << " (C) handler found"
+    //         << " in: " << info(current_frame)
+    //         << " on: #" << frame->get_object()->get_spmt_thread()->id()
+    //         );
+
+
+
+    /*
+      如果找到top frame了，都没找到异常处理程序。只能向发出top invoke的
+      人表明异常仍然存在。top frame也该返回了。
+     */
+    if (handler_pc == NULL) {
+        m_thread->exception = excep;
+
+        signal_quit_drive_loop();
+        return;
+    }
+
+    // 如果找到异常处理器，设置好(pc, frame, sp)。
+    m_certain_mode.pc = handler_pc;
+    m_certain_mode.frame = current_frame;
+    m_certain_mode.sp = current_frame->ostack_base;
+    *m_certain_mode.sp++ = (uintptr_t)excep;
+
 }

@@ -175,12 +175,6 @@ SpeculativeMode::before_signal_exception(Class *exception_class)
     throw DeepBreak();
 }
 
-void
-SpeculativeMode::do_throw_exception()
-{
-    assert(false);
-}
-
 
 Frame*
 SpeculativeMode::create_frame(Object* object, MethodBlock* new_mb, uintptr_t* args,

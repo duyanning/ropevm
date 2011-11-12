@@ -179,13 +179,6 @@ RvpMode::before_signal_exception(Class *exception_class)
 }
 
 
-void
-RvpMode::do_throw_exception()
-{
-    assert(false);
-}
-
-
 Frame*
 RvpMode::create_frame(Object* object, MethodBlock* new_mb, uintptr_t* args,
                       SpmtThread* caller, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp)

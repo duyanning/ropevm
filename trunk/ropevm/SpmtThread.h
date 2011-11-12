@@ -122,6 +122,13 @@ public:
     // state buffer或rvp buffer相关
     void clear_frame_in_state_buffer(Frame* f);
     void clear_frame_in_rvp_buffer(Frame* f);
+
+    // 处理异常
+    void on_event_exception_throw_to_me(Object* exception); // 发现别人抛来异常时调用
+    void do_throw_exception(); // 自己检测到异常时调用
+    void process_exception(Object* exception); // 查找异常处理器及后续
+    Object* get_exception_threw_to_me();
+    void set_exception_threw_to_me(Object* exception);
 private:
     int m_id;
     Thread* m_thread;           // 所属的java线程
@@ -151,6 +158,8 @@ private:
     StateBuffer m_state_buffer;
     RvpBuffer m_rvp_buffer;
     std::vector<Frame*> V;
+
+    Object* m_excep_threw_to_me; // 其他线程扔给我的异常
 
 private:
     SpmtThread(int id);

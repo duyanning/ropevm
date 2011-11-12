@@ -22,6 +22,7 @@ public:
     bool pinned;
     Object* object;             // 这个主要是为了给没有this的静态方法使用
     SpmtThread* caller;
+    SpmtThread* owner;
 
     std::vector<Object*> * lrefs;
 

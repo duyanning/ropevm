@@ -54,6 +54,8 @@ public:
     char interrupted;
     char interrupting;
     //ExecEnv *ee;
+    Object* exception;
+
     void *stack_top;
     void *stack_base;
     Monitor *wait_mon;

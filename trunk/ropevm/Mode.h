@@ -16,12 +16,10 @@ public:
 
     virtual void before_alloc_object();
     virtual void after_alloc_object(Object* obj);
-    //SpmtThread* assign_spmt_thread_for(Object* obj);
 
     virtual void* do_execute_method(Object* target_object, MethodBlock *mb, std::vector<uintptr_t>& jargs) = 0;
     virtual void do_invoke_method(Object* objectref, MethodBlock* new_mb) = 0;
     virtual void do_method_return(int len) = 0;
-    virtual void do_throw_exception() = 0;
     virtual void before_signal_exception(Class *exception_class) = 0;
 
     virtual void do_get_field(Object* obj, FieldBlock* fb, uintptr_t* addr, int size, bool is_static = false) = 0;
@@ -59,9 +57,6 @@ public:
     template <class T> T read(T* addr);
     template <class T, class U> void write(T* addr, U value);
 
-    bool is_certain_mode();
-    bool is_speculative_mode();
-    bool is_rvp_mode();
 
 public:
     //-------------------
@@ -69,7 +64,7 @@ public:
     Frame* frame;
     uintptr_t* sp;
     //------------------
-    Object* exception;          // state?
+
 
 protected:
     bool intercept_vm_backdoor(Object* objectref, MethodBlock* mb);
@@ -156,7 +151,7 @@ g_load_from_stable_array_to_c(uintptr_t* sp, Object* array, int index, int type_
 
 
 #define throw_exception                         \
-    return do_throw_exception();
+    return m_spmt_thread->do_throw_exception();
 
 
 void show_triple(std::ostream& os, int id,

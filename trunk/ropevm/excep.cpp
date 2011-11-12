@@ -62,12 +62,12 @@ Object *exceptionOccurred() {
 
 void setException(Object *exp) {
     //getExecEnv()->exception = exp;
-    assert(*threadSelf()->get_current_spmt_thread()->get_current_mode()->get_name() == 'C');
+    assert(g_get_current_spmt_thread()->is_certain_mode());
     threadSelf()->get_current_spmt_thread()->get_current_mode()->exception = exp;
 }
 
 void clearException() {
-    assert(*threadSelf()->get_current_spmt_thread()->get_current_mode()->get_name() == 'C');
+    assert(g_get_current_spmt_thread()->is_certain_mode());
     //ExecEnv *ee = getExecEnv();
 
 //     if(ee->overflow) {
@@ -79,9 +79,9 @@ void clearException() {
 }
 
 void signalChainedExceptionClass(Class *exception, const char* message, Object *cause) {
-    SpmtThread* current_core = g_get_current_spmt_thread();
+    SpmtThread* current_spmt_thread = g_get_current_spmt_thread();
     std::cout << "error msg: " << message << std::endl;
-    current_core->before_signal_exception(exception);
+    current_spmt_thread->before_signal_exception(exception);
 
     Object *exp = allocObject(exception);
     Object *str = message == NULL ? NULL : Cstr2String(message);
@@ -190,6 +190,8 @@ findCatchBlockInMethod(MethodBlock *mb, Class *exception, CodePntr pc_pntr)
     return NULL;
 }
 
+
+// 本函数已被替代
 CodePntr
 findCatchBlock(Class *exception)
 {
@@ -243,8 +245,8 @@ Object *setStackTrace0(int max_depth)
     //assert(false);
     Frame* bottom;
     //Frame* last = ee->last_frame;
-    SpmtThread* current_core = threadSelf()->get_current_spmt_thread();
-    Frame* last = current_core->get_current_mode()->frame;
+    SpmtThread* current_spmt_thread = threadSelf()->get_current_spmt_thread();
+    Frame* last = current_spmt_thread->get_current_mode()->frame;
     Object *array, *vmthrwble;
     uintptr_t *data;
     int depth = 0;

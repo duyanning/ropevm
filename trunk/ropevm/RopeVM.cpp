@@ -49,7 +49,6 @@ RopeVM::new_spmt_thread()
     }
     else {
         assert(false);
-        cerr << "no more cores\n";
     }
     pthread_mutex_unlock(&m_lock);
     return spmt_thread;
@@ -83,13 +82,13 @@ RopeVM::report_stat(std::ostream& os)
 {
     Statistic::instance()->report_stat(os);
 
-    os << "JVM" << '\t' << "core count" << '\t' << m_spmt_threads.size()-4 << '\n';
+    os << "JVM" << '\t' << "spmt thread count" << '\t' << m_spmt_threads.size()-4 << '\n';
     os << "JVM" << '\t' << "control transfer" << '\t' << m_count_control_transfer << '\n';
 
     for (vector<SpmtThread*>::iterator i = m_spmt_threads.begin(); i != m_spmt_threads.end(); ++i) {
-        SpmtThread* core = *i;
-        if (1 <= core->id() && core->id() <= 4)
+        SpmtThread* st = *i;
+        if (1 <= st->id() && st->id() <= 4)
             continue;
-        core->report_stat(os);
+        st->report_stat(os);
     }
 }
