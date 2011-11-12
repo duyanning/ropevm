@@ -1221,7 +1221,7 @@ Thread::get_initial_spmt_thread()
 
 
 // 在多os线程实现方式下，应该是调用os_api_current_os_thread()获得当前的
-// os线程，然后再从thread local strage中获得指向SpmtThread*
+// os线程，然后再从thread local strage中获得SpmtThread*
 SpmtThread*
 Thread::get_current_spmt_thread()
 {

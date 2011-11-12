@@ -181,7 +181,7 @@ SpeculativeMode::create_frame(Object* object, MethodBlock* new_mb, uintptr_t* ar
                               SpmtThread* caller, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp)
 
 {
-    Frame* new_frame = g_create_frame(object, new_mb, args, caller, caller_pc, caller_frame, caller_sp);
+    Frame* new_frame = g_create_frame(m_spmt_thread, object, new_mb, args, caller, caller_pc, caller_frame, caller_sp);
     // record new_frame in effect
     return new_frame;
 }

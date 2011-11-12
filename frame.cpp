@@ -62,6 +62,8 @@ Frame::Frame(int lvars_size, int ostack_size)
     lvars = new uintptr_t[lvars_size];
     ostack_base = new uintptr_t[ostack_size];
 
+    owner = nullptr;
+    caller = nullptr;
     last_pc = 0;
     mb = 0;
     prev = 0;
@@ -155,7 +157,7 @@ create_dummy_frame(Frame* caller_frame)
 }
 
 Frame*
-g_create_frame(Object* object, MethodBlock* new_mb, uintptr_t* args,
+g_create_frame(SpmtThread* owner, Object* object, MethodBlock* new_mb, uintptr_t* args,
                SpmtThread* caller, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp)
 {
     assert(new_mb);
@@ -170,8 +172,9 @@ g_create_frame(Object* object, MethodBlock* new_mb, uintptr_t* args,
     lvars_size = lvars_size != 0 ? lvars_size : 4;
     ostack_size = ostack_size != 0 ? ostack_size : 4;
 
-    Frame* new_frame = new_frame = new Frame(lvars_size, ostack_size);
+    Frame* new_frame = new Frame(lvars_size, ostack_size);
 
+    new_frame->owner = owner;
     new_frame->object = object;
     new_frame->mb = new_mb;
     new_frame->prev = caller_frame;
@@ -182,18 +185,5 @@ g_create_frame(Object* object, MethodBlock* new_mb, uintptr_t* args,
     if (args)
         copy_args_to_params(args, new_frame->lvars, new_mb->args_count);
 
-    //{{{ just for debug
-    // if (g_current_core()->id() == 9) {
-    //     cout << "#9 create frame " << *new_frame << endl;
-    // }
-    //}}} just for debug
-
-    // if (new_frame->mb && is_rvp_frame(new_frame)) {
-    //     cout << "#" << g_current_core()->id() << " create rvpframe " << *new_frame << endl;
-    // }
-
-    // if (new_frame->mb && is_rvp_frame(new_frame) && new_frame->xxx == 999) {
-    //     cout << "#" << g_current_core()->id() << " create xxx999 " << *new_frame << endl;
-    // }
     return new_frame;
 }

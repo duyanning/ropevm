@@ -126,9 +126,9 @@ public:
     // 处理异常
     void on_event_exception_throw_to_me(Object* exception); // 发现别人抛来异常时调用
     void do_throw_exception(); // 自己检测到异常时调用
-    void process_exception(Object* exception); // 查找异常处理器及后续
+    void process_exception(Object* exception, Frame* excep_frame); // 查找异常处理器及后续
     Object* get_exception_threw_to_me();
-    void set_exception_threw_to_me(Object* exception);
+    void set_exception_threw_to_me(Object* exception, Frame* excep_frame);
 private:
     int m_id;
     Thread* m_thread;           // 所属的java线程
@@ -160,6 +160,7 @@ private:
     std::vector<Frame*> V;
 
     Object* m_excep_threw_to_me; // 其他线程扔给我的异常
+    Frame* m_excep_frame;        // 异常发生的栈帧，跟m_excep_threw_to_me关联
 
 private:
     SpmtThread(int id);

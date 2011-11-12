@@ -160,7 +160,7 @@ RvpMode::do_method_return(int len)
 
         destroy_frame(current_frame);
 
-        MINILOG0("#" << m_spmt_thread->id() << " leave RVP mode");
+        // MINILOG0("#" << m_spmt_thread->id() << " leave RVP mode");
 
         m_spmt_thread->switch_to_speculative_mode();
         m_spmt_thread->launch_spec_msg(return_msg);
@@ -183,7 +183,7 @@ Frame*
 RvpMode::create_frame(Object* object, MethodBlock* new_mb, uintptr_t* args,
                       SpmtThread* caller, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp)
 {
-    Frame* new_frame = g_create_frame(object, new_mb, args, caller, caller_pc, caller_frame, caller_sp);
+    Frame* new_frame = g_create_frame(m_spmt_thread, object, new_mb, args, caller, caller_pc, caller_frame, caller_sp);
     // record new_frame in V of effect
     return new_frame;
 }

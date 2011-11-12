@@ -1,6 +1,7 @@
 #ifndef LOGGERS_H
 #define LOGGERS_H
 
+extern MiniLogger order_logger;
 extern MiniLogger top_method_logger;
 extern MiniLogger inter_spmt_thread_logger;
 extern MiniLogger control_transfer_logger;

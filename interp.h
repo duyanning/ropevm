@@ -33,9 +33,9 @@
 class Frame;
 class MethodBlock;
 class Object;
+
 Frame*
-//g_create_frame(Object* object, MethodBlock* new_mb, Frame* caller_frame, Object* calling_object, uintptr_t* args, uintptr_t* caller_sp, CodePntr caller_pc);
-g_create_frame(Object* object, MethodBlock* new_mb, uintptr_t* args,
+g_create_frame(SpmtThread* owner, Object* object, MethodBlock* new_mb, uintptr_t* args,
                SpmtThread* caller, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp);
 
 Frame* create_dummy_frame(Frame* caller_frame);

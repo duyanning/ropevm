@@ -1479,8 +1479,8 @@ Class *findNonArrayClassFromClassLoader(char *classname, Object *loader) {
         {
             //Thread* this_thread = threadSelf();
             SpmtThread* current_spmt_thread = g_get_current_spmt_thread();
-            MINILOG0_IF(debug_scaffold::java_main_arrived,
-                        "#" << current_spmt_thread->id() << " is to load class: " << dot_name);
+            // MINILOG0_IF(debug_scaffold::java_main_arrived,
+            //             "#" << current_spmt_thread->id() << " is to load class: " << dot_name);
         }
 
         Object *string = createString(dot_name);

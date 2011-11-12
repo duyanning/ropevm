@@ -27,7 +27,8 @@ SpmtThread::SpmtThread(int id)
     m_quit_causer(0),
     m_certain_message(0),
     m_need_spec_msg(true),
-    m_excep_threw_to_me(0)
+    m_excep_threw_to_me(0),
+    m_excep_frame(0)
 {
 
     m_certain_mode.set_spmt_thread(this);
@@ -128,7 +129,7 @@ SpmtThread::wakeup()
     }
     if (m_halt) {
         m_halt = false;
-        MINILOG0("#" << id() << " (state)start");
+        // MINILOG0("#" << id() << " (state)start");
     }
 }
 
@@ -142,7 +143,7 @@ SpmtThread::sleep()
         x++;
     }
     //}}} just for debug
-    MINILOG0("#" << id() << " (state)sleep");
+    // MINILOG0("#" << id() << " (state)sleep");
     m_halt = true;
 }
 
@@ -201,14 +202,14 @@ SpmtThread::log_when_leave_certain()
 void
 SpmtThread::switch_to_certain_mode()
 {
-    MINILOG0("#" << id() << " CERT mode");
+    // MINILOG0("#" << id() << " CERT mode");
     m_mode = &m_certain_mode;
 }
 
 void
 SpmtThread::switch_to_speculative_mode()
 {
-    MINILOG0("#" << id() << " SPEC mode");
+    // MINILOG0("#" << id() << " SPEC mode");
     m_mode = &m_spec_mode;
 }
 
@@ -218,7 +219,7 @@ SpmtThread::switch_to_rvp_mode()
     // stat
     m_count_rvp++;
 
-    MINILOG0("#" << id() << " RVP mode");
+    // MINILOG0("#" << id() << " RVP mode");
 
     m_mode = &m_rvp_mode;
 }
@@ -241,7 +242,7 @@ SpmtThread::add_spec_msg(Message* msg)
 
     // 如果本线程是因为推测执行缺乏任务而睡眠，则唤醒。
     if (m_halt and is_spec_mode() and m_need_spec_msg) {
-        MINILOG0("#" << id() << " is waken(sleeping, waiting for task)");
+        // MINILOG0("#" << id() << " is waken(sleeping, waiting for task)");
         wakeup();
     }
 }
@@ -273,8 +274,8 @@ SpmtThread::signal_quit_drive_loop()
 }
 
 
-// 将来spmt线程对应os线程，这个函数的实现将会很简单。
-// 目前这种写法是为了兼容多os线程实现
+// 在多os线程实现方式下，应该是调用os_api_current_os_thread()获得当前的
+// os线程，然后再从thread local strage中获得SpmtThread*
 SpmtThread* g_get_current_spmt_thread()
 {
     Thread* thread = threadSelf();
@@ -522,8 +523,8 @@ SpmtThread::discard_effect(Effect* effect)
 void
 SpmtThread::abort_uncertain_execution()
 {
-    MINILOG0_IF(debug_scaffold::java_main_arrived,
-                "#" << id() << " discard uncertain execution");
+    // MINILOG0_IF(debug_scaffold::java_main_arrived,
+    //             "#" << id() << " discard uncertain execution");
 
     /*
       for each 队列中每个消息
@@ -815,14 +816,20 @@ SpmtThread::on_event_top_invoke(InvokeMsg* msg)
 
 
 void
-SpmtThread::on_event_top_return(ReturnMsg* msg)
+SpmtThread::on_event_top_return(ReturnMsg* return_msg)
 {
+    // 方法重入会导致这些东西改变，所以需要按消息中的重新设置。
+    m_certain_mode.pc = return_msg->caller_pc;
+    m_certain_mode.frame = return_msg->caller_frame;
+    m_certain_mode.sp = return_msg->caller_sp;
+
     // 把消息中的返回值写入接收返回值的dummy frame的ostack
-    for (auto i : msg->retval) {
+    for (auto i : return_msg->retval) {
         *m_certain_mode.sp++ = i;
     }
 
-    // 不需要调整pc，因为dummy frame没有对应的方法
+    assert(m_certain_mode.pc == 0);
+    assert(m_certain_mode.frame->is_dummy());
 
     signal_quit_drive_loop();
 }
@@ -911,9 +918,10 @@ SpmtThread::get_exception_threw_to_me()
 
 
 void
-SpmtThread::set_exception_threw_to_me(Object* exception)
+SpmtThread::set_exception_threw_to_me(Object* exception, Frame* excep_frame)
 {
     m_excep_threw_to_me = exception;
+    m_excep_frame = excep_frame;
 
     wakeup();
 }
@@ -923,7 +931,8 @@ void
 SpmtThread::on_event_exception_throw_to_me(Object* exception)
 {
     // 废弃推测状态
-    process_exception(exception);
+    abort_uncertain_execution();
+    process_exception(exception, m_excep_frame);
 }
 
 
@@ -932,15 +941,21 @@ SpmtThread::do_throw_exception()
 {
     Object* excep = m_thread->exception;
     m_thread->exception = NULL;
-    process_exception(excep);
+
+    Frame* current_frame = m_certain_mode.frame;
+    process_exception(excep, current_frame);
 }
 
 
 
+// excep.cpp
 extern CodePntr findCatchBlockInMethod(MethodBlock *mb, Class *exception, CodePntr pc_pntr);
+
 void
-SpmtThread::process_exception(Object* excep)
+SpmtThread::process_exception(Object* excep, Frame* excep_frame)
 {
+    assert(excep_frame->owner == this);
+
     // MINILOG(c_exception_logger, "#" << m_id << " (C) throw exception"
     //         << " in: " << info(frame)
     //         << " on: #" << frame->get_object()->get_spmt_thread()->id()
@@ -956,15 +971,21 @@ SpmtThread::process_exception(Object* excep)
           如果是dummy，结束。
           如果是自己的栈帧，又不是 dummy frame，则开始在其中查找。
      */
-    Frame* current_frame = m_certain_mode.frame;
-    CodePntr handler_pc = findCatchBlockInMethod(current_frame->mb, excep->classobj, current_frame->last_pc);
+
+    Frame* current_frame = excep_frame;
+    CodePntr handler_pc = findCatchBlockInMethod(current_frame->mb,
+                                                 excep->classobj,
+                                                 current_frame->last_pc);
     while (handler_pc == NULL) {
         if (current_frame->is_top_frame()) {
             break;
         }
 
-        if (current_frame->prev->caller != this) {
-            // 通知current_frame->prev->caller有异常。
+        if (current_frame->prev->owner != this) {
+            // 通知current_frame->prev->owner有异常。
+            switch_to_speculative_mode();
+            current_frame->prev->owner->set_exception_threw_to_me(excep,
+                                                                  current_frame->prev);
             return;
         }
 
@@ -974,7 +995,10 @@ SpmtThread::process_exception(Object* excep)
         }
 
         current_frame = current_frame->prev;
-        handler_pc = findCatchBlockInMethod(current_frame->mb, excep->classobj, current_frame->last_pc);
+        // destroy_frame();
+        handler_pc = findCatchBlockInMethod(current_frame->mb,
+                                            excep->classobj,
+                                            current_frame->last_pc);
 
     }
     // MINILOG(c_exception_logger, "#" << threadSelf()->get_current_spmt_thread()->id() << " finding handler"
@@ -990,8 +1014,9 @@ SpmtThread::process_exception(Object* excep)
 
 
     /*
-      如果找到top frame了，都没找到异常处理程序。只能向发出top invoke的
-      人表明异常仍然存在。top frame也该返回了。
+      流程至此，要么是找到异常处理器，要么是找罢top frame也没找到。如果
+      是后者，只能向发出top invoke的人表明异常仍然存在。同时top frame也
+      该结束了（因为异常）。
      */
     if (handler_pc == NULL) {
         m_thread->exception = excep;
