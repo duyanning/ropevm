@@ -269,7 +269,7 @@ void initialiseJavaStack(Thread* thread) {
     top->mb = mb;
 
     //thread->ee->last_frame = top;
-    assert(g_get_current_spmt_thread()->is_certain_mode());
+    //assert(g_get_current_spmt_thread()->is_certain_mode());
     thread->get_current_spmt_thread()->get_current_mode()->frame = top;
 }
 
