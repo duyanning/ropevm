@@ -1,7 +1,0 @@
-#!/usr/bin/env sh
-
-go > b.txt  2>&1
-grep '#0' b.txt > b0.txt
-grep '#5' b.txt > b5.txt
-grep '#6' b.txt > b6.txt
-

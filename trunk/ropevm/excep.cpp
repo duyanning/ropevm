@@ -80,7 +80,6 @@ void clearException() {
 
 void signalChainedExceptionClass(Class *exception, const char* message, Object *cause) {
     SpmtThread* current_spmt_thread = g_get_current_spmt_thread();
-    std::cout << "error msg: " << message << std::endl;
     current_spmt_thread->before_signal_exception(exception);
 
     Object *exp = allocObject(exception);

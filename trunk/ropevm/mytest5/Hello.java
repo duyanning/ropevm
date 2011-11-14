@@ -1,9 +1,4 @@
-@java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
-@java.lang.annotation.Target({ java.lang.annotation.ElementType.TYPE })
-@interface Speculative {
-}
-
-@Speculative
+@GroupingPolicies(self=GroupingPolicy.NEW_GROUP)
 class Dog {
     public int[] data;
 
@@ -19,7 +14,7 @@ class Dog {
         }
     }
 
-    // public int _p_slice_for_f()
+    // public int __rvp__f()
     // {
     //     return 6;
     // }
