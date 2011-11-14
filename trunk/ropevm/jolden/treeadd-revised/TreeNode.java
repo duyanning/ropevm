@@ -1,7 +1,7 @@
 /**
  * A Tree node data structure.
  **/
-@Speculative
+@GroupingPolicies(self=GroupingPolicy.NEW_GROUP)
 class TreeNode
 {
     private int value = 0;

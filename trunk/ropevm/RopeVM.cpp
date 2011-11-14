@@ -48,6 +48,7 @@ RopeVM::new_spmt_thread()
         m_spmt_threads.push_back(spmt_thread);
     }
     else {
+        cout << "ROPEVM: too many spmt threads" << endl;
         assert(false);
     }
     pthread_mutex_unlock(&m_lock);

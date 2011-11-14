@@ -6,8 +6,9 @@ import java.util.Enumeration;
  * This class implements nodes (both E- and H-nodes) of the EM graph. Sets
  * up random neighbors and propagates field values among neighbors.
  */
-
-@Speculative(type = 3)
+@Speculative(type=3)
+@GroupingPolicies(self=GroupingPolicy.NEW_GROUP)
+@ClassGroupingPolicies(self=GroupingPolicy.NEW_GROUP)
 final class Node {
     /**
      * The value of the node.

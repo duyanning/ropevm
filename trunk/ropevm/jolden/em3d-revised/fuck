@@ -1,6 +1,0 @@
-#!/usr/bin/env sh
-
-#egrep 'elements|hasMoreElements|nextElement' b14.txt > shit.txt
-grep 'task loaded: invoke to Node$1Enumerate.nextElement' b14.txt > shit.txt
-       
-

@@ -7,7 +7,7 @@
  * <p>
  * Each lateral node is the head in a line of branch nodes.
  **/
-@Speculative
+@GroupingPolicies(self=GroupingPolicy.NEW_GROUP)
 final class Lateral
 {
     /**
