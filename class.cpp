@@ -223,8 +223,7 @@ void process_runtime_visible_annotations(void* data,
                              classblock->class_grouping_policy_others);
         }
         else {
-            std::cout << classblock->name << std::endl;
-            assert(false);      // todo
+            std::cout << "ROPEVM: unknown annotation on class " << classblock->name << std::endl;
         }
     }
 }

@@ -6,7 +6,8 @@ import java.util.Enumeration;
  * EM3D.  The graph contains two linked structures that represent the
  * E nodes and the N nodes in the application.
  **/
-@Speculative(type = 3)
+@GroupingPolicies(self=GroupingPolicy.NEW_GROUP)
+@ClassGroupingPolicies(self=GroupingPolicy.NEW_GROUP)
 final class BiGraph
 {
     /**
