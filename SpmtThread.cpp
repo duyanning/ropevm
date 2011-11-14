@@ -14,6 +14,7 @@
 #include "Helper.h"
 #include "lock.h"
 #include "Effect.h"
+#include "Break.h"
 
 using namespace std;
 
@@ -103,13 +104,13 @@ SpmtThread::step()
     // stat
     m_count_step++;
 
-    try {
+    //try {
         m_mode->step();
-    }
-    catch (DeepBreak& e) {
-        //assert(false);          // caution needed
-        cout << "DeepBreak" << endl;
-    }
+        //}
+    // catch (Break& e) {
+    //     assert(not is_certain_mode())
+    //     cout << "Break" << endl;
+    // }
 }
 
 void

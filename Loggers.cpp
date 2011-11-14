@@ -4,7 +4,9 @@
 
 using namespace std;
 
-MiniLogger order_logger(cout, true);
+// 所有的invoke、return、get、put、aload、astore，无论是否跨线程，都被
+// 记录。
+MiniLogger order_logger(cout, false);
 MiniLogger top_method_logger(cout, false);
 MiniLogger inter_spmt_thread_logger(cout, false);
 MiniLogger control_transfer_logger(cout, false);

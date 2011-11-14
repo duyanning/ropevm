@@ -205,10 +205,6 @@ inline
 bool SpmtThread::is_rvp_mode() { return m_mode == &m_rvp_mode; }
 
 
-// 当推测模式遇到特权指令终止当前指令
-class DeepBreak {
-};
-
 SpmtThread* g_get_current_spmt_thread();
 
 #endif

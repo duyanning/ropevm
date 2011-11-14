@@ -6,7 +6,7 @@ using namespace std;
 
 ArrayStoreReturnMsg::ArrayStoreReturnMsg(SpmtThread* target_spmt_thread)
 :
-    Message(MsgType::ARRAYSTORE_RET, target_spmt_thread)
+    Message(MsgType::ASTORE_RET, target_spmt_thread)
 {
 }
 

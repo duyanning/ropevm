@@ -664,7 +664,9 @@ CertainMode::log_when_invoke_return(bool is_invoke, Object* caller, MethodBlock*
 void
 CertainMode::send_msg(Message* msg)
 {
-    if (not RopeVM::model < 3)
+    assert(RopeVM::model > 1);
+
+    if (RopeVM::model < 3)
         m_spmt_thread->sleep();
 
     m_spmt_thread->switch_to_speculative_mode();

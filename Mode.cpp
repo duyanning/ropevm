@@ -231,39 +231,39 @@ Mode::process_msg(Message* msg)
 
         send_msg(get_ret_msg);
     }
-    else if (type == MsgType::ARRAYSTORE) {
-        ArrayStoreMsg* arraystore_msg = static_cast<ArrayStoreMsg*>(msg);
+    else if (type == MsgType::ASTORE) {
+        ArrayStoreMsg* astore_msg = static_cast<ArrayStoreMsg*>(msg);
 
-        // 向arraystore_msg指定的数组的指定位置处写入一个值
-        Object* array = arraystore_msg->get_target_object();
-        int index = arraystore_msg->index;
-        int type_size = arraystore_msg->type_size;
+        // 向astore_msg指定的数组的指定位置处写入一个值
+        Object* array = astore_msg->get_target_object();
+        int index = astore_msg->index;
+        int type_size = astore_msg->type_size;
 
-        store_to_array_from_c(&arraystore_msg->val[0],
+        store_to_array_from_c(&astore_msg->val[0],
                               array, index, type_size);
 
-        // 构造arraystore_ret_msg作为回复
-        ArrayStoreReturnMsg* arraystore_ret_msg = new ArrayStoreReturnMsg(arraystore_msg->get_source_spmt_thread());
+        // 构造astore_ret_msg作为回复
+        ArrayStoreReturnMsg* astore_ret_msg = new ArrayStoreReturnMsg(astore_msg->get_source_spmt_thread());
 
-        send_msg(arraystore_ret_msg);
+        send_msg(astore_ret_msg);
     }
-    else if (type == MsgType::ARRAYLOAD) {
-        ArrayLoadMsg* arrayload_msg = static_cast<ArrayLoadMsg*>(msg);
+    else if (type == MsgType::ALOAD) {
+        ArrayLoadMsg* aload_msg = static_cast<ArrayLoadMsg*>(msg);
 
-        // 从arrayload_msg指定的数组的指定位置处读出一个值
-        Object* array = arrayload_msg->get_target_object();
-        int index = arrayload_msg->index;
-        int type_size = arrayload_msg->type_size;
+        // 从aload_msg指定的数组的指定位置处读出一个值
+        Object* array = aload_msg->get_target_object();
+        int index = aload_msg->index;
+        int type_size = aload_msg->type_size;
 
         std::vector<uintptr_t> value(2); // at most 2 slots
         load_from_array_to_c(&value[0],
                              array, index, type_size);
 
-        // 构造arrayload_ret_msg作为回复
-        ArrayLoadReturnMsg* arrayload_ret_msg = new ArrayLoadReturnMsg(arrayload_msg->get_source_spmt_thread(),
-                                                                       &value[0], size2nslots(type_size));
+        // 构造aload_ret_msg作为回复
+        ArrayLoadReturnMsg* aload_ret_msg = new ArrayLoadReturnMsg(aload_msg->get_source_spmt_thread(),
+                                                                   &value[0], size2nslots(type_size));
 
-        send_msg(arrayload_ret_msg);
+        send_msg(aload_ret_msg);
 
     }
     else if (type == MsgType::RETURN) {
@@ -296,16 +296,16 @@ Mode::process_msg(Message* msg)
 
         pc += 3;
     }
-    else if (type == MsgType::ARRAYSTORE_RET) {
-        //ArrayStoreReturnMsg* arraystore_ret_msg = static_cast<ArrayStoreReturnMsg*>(msg);
+    else if (type == MsgType::ASTORE_RET) {
+        //ArrayStoreReturnMsg* astore_ret_msg = static_cast<ArrayStoreReturnMsg*>(msg);
 
         pc += 1;
     }
-    else if (type == MsgType::ARRAYLOAD_RET) {
-        ArrayLoadReturnMsg* arrayload_ret_msg = static_cast<ArrayLoadReturnMsg*>(msg);
+    else if (type == MsgType::ALOAD_RET) {
+        ArrayLoadReturnMsg* aload_ret_msg = static_cast<ArrayLoadReturnMsg*>(msg);
 
-        // 将arrayload_ret_msg携带的值写入ostack
-        for (auto i : arrayload_ret_msg->val) {
+        // 将aload_ret_msg携带的值写入ostack
+        for (auto i : aload_ret_msg->val) {
             write(sp++, i);
         }
 

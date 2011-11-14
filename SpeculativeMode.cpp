@@ -14,6 +14,7 @@
 #include "Helper.h"
 #include "frame.h"
 #include "Effect.h"
+#include "Break.h"
 
 using namespace std;
 
@@ -172,7 +173,7 @@ SpeculativeMode::before_signal_exception(Class *exception_class)
     MINILOG(s_exception_logger, "#" << m_spmt_thread->id()
             << " (S) exception detected!!! " << exception_class->name());
     m_spmt_thread->sleep();
-    throw DeepBreak();
+    throw Break();
 }
 
 
@@ -414,7 +415,7 @@ SpeculativeMode::do_execute_method(Object* target_object,
             << " (S) throw-> to be execute java method: " << *mb);
     m_spmt_thread->sleep();
 
-    throw DeepBreak();
+    throw Break();
 
     return 0;
 }
