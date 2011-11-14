@@ -49,7 +49,7 @@ class Wolf extends Beast {
 
 }
 
-@ClassGroupingPolicies(self=GroupingPolicy.NEW_GROUP)
+//@ClassGroupingPolicies(self=GroupingPolicy.NEW_GROUP)
 class Hello {
     public static void main(String[] args)
     {

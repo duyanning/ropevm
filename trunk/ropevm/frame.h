@@ -55,7 +55,7 @@ std::ostream& operator<<(std::ostream& os, const Frame& f);
 inline
 bool is_rvp_frame(Frame* frame)
 {
-    return frame->caller == 0;
+    return frame->owner == 0;
 }
 
 #endif // FRAME_H

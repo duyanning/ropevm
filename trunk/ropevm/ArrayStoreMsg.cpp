@@ -8,7 +8,7 @@ ArrayStoreMsg::ArrayStoreMsg(SpmtThread* source_spmt_thread, SpmtThread* target_
                              Object* array, int type_size, int index, uintptr_t* slots)
 
 :
-    RoundTripMsg(MsgType::ARRAYSTORE, source_spmt_thread, target_spmt_thread, array)
+    RoundTripMsg(MsgType::ASTORE, source_spmt_thread, target_spmt_thread, array)
 {
 
     this->type_size = type_size;

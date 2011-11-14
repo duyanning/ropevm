@@ -12,6 +12,7 @@
 #include "frame.h"
 #include "DebugScaffold.h"
 #include "Helper.h"
+#include "Break.h"
 
 using namespace std;
 
@@ -49,7 +50,7 @@ RvpMode::before_alloc_object()
 {
     MINILOG(r_new_logger, "#" << m_spmt_thread->id() << " (R) hits NEW ");
     m_spmt_thread->sleep();
-    throw DeepBreak();
+    throw Break();
 }
 
 void
@@ -175,7 +176,7 @@ RvpMode::before_signal_exception(Class *exception_class)
     MINILOG(r_exception_logger, "#" << m_spmt_thread->id()
             << " (R) exception detected!!! " << exception_class->name());
     m_spmt_thread->sleep();
-    throw DeepBreak();
+    throw Break();
 }
 
 
@@ -183,7 +184,10 @@ Frame*
 RvpMode::create_frame(Object* object, MethodBlock* new_mb, uintptr_t* args,
                       SpmtThread* caller, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp)
 {
-    Frame* new_frame = g_create_frame(m_spmt_thread, object, new_mb, args, caller, caller_pc, caller_frame, caller_sp);
+    //Frame* new_frame = g_create_frame(m_spmt_thread, object, new_mb, args, caller, caller_pc, caller_frame, caller_sp);
+    // rvp模式不会抛出异常，栈帧的owner没用，我们让它为0，表示这是个rvp栈帧。用于调试。
+    Frame* new_frame = g_create_frame(0, object, new_mb, args, caller, caller_pc, caller_frame, caller_sp);
+
     // record new_frame in V of effect
     return new_frame;
 }
@@ -192,7 +196,7 @@ RvpMode::create_frame(Object* object, MethodBlock* new_mb, uintptr_t* args,
 void
 RvpMode::destroy_frame(Frame* frame)
 {
-    assert(is_rvp_frame(frame));
+    //assert(is_rvp_frame(frame));
     //     MINILOG(p_destroy_frame_logger, "#" << m_spmt_thread->id()
     //             << " (R) destroy frame for " << *frame->mb);
 
@@ -271,7 +275,7 @@ RvpMode::do_execute_method(Object* target_object, MethodBlock *mb, std::vector<u
             << " (R) throw-> to be execute java method: " << *mb);
 
     m_spmt_thread->sleep();
-    throw DeepBreak();
+    throw Break();
 
     return 0;
 }

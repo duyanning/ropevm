@@ -87,8 +87,8 @@ g_is_async_msg(Message* msg)
     if (type == MsgType::INVOKE
         or type == MsgType::PUT
         or type == MsgType::GET
-        or type == MsgType::ARRAYSTORE
-        or type == MsgType::ARRAYLOAD)
+        or type == MsgType::ASTORE
+        or type == MsgType::ALOAD)
         return true;
 
     return false;
