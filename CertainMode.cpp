@@ -177,8 +177,15 @@ CertainMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
 
         m_spmt_thread->send_msg(invoke_msg);
 
+        if (RopeVM::model == 2) // 模型2不推测执行。
+            return;
 
         MethodBlock* rvp_method = get_rvp_method(new_mb);
+
+        if (rvp_method == nullptr) { // 若无rvp方法就不推测执行了，睡眠。
+            m_spmt_thread->sleep();
+            return;
+        }
 
         // MINILOG0("#" << m_spmt_thread->m_id
         //          << " (C)invokes rvp-method: " << *rvp_method);
@@ -307,6 +314,7 @@ CertainMode::do_method_return(int len)
         destroy_frame(current_frame);
 
         m_spmt_thread->send_msg(return_msg);
+
         m_spmt_thread->launch_next_spec_msg();
     }
 
@@ -664,17 +672,16 @@ CertainMode::log_when_invoke_return(bool is_invoke, Object* caller, MethodBlock*
 void
 CertainMode::send_msg(Message* msg)
 {
-    assert(RopeVM::model > 1);
+    assert(RopeVM::model == 2 or RopeVM::model == 3);  // 模型2，3才有消息，模型1无消息。
 
-    if (RopeVM::model < 3)
+    if (RopeVM::model == 2)     // 模型2失去确定控制后睡眠，模型3则不。
         m_spmt_thread->sleep();
-
-    m_spmt_thread->switch_to_speculative_mode();
 
     MINILOG(control_transfer_logger,
             "#" << m_spmt_thread->id()
             << " transfer control to "
             << "#" << msg->get_target_spmt_thread()->id());
 
+    m_spmt_thread->switch_to_speculative_mode();
     msg->get_target_spmt_thread()->set_certain_msg(msg);
 }

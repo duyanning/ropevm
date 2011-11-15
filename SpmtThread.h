@@ -150,7 +150,7 @@ private:
     // 推测消息
     std::list<Message*> m_spec_msg_queue;
     std::list<Message*>::iterator m_iter_next_spec_msg;
-    Message* m_current_spec_msg; // 正在处理的推测消息
+    Message* m_current_spec_msg; // 正在处理的推测消息。只要有正在进行的推测执行，此变量就不为空。
     bool m_need_spec_msg;        // 推测执行需要推测消息才能继续。给出了推测模式睡眠的原因。推测模式下睡眠有两种原因：其一，遇到特权指令；其二，无推测消息。
     std::vector<Message*> m_revoked_msgs; // 发送方要求收回这些推测消息
 

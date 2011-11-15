@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+
+model=3
+ropejavac
