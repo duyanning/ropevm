@@ -14,10 +14,9 @@ class Dog {
         }
     }
 
-    // public int __rvp__f()
-    // {
-    //     return 6;
-    // }
+    public void __rvp__f(Dog d)
+    {
+    }
 
     public void print()
     {

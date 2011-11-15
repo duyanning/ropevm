@@ -12,7 +12,6 @@ Message::Message(MsgType type, SpmtThread* target_spmt_thread)
     m_type(type),
     m_target_spmt_thread(target_spmt_thread),
     m_effect(nullptr)
-
 {
 }
 

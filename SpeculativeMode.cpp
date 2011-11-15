@@ -51,6 +51,8 @@ SpeculativeMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
         MINILOG(s_logger, "#" << m_spmt_thread->id()
                 << " (S) " << *new_mb << "is native/sync method");
         m_spmt_thread->sleep();
+        m_spmt_thread->m_spec_running_state = SpecRunningState::cannot_exec_priviledged_method;
+
         return;
     }
 
@@ -99,6 +101,13 @@ SpeculativeMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
         // 推测性的return_msg在rvp方法获得推测性的返回值之后才能构造
 
         MethodBlock* rvp_method = ::get_rvp_method(new_mb);
+
+        if (rvp_method == nullptr) { // 若无rvp方法就不推测执行了，睡眠。
+            m_spmt_thread->sleep();
+            m_spmt_thread->m_spec_running_state = SpecRunningState::no_syn_msg;
+            throw Break();
+        }
+
 
         MINILOG(s_logger, "#" << m_spmt_thread->m_id
                 << " (S)invokes rvp-method: " << *rvp_method);
@@ -173,6 +182,8 @@ SpeculativeMode::before_signal_exception(Class *exception_class)
     MINILOG(s_exception_logger, "#" << m_spmt_thread->id()
             << " (S) exception detected!!! " << exception_class->name());
     m_spmt_thread->sleep();
+    m_spmt_thread->m_spec_running_state = SpecRunningState::cannot_signal_exception;
+
     throw Break();
 }
 
@@ -441,6 +452,10 @@ SpeculativeMode::send_msg(Message* msg)
 
     // 同步消息是只记录，但不真正发送出去
     if (g_is_async_msg(msg)) {
+        MINILOG(spec_msg_logger, "#" << m_spmt_thread->id()
+                << " send spec msg to "
+                << "#" << msg->get_target_spmt_thread()->id()
+                << " " << *msg);
         msg->get_target_spmt_thread()->add_spec_msg(msg);
     }
 }

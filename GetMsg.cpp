@@ -28,6 +28,8 @@ GetMsg::get_field_size()
 void
 GetMsg::show(ostream& os) const
 {
+    os << "GET";
+
     // int len = val.size();
     // assert(len == 1 || len == 2);
 

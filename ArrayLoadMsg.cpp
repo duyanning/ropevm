@@ -17,16 +17,7 @@ ArrayLoadMsg::ArrayLoadMsg(SpmtThread* source_spmt_thread, SpmtThread* target_sp
 void
 ArrayLoadMsg::show(ostream& os) const
 {
-    // int type_size = val.size();
-    // assert(type_size >= 1 && type_size <= 8);
-
-    // // os << "array load" << type_size << " " << m_source_object->classobj->name() << "(" << index << ") = ";
-
-    // os << hex;
-    // for (int i = 0; i < val.size(); ++i) {
-    //     os << (int)val[i] << " ";
-    // }
-    // os << dec;
+    os << "ALOAD";
 }
 
 

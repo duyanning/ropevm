@@ -65,9 +65,8 @@ UncertainMode::step()
     m_spmt_thread->remove_revoked_msgs();
 
 
-
     // 2，加载新的待处理消息
-    if (m_spmt_thread->is_spec_mode() and m_spmt_thread->m_need_spec_msg) {
+    if (m_spmt_thread->is_spec_mode() and m_spmt_thread->m_spec_running_state == SpecRunningState::no_asyn_msg) {
 
         MINILOG(task_load_logger, "#" << m_spmt_thread->id()
                 << " is waiting for task");

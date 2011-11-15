@@ -28,7 +28,7 @@ SpmtThread::SpmtThread(int id)
     m_quit_causer(nullptr),
     m_certain_message(nullptr),
     m_current_spec_msg(nullptr),
-    m_need_spec_msg(true),
+    m_spec_running_state(SpecRunningState::no_asyn_msg),
     m_excep_threw_to_me(nullptr),
     m_excep_frame(nullptr)
 {
@@ -247,7 +247,8 @@ SpmtThread::add_spec_msg(Message* msg)
 
 
     // 如果本线程是因为推测执行缺乏任务而睡眠，则唤醒。
-    if (m_halt and is_spec_mode() and m_need_spec_msg) {
+    //if (m_halt and is_spec_mode() and m_need_spec_msg) {
+    if (m_halt and m_spec_running_state == SpecRunningState::no_asyn_msg) {
         // MINILOG0("#" << id() << " is waken(sleeping, waiting for task)");
         wakeup();
     }
@@ -350,19 +351,28 @@ SpmtThread::commit_effect(Effect* effect)
      */
     if (effect->snapshot) {
         Snapshot* snapshot = effect->snapshot;
-
-        m_state_buffer.commit(snapshot->version);
+        int commit_ver = snapshot->version;
+        m_state_buffer.commit(commit_ver);
 
         m_certain_mode.pc = snapshot->pc;
         m_certain_mode.frame = snapshot->frame;
         m_certain_mode.sp = snapshot->sp;
+
+        MINILOG(snapshot_logger, "#" << m_id << " commit "<< snapshot);
+
     }
     else {
-        m_state_buffer.commit(m_state_buffer.latest_ver());
+        int commit_ver = m_state_buffer.latest_ver();
+        m_state_buffer.commit(commit_ver);
 
         m_certain_mode.pc = m_spec_mode.pc;
         m_certain_mode.frame = m_spec_mode.frame;
         m_certain_mode.sp = m_spec_mode.sp;
+
+        MINILOG(snapshot_logger, "#" << m_id
+                << " commit "<< commit_ver
+                << " to " << m_certain_mode.pc - (CodePntr)m_certain_mode.frame->mb->code
+                << " of " << *m_certain_mode.frame->mb);
 
         // 此时已无推测状态。
         m_current_spec_msg = nullptr;
@@ -371,7 +381,7 @@ SpmtThread::commit_effect(Effect* effect)
 
     // 确认消息
     if (effect->msg_sent) {
-        confirm_spec_msg(effect->msg_sent);
+        affirm_spec_msg(effect->msg_sent);
     }
 
     delete effect;
@@ -379,11 +389,23 @@ SpmtThread::commit_effect(Effect* effect)
 
 
 void
-SpmtThread::confirm_spec_msg(Message* msg)
+SpmtThread::affirm_spec_msg(Message* msg)
 {
     assert(is_certain_mode());
 
     switch_to_previous_mode();  // 转入之前的模式：推测模式或rvp模式
+    if (m_spec_running_state != SpecRunningState::ongoing) { // 如果之前在睡眠，那就恢复睡眠。
+        sleep();
+    }
+
+
+    MINILOG(certain_msg_logger, "#" << m_id
+            << " affirm spec msg " << *msg);
+
+    MINILOG(control_transfer_logger, "#" << m_id
+            << " transfer control to "
+            << "#" << msg->get_target_spmt_thread()->id());
+
     msg->get_target_spmt_thread()->set_certain_msg(msg);
 }
 
@@ -477,7 +499,8 @@ SpmtThread::remove_revoked_msg(Message* msg)
         ++m_iter_next_spec_msg;
         m_spec_msg_queue.erase(iter_revoked_msg);
 
-        m_need_spec_msg = false; // 表明推测执行需要加载推测消息（因为收回消息把人家正在处理的消息下马了）
+        m_spec_running_state = SpecRunningState::no_asyn_msg; // 表明推测执行需要加载推测消息（因为收回消息把人家正在处理的消息下马了）
+
         switch_to_speculative_mode();
         wakeup();
 
@@ -741,9 +764,10 @@ SpmtThread::launch_next_spec_msg()
         m_spec_mode.pc = 0;
         m_spec_mode.frame = 0;
         m_spec_mode.sp = 0;
-        m_need_spec_msg = true;
 
         sleep();
+        m_spec_running_state = SpecRunningState::no_asyn_msg;
+
         return;
     }
 
@@ -756,7 +780,8 @@ SpmtThread::launch_next_spec_msg()
     assert(g_is_async_msg(m_current_spec_msg));
 
     m_current_spec_msg->set_effect(new Effect); // 处理前给消息配上effect
-    m_need_spec_msg = false;
+    m_spec_running_state = SpecRunningState::ongoing;
+
     process_msg(m_current_spec_msg);
 }
 
@@ -772,7 +797,8 @@ SpmtThread::launch_spec_msg(Message* msg)
 
     m_current_spec_msg = msg;
     m_current_spec_msg->set_effect(new Effect); // 处理前给消息配上effect
-    m_need_spec_msg = false;
+    m_spec_running_state = SpecRunningState::ongoing;
+
     process_msg(m_current_spec_msg);
     // if 刚处理的是get,put等，就要加载下一条。
 }
@@ -822,6 +848,9 @@ SpmtThread::snapshot(bool pin)
     snapshot->pc = m_spec_mode.pc;
     snapshot->frame = m_spec_mode.frame;
     snapshot->sp = m_spec_mode.sp;
+
+    MINILOG(snapshot_logger, "#" << m_id << " freeze " << snapshot);
+
 
     Effect* current_effect = m_current_spec_msg->get_effect();
     current_effect->snapshot = snapshot;

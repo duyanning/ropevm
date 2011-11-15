@@ -32,10 +32,10 @@ PutMsg::show(ostream& os) const
     assert(len == 1 || len == 2);
 
     if (len == 1) {
-        os << "put32 " << *fb << hex << *((int*)&val[0]) << dec;
+        os << "PUT" << *fb << hex << *((int*)&val[0]) << dec;
     }
     else if (len == 2) {
-        os << "put64 " << *fb << hex << *((long*)&val[0]) << dec;
+        os << "PUT" << *fb << hex << *((long*)&val[0]) << dec;
     }
 }
 

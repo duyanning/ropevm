@@ -41,13 +41,13 @@ ReturnMsg::show(ostream& os) const
     int len = retval.size();
     assert(len == 0 || len == 1 || len == 2);
     if (len == 0) {
-        os << "retvoid";
+        os << "RETURN";
     }
     else if (len == 1) {
-        os << "ret32 " << hex <<  *((int*)&retval[0]) << dec;
+        os << "RETURN" << hex <<  *((int*)&retval[0]) << dec;
     }
     else if (len == 2) {
-        os << "ret64 " << hex << *((long*)&retval[0]) << dec;
+        os << "RETURN" << hex << *((long*)&retval[0]) << dec;
     }
 
     //os << " from " << mb->classobj->name() << '.' << mb->name << ':' << mb->type;

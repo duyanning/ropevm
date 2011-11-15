@@ -28,8 +28,7 @@ InvokeMsg::InvokeMsg(SpmtThread* source_spmt_thread, SpmtThread* target_spmt_thr
 void
 InvokeMsg::show(ostream& os) const
 {
-    //cout << "call message\n";
-    os << "invoke to " << mb->classobj->name() << '.' << mb->name << ':' << mb->type;
+    os << "INVOKE " << mb->classobj->name() << '.' << mb->name << ':' << mb->type;
 }
 
 void
