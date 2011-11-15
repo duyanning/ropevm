@@ -24,6 +24,7 @@ PutReturnMsg::equal(Message* msg)
 void
 PutReturnMsg::show(std::ostream& os) const
 {
+    os << "PUT_RET";
 }
 
 

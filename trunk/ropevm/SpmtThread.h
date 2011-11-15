@@ -19,6 +19,15 @@ class InvokeMsg;
 class ReturnMsg;
 class Snapshot;
 
+// 枚举常量用小写，免得跟其他人定义的宏冲突
+enum class SpecRunningState {
+    ongoing,                    // 除了这一种，其他都是睡眠状态
+    no_asyn_msg,
+    no_syn_msg,
+    cannot_signal_exception,
+    cannot_alloc_object,
+    cannot_exec_priviledged_method
+};
 
 
 
@@ -63,9 +72,9 @@ public:
     Mode* get_current_mode();
 
     // 由线程自己调用。无论确定消息还是推测消息，都由send_msg发送，不过
-    // 推测消息最终还要被confirm或被revoke。
+    // 推测消息最终还要被affirm或被revoke。
     void send_msg(Message* msg);
-    void confirm_spec_msg(Message* msg);
+    void affirm_spec_msg(Message* msg);
     void revoke_spec_msg(Message* msg);
 
     // 由其他线程调用。注意：在多os线程实现方式下，那些由其他spmt线程调
@@ -151,7 +160,7 @@ private:
     std::list<Message*> m_spec_msg_queue;
     std::list<Message*>::iterator m_iter_next_spec_msg;
     Message* m_current_spec_msg; // 正在处理的推测消息。只要有正在进行的推测执行，此变量就不为空。
-    bool m_need_spec_msg;        // 推测执行需要推测消息才能继续。给出了推测模式睡眠的原因。推测模式下睡眠有两种原因：其一，遇到特权指令；其二，无推测消息。
+    SpecRunningState m_spec_running_state; // 推测执行的状态
     std::vector<Message*> m_revoked_msgs; // 发送方要求收回这些推测消息
 
     // 不同模式下读写的去处

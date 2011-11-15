@@ -1490,12 +1490,11 @@ Mode::fetch_and_interpret_an_instruction()
 
         case OPC_INVOKEVIRTUAL_QUICK: {
             arg1 = sp - READ_U1_OP(pc + 1);
-            //NULL_POINTER_CHECK(*arg1);
-            NULL_POINTER_CHECK(read(arg1));
-            //new_class = (*(Object **) arg1)->classobj;
-            new_class = (read((Object **) arg1))->classobj;
+            Object* obj = (Object*)read(arg1);
+            NULL_POINTER_CHECK(obj);
+            new_class = obj->classobj;
             new_mb = CLASS_CB(new_class)->method_table[READ_U1_OP(pc)];
-            return do_invoke_method((Object*)read(arg1), new_mb);
+            return do_invoke_method(obj, new_mb);
         }
 
         case OPC_INVOKEVIRTUAL_QUICK_W: {

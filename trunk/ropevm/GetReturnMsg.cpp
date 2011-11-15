@@ -32,6 +32,7 @@ GetReturnMsg::equal(Message* msg)
 void
 GetReturnMsg::show(std::ostream& os) const
 {
+    os << "GET_RET";
 }
 
 

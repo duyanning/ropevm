@@ -9,7 +9,15 @@ using namespace std;
 MiniLogger order_logger(cout, false);
 MiniLogger top_method_logger(cout, false);
 MiniLogger inter_spmt_thread_logger(cout, false);
-MiniLogger control_transfer_logger(cout, false);
+
+// 确定消息相关
+MiniLogger certain_msg_logger(cout, true);
+
+// 推测消息相关
+MiniLogger spec_msg_logger(cout, true);
+
+// 记录确定控制转移
+MiniLogger control_transfer_logger(cout, true);
 
 MiniLogger owner_change_logger(cout, false);
 MiniLogger user_change_logger(cout, false);
@@ -40,7 +48,7 @@ MiniLogger r_destroy_frame_logger(cout, true, &r_frame_logger);
 
 MiniLogger step_loop_in_out_logger(cout, false);
 
-MiniLogger snapshot_logger(cout, false);
+MiniLogger snapshot_logger(cout, true);
 MiniLogger snapshot_detail_logger(cout, false, &snapshot_logger);
 
 MiniLogger task_load_logger(cout, false);

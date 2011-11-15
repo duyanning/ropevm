@@ -24,19 +24,21 @@ ArrayStoreMsg::ArrayStoreMsg(SpmtThread* source_spmt_thread, SpmtThread* target_
 void
 ArrayStoreMsg::show(ostream& os) const
 {
-    int nslots = val.size();
-    assert(nslots == 1 || nslots == 2);
+    os << "ASTORE";
 
-    os << "array store" << type_size << " " << m_object->classobj->name() << "(" << index << ") = ";
+    // int nslots = val.size();
+    // assert(nslots == 1 || nslots == 2);
 
-    if (nslots == 1) {
-        int i = *(int*)&val[0];
-        os << hex << i << dec;
-    }
-    else {                      //  nslots == 2
-        double d = *(double*)&val[0];
-        os << hex << d << dec;
-    }
+    // os << "array store" << type_size << " " << m_object->classobj->name() << "(" << index << ") = ";
+
+    // if (nslots == 1) {
+    //     int i = *(int*)&val[0];
+    //     os << hex << i << dec;
+    // }
+    // else {                      //  nslots == 2
+    //     double d = *(double*)&val[0];
+    //     os << hex << d << dec;
+    // }
 }
 
 void

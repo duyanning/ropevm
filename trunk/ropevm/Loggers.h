@@ -4,6 +4,8 @@
 extern MiniLogger order_logger;
 extern MiniLogger top_method_logger;
 extern MiniLogger inter_spmt_thread_logger;
+extern MiniLogger certain_msg_logger;
+extern MiniLogger spec_msg_logger;
 extern MiniLogger control_transfer_logger;
 extern MiniLogger owner_change_logger;
 extern MiniLogger user_change_logger;

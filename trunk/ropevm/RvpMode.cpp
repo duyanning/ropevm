@@ -50,6 +50,7 @@ RvpMode::before_alloc_object()
 {
     MINILOG(r_new_logger, "#" << m_spmt_thread->id() << " (R) hits NEW ");
     m_spmt_thread->sleep();
+    m_spmt_thread->m_spec_running_state = SpecRunningState::cannot_alloc_object;
     throw Break();
 }
 
@@ -73,6 +74,7 @@ RvpMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
         MINILOG(r_logger, "#" << m_spmt_thread->id()
                 << " (R) is to invoke native/sync method: " << *new_mb);
         m_spmt_thread->sleep();
+        m_spmt_thread->m_spec_running_state = SpecRunningState::cannot_exec_priviledged_method;
         return;
     }
 
@@ -84,6 +86,13 @@ RvpMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
     }
 
     MethodBlock* rvp_mb = get_rvp_method(new_mb);
+    assert(rvp_mb);
+
+    // if (rvp_method == nullptr) { // 若无rvp方法就不推测执行了，睡眠。
+    //     m_spmt_thread->sleep();
+    //     return;
+    // }
+
 
     // MINILOG_IF(debug_scaffold::java_main_arrived,
     //            r_frame_logger,
@@ -176,6 +185,7 @@ RvpMode::before_signal_exception(Class *exception_class)
     MINILOG(r_exception_logger, "#" << m_spmt_thread->id()
             << " (R) exception detected!!! " << exception_class->name());
     m_spmt_thread->sleep();
+    m_spmt_thread->m_spec_running_state = SpecRunningState::cannot_signal_exception;
     throw Break();
 }
 

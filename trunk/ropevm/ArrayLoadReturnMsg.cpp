@@ -31,6 +31,7 @@ ArrayLoadReturnMsg::equal(Message* msg)
 void
 ArrayLoadReturnMsg::show(std::ostream& os) const
 {
+    os << "ALOAD_RET";
 }
 
 

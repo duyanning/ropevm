@@ -10,20 +10,13 @@ class Snapshot {
 public:
     Snapshot();
     ~Snapshot();
+
     int version;
-
-    Object* user;
-    Frame* frame;
     CodePntr pc;
+    Frame* frame;
     uintptr_t* sp;
-
-    int c;                      // just for debug
-
-    // when spec_msg is verified OK, can commit to this snapshot
-    Message* spec_msg;          // just for debug
 };
 
-void
-show_snapshot(std::ostream& os, int id , Snapshot* snapshot);
+std::ostream& operator<<(std::ostream& os, const Snapshot* snapshot);
 
 #endif // SNAPSHOT_H

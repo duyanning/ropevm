@@ -24,6 +24,7 @@ ArrayStoreReturnMsg::equal(Message* msg)
 void
 ArrayStoreReturnMsg::show(std::ostream& os) const
 {
+    os << "ASTORE_RET";
 }
 
 

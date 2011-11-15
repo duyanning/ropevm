@@ -184,6 +184,7 @@ CertainMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
 
         if (rvp_method == nullptr) { // 若无rvp方法就不推测执行了，睡眠。
             m_spmt_thread->sleep();
+            m_spmt_thread->m_spec_running_state = SpecRunningState::no_syn_msg;
             return;
         }
 
@@ -677,8 +678,12 @@ CertainMode::send_msg(Message* msg)
     if (RopeVM::model == 2)     // 模型2失去确定控制后睡眠，模型3则不。
         m_spmt_thread->sleep();
 
-    MINILOG(control_transfer_logger,
-            "#" << m_spmt_thread->id()
+    MINILOG(certain_msg_logger, "#" << m_spmt_thread->id()
+            << " send cert msg to "
+            << "#" << msg->get_target_spmt_thread()->id()
+            << " " << *msg);
+
+    MINILOG(control_transfer_logger, "#" << m_spmt_thread->id()
             << " transfer control to "
             << "#" << msg->get_target_spmt_thread()->id());
 
