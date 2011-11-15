@@ -59,9 +59,6 @@ Message::equal(Message* msg)
 
 bool g_equal_msg_content(Message* msg1, Message* msg2)
 {
-    assert(g_is_async_msg(msg1));
-    assert(g_is_async_msg(msg2));
-
     return msg1->equal(msg2);
 }
 

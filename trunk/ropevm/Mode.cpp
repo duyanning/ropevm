@@ -213,6 +213,9 @@ Mode::process_msg(Message* msg)
         PutReturnMsg* put_ret_msg = new PutReturnMsg(put_msg->get_source_spmt_thread());
 
         send_msg(put_ret_msg);
+
+        // 加载下一条待处理消息
+        m_spmt_thread->launch_next_spec_msg();
     }
     else if (type == MsgType::GET) {
         GetMsg* get_msg = static_cast<GetMsg*>(msg);
@@ -230,6 +233,9 @@ Mode::process_msg(Message* msg)
                                                      &value[0], value.size());
 
         send_msg(get_ret_msg);
+
+        // 加载下一条待处理消息
+        m_spmt_thread->launch_next_spec_msg();
     }
     else if (type == MsgType::ASTORE) {
         ArrayStoreMsg* astore_msg = static_cast<ArrayStoreMsg*>(msg);
@@ -246,6 +252,9 @@ Mode::process_msg(Message* msg)
         ArrayStoreReturnMsg* astore_ret_msg = new ArrayStoreReturnMsg(astore_msg->get_source_spmt_thread());
 
         send_msg(astore_ret_msg);
+
+        // 加载下一条待处理消息
+        m_spmt_thread->launch_next_spec_msg();
     }
     else if (type == MsgType::ALOAD) {
         ArrayLoadMsg* aload_msg = static_cast<ArrayLoadMsg*>(msg);
@@ -265,6 +274,8 @@ Mode::process_msg(Message* msg)
 
         send_msg(aload_ret_msg);
 
+        // 加载下一条待处理消息
+        m_spmt_thread->launch_next_spec_msg();
     }
     else if (type == MsgType::RETURN) {
         ReturnMsg* return_msg = static_cast<ReturnMsg*>(msg);

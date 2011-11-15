@@ -206,16 +206,6 @@ g_load_from_stable_array_to_c(uintptr_t* sp, Object* array, int index, int type_
 
 
 
-#define invoke_method                                       \
-    return do_invoke_method((Object*)read(arg1), new_mb);
-
-
-
-#define method_return                           \
-    return do_method_return(len);
-
-
-
 
 #define throw_exception                         \
     return m_spmt_thread->do_throw_exception();

@@ -30,18 +30,13 @@ Mode::fetch_and_interpret_an_instruction()
     assert(not frame->is_dead());
     assert(not frame->is_bad());
 
-    // speculative (pc, frame, sp) only serves owner
-    //assert(is_speculative_mode() ? (frame->get_object()->get_group() == get_group()) : true);
-    // rvp (pc, frame, sp) only serves others
-    //assert(is_rvp_mode() ? frame->get_object() != m_spmt_thread->m_owner : true);
-
     MethodBlock* new_mb;
     Class *new_class;
     uintptr_t *arg1;
     int len;
 
-    assert(frame->mb);
     MethodBlock* mb = frame->mb;
+    assert(mb);
     int c = frame->c;
     uintptr_t* lvars = frame->lvars;
     ConstantPool* cp = mb->classobj->constant_pool();
@@ -50,13 +45,13 @@ Mode::fetch_and_interpret_an_instruction()
     assert(is_pc_ok(pc, mb));
 
     //{{{ statistic
-    // if (debug_scaffold::java_main_arrived
-    //     && m_spmt_thread->is_certain_mode()
-    //     && is_app_obj(mb->classobj)
-    //     ) {
-    //     m_spmt_thread->m_count_certain_instr++;
-    //     Statistic::instance()->probe_instr_exec(*pc);
-    // }
+    if (debug_scaffold::java_main_arrived
+        && m_spmt_thread->is_certain_mode()
+        && is_app_obj(mb->classobj)
+        ) {
+        m_spmt_thread->m_count_certain_instr++;
+        Statistic::instance()->probe_instr_exec(*pc);
+    }
 
     // if (debug_scaffold::java_main_arrived
     //     && m_spmt_thread->is_spec_mode()
@@ -74,13 +69,13 @@ Mode::fetch_and_interpret_an_instruction()
     //}}} statistic
 
     //{{{ just for debug
-    if (debug_scaffold::java_main_arrived
-        && m_spmt_thread->id() == 7
-        //&& strcmp(frame->mb->name, "computeNewValue") == 0
-        ) {
-        int x = 0;
-        x++;
-    }
+    // if (debug_scaffold::java_main_arrived
+    //     && m_spmt_thread->id() == 7
+    //     //&& strcmp(frame->mb->name, "computeNewValue") == 0
+    //     ) {
+    //     int x = 0;
+    //     x++;
+    // }
     //{{{ just for debug
 
 
@@ -376,11 +371,11 @@ Mode::fetch_and_interpret_an_instruction()
             len = 1;
         }
 
-            method_return;
+            return do_method_return(len);
         case OPC_RETURN:
             len = 0;
 
-            method_return;
+            return do_method_return(len);
             // case OPC_GETFIELD_THIS: {
             //     //*sp = INST_DATA(self)[pc[2]];
             //     Object* self = (Object*)lvars[0];
@@ -1137,15 +1132,9 @@ Mode::fetch_and_interpret_an_instruction()
             pc += 3;
             break;
         case OPC_LRETURN:
-        case OPC_DRETURN: {
-            //         sp -= 2;
-            //         Frame* caller = frame->prev;
-            //         *(u8*)caller->osp = *(u8*)sp;
-            //         caller->osp += 2;
+        case OPC_DRETURN:
             len = 2;
-        }
-
-            method_return;
+            return do_method_return(len);
         case OPC_ARRAYLENGTH: {
             //Object * array = (Object *) * --sp;
             //*sp = ARRAY_LEN(array);
@@ -1157,7 +1146,6 @@ Mode::fetch_and_interpret_an_instruction()
             write(sp, ARRAY_LEN(array));
             sp++;
             pc += 1;
-            //do_array_length(array);
             break;
         }
         case OPC_ATHROW: {
@@ -1167,7 +1155,7 @@ Mode::fetch_and_interpret_an_instruction()
             NULL_POINTER_CHECK(obj);
             // 下面这两句不多余，请注意，正在解释throw指令。
             m_spmt_thread->m_thread->exception = obj;
-            throw_exception;
+            return m_spmt_thread->do_throw_exception();
 
         }
         case OPC_NEWARRAY: {
@@ -1178,7 +1166,7 @@ Mode::fetch_and_interpret_an_instruction()
 
             frame->last_pc = pc;
             if ((obj = allocTypeArray(type, count)) == NULL)
-                throw_exception;
+                return m_spmt_thread->do_throw_exception();
 
             //*sp = (uintptr_t)obj;
             write(sp, (uintptr_t)obj);
@@ -1206,7 +1194,7 @@ Mode::fetch_and_interpret_an_instruction()
             frame->last_pc = pc;
             resolveSingleConstant(mb->classobj, READ_U1_OP(pc));
             if (m_spmt_thread->m_thread->exception)
-                throw_exception;
+                return m_spmt_thread->do_throw_exception();
             pc[0] = OPC_LDC_QUICK;
             break;
         }
@@ -1214,7 +1202,7 @@ Mode::fetch_and_interpret_an_instruction()
             frame->last_pc = pc;
             resolveSingleConstant(mb->classobj, READ_U2_OP(pc));
             if (m_spmt_thread->m_thread->exception)
-                throw_exception;
+                return m_spmt_thread->do_throw_exception();
             pc[0] = OPC_LDC_W_QUICK;
             break;
         }
@@ -1258,7 +1246,7 @@ Mode::fetch_and_interpret_an_instruction()
             frame->last_pc = pc;
             fb = resolveField(mb->classobj, idx);
             if (m_spmt_thread->m_thread->exception)
-                throw_exception;
+                return m_spmt_thread->do_throw_exception();
 
             pc[0] = OPC_GETFIELD_QUICK_W;
             //         if (fb->offset > 255)
@@ -1318,7 +1306,7 @@ Mode::fetch_and_interpret_an_instruction()
             fb = resolveField(mb->classobj, idx);
 
             if (m_spmt_thread->m_thread->exception)
-                throw_exception;
+                return m_spmt_thread->do_throw_exception();
 
             pc[0] = OPC_PUTFIELD_QUICK_W;
             //         if (fb->offset > 255)
@@ -1371,7 +1359,7 @@ Mode::fetch_and_interpret_an_instruction()
             frame->last_pc = pc;
             fb = resolveField(mb->classobj, READ_U2_OP(pc));
             if (m_spmt_thread->m_thread->exception)
-                throw_exception;
+                return m_spmt_thread->do_throw_exception();
 
             if ((*fb->type == 'J') || (*fb->type == 'D'))
                 pc[0] = OPC_GETSTATIC2_QUICK;
@@ -1397,7 +1385,7 @@ Mode::fetch_and_interpret_an_instruction()
             fb = resolveField(mb->classobj, READ_U2_OP(pc));
 
             if (m_spmt_thread->m_thread->exception)
-                throw_exception;
+                return m_spmt_thread->do_throw_exception();
 
             if ((*fb->type == 'J') || (*fb->type == 'D'))
                 pc[0] = OPC_PUTSTATIC2_QUICK;
@@ -1423,7 +1411,7 @@ Mode::fetch_and_interpret_an_instruction()
             new_mb = resolveInterfaceMethod(mb->classobj, READ_U2_OP(pc));
 
             if (m_spmt_thread->m_thread->exception)
-                throw_exception;
+                return m_spmt_thread->do_throw_exception();
 
 
             if (CLASS_CB(new_mb->classobj)->access_flags & ACC_INTERFACE)
@@ -1467,7 +1455,7 @@ Mode::fetch_and_interpret_an_instruction()
             new_mb = cb->method_table[mtbl_idx];
 
 
-            invoke_method;
+            return do_invoke_method((Object*)read(arg1), new_mb);
         }
 
         case OPC_INVOKEVIRTUAL: {
@@ -1478,7 +1466,7 @@ Mode::fetch_and_interpret_an_instruction()
             frame->last_pc = pc;
             new_mb = resolveMethod(mb->classobj, idx);
             if (m_spmt_thread->m_thread->exception)
-                throw_exception;
+                return m_spmt_thread->do_throw_exception();
 
             // soot generate invokevirtual for private method
             if (new_mb->is_private()) {
@@ -1507,7 +1495,7 @@ Mode::fetch_and_interpret_an_instruction()
             //new_class = (*(Object **) arg1)->classobj;
             new_class = (read((Object **) arg1))->classobj;
             new_mb = CLASS_CB(new_class)->method_table[READ_U1_OP(pc)];
-            invoke_method;
+            return do_invoke_method((Object*)read(arg1), new_mb);
         }
 
         case OPC_INVOKEVIRTUAL_QUICK_W: {
@@ -1518,7 +1506,7 @@ Mode::fetch_and_interpret_an_instruction()
             NULL_POINTER_CHECK(read(arg1));
             new_class = (read((Object **) arg1))->classobj;
             new_mb = CLASS_CB(new_class)->method_table[new_mb->method_table_index];
-            invoke_method;
+            return do_invoke_method((Object*)read(arg1), new_mb);
         }
 
 
@@ -1532,7 +1520,7 @@ Mode::fetch_and_interpret_an_instruction()
             new_mb = resolveMethod(mb->classobj, idx);
 
             if (m_spmt_thread->m_thread->exception)
-                throw_exception;
+                return m_spmt_thread->do_throw_exception();
 
 
             /* Check if invoking a super method... */
@@ -1557,7 +1545,7 @@ Mode::fetch_and_interpret_an_instruction()
             //NULL_POINTER_CHECK(*arg1);
             NULL_POINTER_CHECK(read(arg1));
 
-            invoke_method;
+            return do_invoke_method((Object*)read(arg1), new_mb);
 
         }
         case OPC_INVOKENONVIRTUAL_QUICK: {
@@ -1566,7 +1554,7 @@ Mode::fetch_and_interpret_an_instruction()
             //NULL_POINTER_CHECK(*arg1);
             NULL_POINTER_CHECK(read(arg1));
 
-            invoke_method;
+            return do_invoke_method((Object*)read(arg1), new_mb);
 
         }
 
@@ -1575,7 +1563,7 @@ Mode::fetch_and_interpret_an_instruction()
             new_mb = resolveMethod(mb->classobj, READ_U2_OP(pc));
 
             if (m_spmt_thread->m_thread->exception)
-                throw_exception;
+                return m_spmt_thread->do_throw_exception();
 
             pc[0] = OPC_INVOKESTATIC_QUICK;
             break;
@@ -1586,7 +1574,6 @@ Mode::fetch_and_interpret_an_instruction()
             new_mb = ((MethodBlock *) CP_INFO(cp, READ_U2_OP(pc)));
             //arg1 = sp - new_mb->args_count;
             arg1 = (uintptr_t*)&new_mb->classobj;
-            //invoke_method;
             return do_invoke_method(new_mb->classobj, new_mb);
             break;
         }
@@ -1597,7 +1584,7 @@ Mode::fetch_and_interpret_an_instruction()
             resolveClass(mb->classobj, READ_U2_OP(pc), FALSE);
 
             if (m_spmt_thread->m_thread->exception)
-                throw_exception;
+                return m_spmt_thread->do_throw_exception();
 
 
             pc[0] = OPC_ANEWARRAY_QUICK;
@@ -1608,7 +1595,7 @@ Mode::fetch_and_interpret_an_instruction()
             resolveClass(mb->classobj, READ_U2_OP(pc), FALSE);
 
             if (m_spmt_thread->m_thread->exception)
-                throw_exception;
+                return m_spmt_thread->do_throw_exception();
 
 
             pc[0] = OPC_CHECKCAST_QUICK;
@@ -1619,7 +1606,7 @@ Mode::fetch_and_interpret_an_instruction()
             resolveClass(mb->classobj, READ_U2_OP(pc), FALSE);
 
             if (m_spmt_thread->m_thread->exception)
-                throw_exception;
+                return m_spmt_thread->do_throw_exception();
 
 
             pc[0] = OPC_INSTANCEOF_QUICK;
@@ -1630,7 +1617,7 @@ Mode::fetch_and_interpret_an_instruction()
             resolveClass(mb->classobj, READ_U2_OP(pc), FALSE);
 
             if (m_spmt_thread->m_thread->exception)
-                throw_exception;
+                return m_spmt_thread->do_throw_exception();
 
             pc[0] = OPC_MULTIANEWARRAY_QUICK;
             break;
@@ -1643,13 +1630,13 @@ Mode::fetch_and_interpret_an_instruction()
             classobj = resolveClass(mb->classobj, READ_U2_OP(pc), TRUE);
 
             if (m_spmt_thread->m_thread->exception)
-                throw_exception;
+                return m_spmt_thread->do_throw_exception();
 
 
             cb = CLASS_CB(classobj);
             if (cb->access_flags & (ACC_INTERFACE | ACC_ABSTRACT)) {
                 signalException(java_lang_InstantiationError, cb->name);
-                throw_exception;
+                return m_spmt_thread->do_throw_exception();
 
             }
 
@@ -1718,7 +1705,7 @@ Mode::fetch_and_interpret_an_instruction()
 
             frame->last_pc = pc;
             if ((obj = allocObject(classobj)) == NULL)
-                throw_exception;
+                return m_spmt_thread->do_throw_exception();
 
             //after_alloc_object(obj);
 
@@ -1740,7 +1727,7 @@ Mode::fetch_and_interpret_an_instruction()
 
             if (count < 0) {
                 signalException(java_lang_NegativeArraySizeException, NULL);
-                throw_exception;
+                return m_spmt_thread->do_throw_exception();
 
             }
 
@@ -1755,11 +1742,11 @@ Mode::fetch_and_interpret_an_instruction()
             free(ac_name);
 
             if (m_spmt_thread->m_thread->exception)
-                throw_exception;
+                return m_spmt_thread->do_throw_exception();
 
 
             if ((obj = allocArray(array_class, count, sizeof(Object *))) == NULL)
-                throw_exception;
+                return m_spmt_thread->do_throw_exception();
 
 
             write(sp, (uintptr_t)obj);
@@ -1799,12 +1786,12 @@ Mode::fetch_and_interpret_an_instruction()
             for (i = 0; i < dim; i++)
                 if ((counts[i] = (intptr_t) read(&sp[i])) < 0) {
                     signalException(java_lang_NegativeArraySizeException, NULL);
-                    throw_exception;
+                    return m_spmt_thread->do_throw_exception();
 
                 }
 
             if ((obj = allocMultiArray(classobj, dim, &counts[0])) == NULL)
-                throw_exception;
+                return m_spmt_thread->do_throw_exception();
 
 
             write(sp, (uintptr_t)obj);
@@ -1825,7 +1812,7 @@ Mode::fetch_and_interpret_an_instruction()
 
             /* Throw the exception */
             signalException(java_lang_AbstractMethodError, mb->name);
-            throw_exception;
+            return m_spmt_thread->do_throw_exception();
 
         }
 

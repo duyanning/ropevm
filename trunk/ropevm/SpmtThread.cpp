@@ -21,15 +21,16 @@ using namespace std;
 SpmtThread::SpmtThread(int id)
 :
     m_id(id),
-    m_thread(0),
-    m_leader(0),
+    m_thread(nullptr),
+    m_leader(nullptr),
     m_halt(true),
     m_quit_drive_loop(false),
-    m_quit_causer(0),
-    m_certain_message(0),
+    m_quit_causer(nullptr),
+    m_certain_message(nullptr),
+    m_current_spec_msg(nullptr),
     m_need_spec_msg(true),
-    m_excep_threw_to_me(0),
-    m_excep_frame(0)
+    m_excep_threw_to_me(nullptr),
+    m_excep_frame(nullptr)
 {
 
     m_certain_mode.set_spmt_thread(this);
@@ -104,13 +105,7 @@ SpmtThread::step()
     // stat
     m_count_step++;
 
-    //try {
-        m_mode->step();
-        //}
-    // catch (Break& e) {
-    //     assert(not is_certain_mode())
-    //     cout << "Break" << endl;
-    // }
+    m_mode->step();
 }
 
 void
@@ -239,7 +234,17 @@ SpmtThread::add_spec_msg(Message* msg)
     // stat
     // m_count_spec_msgs_sent++;
 
-    m_spec_msg_queue.push_back(msg);
+    /*
+      如果队列中有待处理消息，添加到末尾就行。
+      如果队列中无待处理消息，添加到末尾，然后让待处理指针指向该消息。
+     */
+    if (m_iter_next_spec_msg != m_spec_msg_queue.end()) {
+        m_spec_msg_queue.push_back(msg);
+    }
+    else {
+        m_iter_next_spec_msg = m_spec_msg_queue.insert(m_spec_msg_queue.end(), msg);
+    }
+
 
     // 如果本线程是因为推测执行缺乏任务而睡眠，则唤醒。
     if (m_halt and is_spec_mode() and m_need_spec_msg) {
@@ -358,6 +363,9 @@ SpmtThread::commit_effect(Effect* effect)
         m_certain_mode.pc = m_spec_mode.pc;
         m_certain_mode.frame = m_spec_mode.frame;
         m_certain_mode.sp = m_spec_mode.sp;
+
+        // 此时已无推测状态。
+        m_current_spec_msg = nullptr;
     }
 
 
@@ -551,6 +559,7 @@ SpmtThread::abort_uncertain_execution()
 
     // 所有消息变为待处理
     m_iter_next_spec_msg = m_spec_msg_queue.begin();
+    m_current_spec_msg = nullptr;
 
     // 清空state buffer与rvp buffer
     m_state_buffer.reset();
@@ -588,44 +597,64 @@ SpmtThread::verify_speculation(Message* certain_msg)
 
     // if 二者相同
     //     提交第一个消息关联的effect
-    //     释放该effect
-    //     从队列中删除该消息
+    //     从队列中移除该消息
     // else
     //     丢弃所有effect
-    //     if 确定消息是异步消息
-    //         收回该消息
-    //     处理确定消息
     if (success) {
-        // 验证成功时，确定消息得销毁
-        delete certain_msg;
+        m_spec_msg_queue.pop_front();
 
         Effect* effect = spec_msg->get_effect();
         assert(effect);
+
         commit_effect(effect);
 
-        m_spec_msg_queue.pop_front();
 
-        // 验证成功时，推测消息无论是异步还是同步，都要销毁。
-        delete spec_msg;
+        // 比较指针就相等的消息，确定消息和推测消息是同一个消息。只销毁一次。
+        if (g_is_async_msg(certain_msg)) {
+            assert(certain_msg == spec_msg);
+
+            delete certain_msg;
+            certain_msg = nullptr;
+            spec_msg = nullptr;
+        }
+        else {
+            delete certain_msg;
+            certain_msg = nullptr;
+
+            delete spec_msg;
+            spec_msg = nullptr;
+        }
+
     }
     else {
         abort_uncertain_execution();
 
-        // 验证失败时，确定消息如果是同步的，就立即销毁，如果是异步的，还得从队列中拿掉，此时再删除。
+        // 验证失败时，如果确定消息是个异步消息，那么它有可能在队列中。从对列中移除（并不销毁）。
         if (g_is_async_msg(certain_msg)) {
-            remove_revoked_msg(certain_msg);
+            // 因为上面的abort_uncertain_execution，此时队列中没有待验证消息。
+
+
+            auto iter_certain_msg = find(m_spec_msg_queue.begin(),
+                                         m_spec_msg_queue.end(),
+                                         certain_msg);
+
+            // 如果确定消息在队列中，将其移除。
+            if (iter_certain_msg != m_spec_msg_queue.end()) {
+                m_spec_msg_queue.erase(iter_certain_msg);
+
+                // 万一被移除的消息恰好就是队列中的第一条消息，我们还得调整m_iter_next_spec_msg
+                m_iter_next_spec_msg = m_spec_msg_queue.begin();
+            }
+
         }
 
         process_msg(certain_msg);
 
-        if (not g_is_async_msg(certain_msg)) {
-            delete certain_msg;
-        }
+        delete certain_msg;
+        certain_msg = nullptr;
 
-        // 验证失败时，推测消息只有同步的才销毁，异步的仍在队列中。
-        if (not g_is_async_msg(spec_msg)) {
-            delete spec_msg;
-        }
+        // 推测消息一直放在队列中，它们的接受方从不因验证失败而销毁他们，
+        // 只有在他们被发送方收回时才会被销毁。
 
     }
 
@@ -698,6 +727,11 @@ SpmtThread::has_unprocessed_spec_msg()
 void
 SpmtThread::launch_next_spec_msg()
 {
+    assert(RopeVM::model == 2 or RopeVM::model == 3);
+
+    if (RopeVM::model == 2)     // 模型2是不推测执行的。
+        return;
+
     // 不一定有待处理的消息
     MINILOG(task_load_logger, "#" << id() << " try to load a spec msg");
 
@@ -717,14 +751,10 @@ SpmtThread::launch_next_spec_msg()
     snapshot(false);
 
     // 使下一个待处理消息成为当前消息
-    ++m_iter_next_spec_msg;
+    m_current_spec_msg = *m_iter_next_spec_msg++;
 
-    // assert(type == Message::invoke
-    //        or type == Message::put
-    //        or type == Message::get
-    //        or type == Message::arraystore
-    //        or type == Message::arrayload);
-    m_current_spec_msg = *m_iter_next_spec_msg;
+    assert(g_is_async_msg(m_current_spec_msg));
+
     m_current_spec_msg->set_effect(new Effect); // 处理前给消息配上effect
     m_need_spec_msg = false;
     process_msg(m_current_spec_msg);
@@ -779,6 +809,11 @@ SpmtThread::pin_frames()
 void
 SpmtThread::snapshot(bool pin)
 {
+    // 若是从确定模式进入推测模式，使用推测性return_msg之前快照，并没有
+    // 什么推测状态。
+    if (m_current_spec_msg == nullptr)
+        return;
+
     Snapshot* snapshot = new Snapshot;
 
     snapshot->version = m_state_buffer.latest_ver();
