@@ -688,5 +688,7 @@ CertainMode::send_msg(Message* msg)
             << "#" << msg->get_target_spmt_thread()->id());
 
     m_spmt_thread->switch_to_speculative_mode();
+    m_spmt_thread->m_spec_running_state = SpecRunningState::ongoing;
+
     msg->get_target_spmt_thread()->set_certain_msg(msg);
 }

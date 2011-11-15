@@ -424,55 +424,58 @@ SpmtThread::add_revoked_spec_msg(Message* msg)
 
 
 void
-SpmtThread::remove_revoked_msgs()
+SpmtThread::discard_all_revoked_msgs()
 {
     if (m_revoked_msgs.empty())
         return;
 
     for (Message* msg : m_revoked_msgs) {
-        remove_revoked_msg(msg);
-        delete msg;
+        discard_revoked_msg(msg);
     }
-
     m_revoked_msgs.clear();
+
+
+
 }
 
 
 void
-SpmtThread::remove_revoked_msg(Message* msg)
+SpmtThread::discard_revoked_msg(Message* revoked_msg)
 {
     /*
-      if 队列中找不到该消息
-          返回
+      如果队列中找不到该消息
+          销毁被收回消息
+          结束
     */
     auto iter_revoked_msg = find(m_spec_msg_queue.begin(),
                                  m_spec_msg_queue.end(),
-                                 msg);
-    if (iter_revoked_msg == m_spec_msg_queue.end())
+                                 revoked_msg);
+    if (iter_revoked_msg == m_spec_msg_queue.end()) {
+        delete revoked_msg;
         return;
+    }
 
     /*
-      if 消息并无关联的effect（说明还未被处理）
-          if iter_to_revoke与iter_next相同
-              iter_next指向下一个
-          从队列中删除iter_to_revoke所指
-      else
+      如果待收回消息在待处理部分
+          从队列中移除并销毁
+      否则（即在待验证部分）
           从后向前遍历区间[iter_to_revoke + 1, iter_next)内的消息
-              丢弃与消息关联的effect
-              if 消息是异步消息
-                  让iter_next指向该位置
-              else
-                  释放该消息
-                  移除该消息
+              丢弃其effect
+              如果是异步消息
+                  保留在队列中作为待处理消息
+              否则
+                  从队列中移除并销毁
           从队列中删除被收回的消息
      */
 
-    Message* revoked_msg = *iter_revoked_msg;
     if (revoked_msg->get_effect() == nullptr) { // 被收回的消息在待处理部分
         if (iter_revoked_msg == m_iter_next_spec_msg) {
             ++m_iter_next_spec_msg;
         }
+
+        delete revoked_msg;
         m_spec_msg_queue.erase(iter_revoked_msg);
+
     }
     else {                      // 被收回的消息在待验证部分
         auto reverse_iter_msg = reverse_iterator<decltype(m_iter_next_spec_msg)>(m_iter_next_spec_msg);
@@ -482,27 +485,37 @@ SpmtThread::remove_revoked_msg(Message* msg)
             Message* msg = *reverse_iter_msg;
             discard_effect(msg->get_effect());
             if (g_is_async_msg(msg)) {
-                // 从待验证部分拿掉异步消息时不销毁，而是进入待处理部分。
+                // 待验证部分的异步消息重新变为待处理
                 m_iter_next_spec_msg = reverse_iter_msg.base();
                 --m_iter_next_spec_msg;
             }
             else {
-                // 从待验证部分拿掉同步消息时销毁消息
+                // 待验证部分的同步消息，移除并销毁
                 delete msg;
                 ++reverse_iter_msg;
                 m_spec_msg_queue.erase(reverse_iter_msg.base());
             }
         }
 
-        // 拿掉被收回的消息
         assert(iter_revoked_msg == m_iter_next_spec_msg); // 经过上面的循环，此处必相等。
+
+        // 移除并销毁被收回的消息
+        delete revoked_msg;
         ++m_iter_next_spec_msg;
         m_spec_msg_queue.erase(iter_revoked_msg);
 
-        m_spec_running_state = SpecRunningState::no_asyn_msg; // 表明推测执行需要加载推测消息（因为收回消息把人家正在处理的消息下马了）
 
+
+        // 丢弃之前，可能处于推测模式或rvp模式。因为rvp执行必是推测执行
+        // 的最前沿。所以但凡丢弃了待验证部分的消息，rvp执行必然被终止。
+        // 所以无论如何，转入推测模式。
         switch_to_speculative_mode();
-        wakeup();
+
+
+        // 推测执行本来可能因为多种原因睡眠，睡眠是推测执行的最前沿。所
+        // 以但凡丢弃了待验证部分的消息，睡眠原因必然不再成立。现在是否
+        // 睡眠，全看有没有待处理消息。
+        m_spec_running_state = SpecRunningState::no_asyn_msg; // 表明推测执行需要加载推测消息（因为收回消息把人家正在处理的消息下马了）
 
     }
 }
@@ -652,7 +665,7 @@ SpmtThread::verify_speculation(Message* certain_msg)
     else {
         abort_uncertain_execution();
 
-        // 验证失败时，如果确定消息是个异步消息，那么它有可能在队列中。从对列中移除（并不销毁）。
+        // 验证失败时，如果确定消息是个异步消息，那么它有可能在队列中。从队列中移除（但不销毁）。
         if (g_is_async_msg(certain_msg)) {
             // 因为上面的abort_uncertain_execution，此时队列中没有待验证消息。
 

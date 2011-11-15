@@ -94,8 +94,8 @@ public:
     void launch_next_spec_msg();
     void launch_spec_msg(Message* msg);
     bool is_waiting_for_spec_msg();
-    void remove_revoked_msgs(); // 扔掉被收回的消息
-    void remove_revoked_msg(Message* msg);
+    void discard_all_revoked_msgs(); // 扔掉被收回的消息
+    void discard_revoked_msg(Message* msg);
 
     // 根据不同的模式对消息进行处理
     void process_msg(Message* msg);
