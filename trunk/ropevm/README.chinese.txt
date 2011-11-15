@@ -54,7 +54,7 @@ log-model-3.txt
 * 开发调试
 epmacs的设置
 当前目录 包含.java文件的目录
-命令行参数 -cp bin-javac -Xmodel:1 -Xlog:off Hello
+命令行参数 -cp bin-javac -Xmodel:3 -Xlog:off Health -l 3 -t 16 -s 1 -m
 
 虚拟机在解释过程中，可能会使用库中的java代码，如ClassLoader
 在调试过程中看着这些java代码的字节码是很有帮助的。
