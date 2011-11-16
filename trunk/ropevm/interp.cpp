@@ -27,8 +27,8 @@ Mode::fetch_and_interpret_an_instruction()
 {
     assert(frame);
     //assert(frame->is_alive());
-    assert(not frame->is_dead());
-    assert(not frame->is_bad());
+    // assert(not frame->is_dead());
+    // assert(not frame->is_bad());
 
     MethodBlock* new_mb;
     Class *new_class;

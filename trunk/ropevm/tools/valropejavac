@@ -1,0 +1,6 @@
+#!/usr/bin/env sh
+
+
+. cmd
+valgrind --leak-check=yes ropevm -cp bin-javac $APP $PARMS 2> val.txt 1>&2
+

@@ -30,12 +30,3 @@
 #define READ_S2_OP(p)    (signed short)READ_U2_OP(p)
 #define READ_S4_OP(p)    (signed int)READ_U4_OP(p)
 
-class Frame;
-class MethodBlock;
-class Object;
-
-Frame*
-g_create_frame(SpmtThread* owner, Object* object, MethodBlock* new_mb, uintptr_t* args,
-               SpmtThread* caller, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp);
-
-Frame* create_dummy_frame(Frame* caller_frame);

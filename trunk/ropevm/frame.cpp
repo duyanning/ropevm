@@ -53,26 +53,27 @@ Class *getCallerCallerClass()
 unsigned long long call_count = 0; // just for debug
 
 Frame::Frame(int lvars_size, int ostack_size)
-// :
-//     lvars(new uintptr_t[lvars_size != 0 ? lvars_size : 4]),
-//     ostack_base(new uintptr_t[ostack_size != 0 ? ostack_size : 4])
+:
+    last_pc(nullptr),
+    mb(nullptr),
+    object(nullptr),
+    owner(nullptr),
+    caller(nullptr),
+    caller_pc(nullptr),
+    prev(nullptr),
+    caller_sp(nullptr),
+    pinned(false),
+    is_top(false)
 {
     //assert(lvars_size);
     //assert(ostack_size);
     lvars = new uintptr_t[lvars_size];
     ostack_base = new uintptr_t[ostack_size];
 
-    owner = nullptr;
-    caller = nullptr;
-    last_pc = 0;
-    mb = 0;
-    prev = 0;
+
     _name_ = 0;
-    object = 0;
     lrefs = 0;
-    pinned = false;
-    caller_sp = 0;
-    caller_pc = 0;
+
 
     //{{{ just for debug
     call_count++;
@@ -120,27 +121,9 @@ Frame::get_object()
 bool
 Frame::is_top_frame()
 {
-    return prev->mb == 0;
+    return is_top;
 }
 
-std::ostream&
-operator<<(std::ostream& os, const Frame& f)
-{
-    os << *f.mb
-       << " " << &f
-       << " obj: " << f.object
-       << " prev: " << f.prev
-       << " prev_obj: " << f.prev->object
-       << " caller: " << f.caller
-       << " ["
-       << f.lvars << ", " << f.lvars + f.mb->max_locals
-       << ")"
-       << " ["
-       << f.ostack_base << ", " << f.ostack_base + f.mb->max_stack << ") "
-       << ")";
-
-    return os;
-}
 
 void copy_args_to_params(uintptr_t* arg, uintptr_t* param, int count)
 {
@@ -158,7 +141,8 @@ create_dummy_frame(Frame* caller_frame)
 
 Frame*
 g_create_frame(SpmtThread* owner, Object* object, MethodBlock* new_mb, uintptr_t* args,
-               SpmtThread* caller, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp)
+               SpmtThread* caller, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp,
+               bool is_top)
 {
     assert(new_mb);
 
@@ -174,6 +158,8 @@ g_create_frame(SpmtThread* owner, Object* object, MethodBlock* new_mb, uintptr_t
 
     Frame* new_frame = new Frame(lvars_size, ostack_size);
 
+    new_frame->is_top = is_top;
+
     new_frame->owner = owner;
     new_frame->object = object;
     new_frame->mb = new_mb;
@@ -186,4 +172,12 @@ g_create_frame(SpmtThread* owner, Object* object, MethodBlock* new_mb, uintptr_t
         copy_args_to_params(args, new_frame->lvars, new_mb->args_count);
 
     return new_frame;
+}
+
+
+void
+g_destroy_frame(Frame* frame)
+{
+    delete frame;
+    //frame->magic = 2009; // only mark dead, do not delete for debug purpose
 }

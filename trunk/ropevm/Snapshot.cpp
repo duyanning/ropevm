@@ -24,10 +24,10 @@ Snapshot::~Snapshot()
 void
 show_snapshot(std::ostream& os, const Snapshot* snapshot)
 {
-    os << "ver" << snapshot->version;
+    os << "(" << snapshot->version << ")";
     if (snapshot->frame) {
         os << " at " << snapshot->pc - (CodePntr)snapshot->frame->mb->code
-           << " of " << *snapshot->frame->mb;
+           << " of " << snapshot->frame;
     }
 
 }

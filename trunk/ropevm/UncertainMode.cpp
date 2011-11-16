@@ -73,6 +73,8 @@ UncertainMode::step()
 
         m_spmt_thread->launch_next_spec_msg();
 
+        return;                 // 有可能没有异步消息，这样的话就不能执行下边的fetch_and_interpret_an_instruction
+
     }
 
     // 3，取出并解释一条java指令

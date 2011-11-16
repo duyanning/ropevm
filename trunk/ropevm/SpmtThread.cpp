@@ -370,9 +370,9 @@ SpmtThread::commit_effect(Effect* effect)
         m_certain_mode.sp = m_spec_mode.sp;
 
         MINILOG(snapshot_logger, "#" << m_id
-                << " commit "<< commit_ver
-                << " to " << m_certain_mode.pc - (CodePntr)m_certain_mode.frame->mb->code
-                << " of " << *m_certain_mode.frame->mb);
+                << " commit ("<< commit_ver << ")"
+                << " at " << m_certain_mode.pc - (CodePntr)m_certain_mode.frame->mb->code
+                << " of " << m_certain_mode.frame->mb);
 
         // 此时已无推测状态。
         m_current_spec_msg = nullptr;
@@ -400,7 +400,9 @@ SpmtThread::affirm_spec_msg(Message* msg)
 
 
     MINILOG(certain_msg_logger, "#" << m_id
-            << " affirm spec msg " << *msg);
+            << " affirm spec msg to "
+            <<"#" << msg->get_target_spmt_thread()->id()
+            << " " << msg);
 
     MINILOG(control_transfer_logger, "#" << m_id
             << " transfer control to "
@@ -412,6 +414,11 @@ SpmtThread::affirm_spec_msg(Message* msg)
 void
 SpmtThread::revoke_spec_msg(Message* msg)
 {
+    MINILOG(spec_msg_logger, "#" << m_id
+            << " revoke spec msg to "
+            << "#" << msg->get_target_spmt_thread()->id()
+            << " " << msg);
+
     msg->get_target_spmt_thread()->add_revoked_spec_msg(msg);
 }
 
@@ -432,19 +439,24 @@ SpmtThread::discard_all_revoked_msgs()
     for (Message* msg : m_revoked_msgs) {
         discard_revoked_msg(msg);
     }
+
     m_revoked_msgs.clear();
-
-
-
 }
 
 
+// 丢弃被其他线程收回的消息
 void
 SpmtThread::discard_revoked_msg(Message* revoked_msg)
 {
+    MINILOG(spec_msg_logger, "#" << m_id
+            << " discard spec msg from "
+            << "#" << revoked_msg->get_target_spmt_thread()->id()
+            << " " << revoked_msg);
+
+
     /*
-      如果队列中找不到该消息
-          销毁被收回消息
+      如果在队列中找不到该消息
+          销毁该消息
           结束
     */
     auto iter_revoked_msg = find(m_spec_msg_queue.begin(),
@@ -456,19 +468,21 @@ SpmtThread::discard_revoked_msg(Message* revoked_msg)
     }
 
     /*
-      如果待收回消息在待处理部分
+      如果该消息在待处理部分
           从队列中移除并销毁
       否则（即在待验证部分）
-          从后向前遍历区间[iter_to_revoke + 1, iter_next)内的消息
+          从后向前遍历受影响的其他消息（即区间[iter_to_revoke + 1, iter_next)内的消息）
               丢弃其effect
               如果是异步消息
-                  保留在队列中作为待处理消息
+                  变为待处理消息
               否则
                   从队列中移除并销毁
-          从队列中删除被收回的消息
+          移除并销毁被收回的消息
      */
 
     if (revoked_msg->get_effect() == nullptr) { // 被收回的消息在待处理部分
+
+        // 如果被收回的消息恰巧就是下一个待处理消息，还得调整一下m_iter_next_spec_msg
         if (iter_revoked_msg == m_iter_next_spec_msg) {
             ++m_iter_next_spec_msg;
         }
@@ -483,14 +497,18 @@ SpmtThread::discard_revoked_msg(Message* revoked_msg)
 
         while (reverse_iter_msg != reverse_iter_revoked_msg) {
             Message* msg = *reverse_iter_msg;
+
             discard_effect(msg->get_effect());
+            msg->set_effect(0);
+
             if (g_is_async_msg(msg)) {
-                // 待验证部分的异步消息重新变为待处理
+                // 异步消息变为待处理
+
+                ++reverse_iter_msg;
                 m_iter_next_spec_msg = reverse_iter_msg.base();
-                --m_iter_next_spec_msg;
             }
             else {
-                // 待验证部分的同步消息，移除并销毁
+                // 同步消息，移除并销毁
                 delete msg;
                 ++reverse_iter_msg;
                 m_spec_msg_queue.erase(reverse_iter_msg.base());
@@ -532,6 +550,8 @@ SpmtThread::discard_revoked_msg(Message* revoked_msg)
 void
 SpmtThread::discard_effect(Effect* effect)
 {
+    assert(effect);
+
     // 释放C中的栈帧（不用从状态缓存中清除栈帧中的内容，等会一把丢弃）
     for (Frame* f : effect->C) {
         delete f;
@@ -584,6 +604,7 @@ SpmtThread::abort_uncertain_execution()
 
         if (effect) {
             discard_effect(effect);
+            msg->set_effect(0);
         }
 
         if (not g_is_async_msg(msg)) {
@@ -803,7 +824,7 @@ void
 SpmtThread::launch_spec_msg(Message* msg)
 {
     // 在处理新的推测之前对处理上一消息形成的状态进行快照
-    snapshot(false);
+    snapshot(true);
 
     // 将msg插在待处理消息之前，作为当前消息
     m_spec_msg_queue.insert(m_iter_next_spec_msg, msg);
@@ -824,7 +845,7 @@ SpmtThread::pin_frames()
 
     for (;;) {
         MINILOG(snapshot_logger, "#" << m_id
-                << " pin frame(" << f << ")" << " for " << *f->mb);
+                << " pin " << f);
 
         if (f->pinned)
             break;
@@ -835,12 +856,11 @@ SpmtThread::pin_frames()
         if (f->is_top_frame())
             break;
 
-        f = f->prev;
-
         // 只管钉住本线程创建
         if (f->caller != this)
             break;
 
+        f = f->prev;
     }
 }
 
@@ -887,7 +907,8 @@ SpmtThread::on_event_top_invoke(InvokeMsg* msg)
                                msg->get_source_spmt_thread(),
                                msg->caller_pc,
                                msg->caller_frame,
-                               msg->caller_sp);
+                               msg->caller_sp,
+                               true);
 
 
 }
