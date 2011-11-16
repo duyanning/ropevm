@@ -397,7 +397,7 @@ get_rvp_method(MethodBlock* complete)
     rvpmb = lookupMethod(complete->classobj, copyUtf8(method_name.c_str()), complete->type);
 
     if (rvpmb == 0) {
-        MINILOG(r_logger, "WARNING: no rvpet for " << *complete << ", use complete method");
+        MINILOG(r_logger, "WARNING: no rvpet for " << complete << ", use complete method");
         //assert(simplified);
         //return complete;
     }

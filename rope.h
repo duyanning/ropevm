@@ -941,21 +941,10 @@ public:
     ConstantPool* constant_pool() { return &classblock()->constant_pool; }
 };
 
-inline
-std::ostream& operator<<(std::ostream& os, const MethodBlock& mb)
-{
-    os << (mb.is_static() ? "c" : "");
-    os << mb.classobj->name() << '.' << mb.name << ':' << mb.type;
-    return os;
-}
 
-inline
-std::ostream& operator<<(std::ostream& os, const FieldBlock& fb)
-{
-    os << (fb.is_static() ? "c" : "");
-    os << fb.classobj->name() << '.' << fb.name << ':' << fb.type;
-    return os;
-}
+std::ostream& operator<<(std::ostream& os, const MethodBlock* mb);
+std::ostream& operator<<(std::ostream& os, const FieldBlock& fb);
+
 
 // bool is_speculative_object(Object* obj);
 // bool is_speculative_class(Class* classobj);

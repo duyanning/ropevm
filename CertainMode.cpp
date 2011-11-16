@@ -77,20 +77,20 @@ CertainMode::do_execute_method(Object* target_object,
     assert(target_spmt_thread->get_thread() == g_get_current_thread());
 
     MINILOG(top_method_logger, "#" << m_spmt_thread->m_id
-            << " top-invoke " << "#" << target_spmt_thread->m_id << " " << *new_mb);
+            << " top-invoke " << "#" << target_spmt_thread->m_id << " " << new_mb);
 
     if (target_spmt_thread == m_spmt_thread or g_is_pure_code_method(new_mb)) {
 
         // 对top method的调用是从native代码中发出，所以caller的pc设为0
         // dummy frame作为顶级方法的上级，用来接收top frame的返回值
         invoke_impl(target_object, new_mb, &jargs[0],
-                    m_spmt_thread, 0, dummy, dummy->ostack_base);
+                    m_spmt_thread, 0, dummy, dummy->ostack_base, true);
 
 
     }
     else {
         MINILOG(inter_spmt_thread_logger, "#" << m_spmt_thread->m_id
-                << " inter-invoke(top) " << "#" << target_spmt_thread->m_id << " " << *new_mb);
+                << " inter-invoke(top) " << "#" << target_spmt_thread->m_id << " " << new_mb);
 
         // 构造确定性的invoke_msg发送给目标线程
         InvokeMsg* invoke_msg = new InvokeMsg(m_spmt_thread, target_spmt_thread,
@@ -139,7 +139,7 @@ CertainMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
 {
     assert(target_object);
 
-    MINILOG_IF((m_spmt_thread->m_id == 0 or m_spmt_thread->m_id >= 5), order_logger, "invoke " << *new_mb);
+    MINILOG_IF((m_spmt_thread->m_id == 0 or m_spmt_thread->m_id >= 5), order_logger, "invoke " << new_mb);
 
     frame->last_pc = pc;
 
@@ -150,12 +150,13 @@ CertainMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
 
         sp -= new_mb->args_count;
         invoke_impl(target_object, new_mb, sp,
-                    m_spmt_thread, pc, frame, sp);
+                    m_spmt_thread, pc, frame, sp,
+                    false);
 
     }
     else {
         MINILOG(inter_spmt_thread_logger, "#" << m_spmt_thread->m_id
-                << " inter-invoke " << "#" << target_spmt_thread->m_id << " " << *new_mb);
+                << " inter-invoke " << "#" << target_spmt_thread->m_id << " " << new_mb);
 
         // pop up arguments
         sp -= new_mb->args_count;
@@ -195,7 +196,8 @@ CertainMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
                                               rvp_method,
                                               sp,
                                               m_spmt_thread,
-                                              pc, frame, sp);
+                                              pc, frame, sp,
+                                              false);
 
         m_spmt_thread->switch_to_rvp_mode();
     }
@@ -213,7 +215,7 @@ CertainMode::do_method_return(int len)
 
     Frame* current_frame = frame; // 因为后边的处理可能会改变frame，所以我们先保存一下
 
-    MINILOG_IF((m_spmt_thread->m_id == 0 or m_spmt_thread->m_id >= 5), order_logger, "return " << *current_frame->mb);
+    MINILOG_IF((m_spmt_thread->m_id == 0 or m_spmt_thread->m_id >= 5), order_logger, "return " << current_frame->mb);
 
     // 给同步方法解锁
     if (current_frame->mb->is_synchronized()) {
@@ -229,7 +231,7 @@ CertainMode::do_method_return(int len)
 
 
     MINILOG_IF(current_frame->is_top_frame(), top_method_logger, "#" << m_spmt_thread->m_id
-               << " top-return " << "#" << target_spmt_thread->m_id << " " << *current_frame->mb);
+               << " top-return " << "#" << target_spmt_thread->m_id << " " << current_frame->mb);
 
 
     /*
@@ -276,7 +278,7 @@ CertainMode::do_method_return(int len)
     else {
 
         MINILOG(inter_spmt_thread_logger, "#" << m_spmt_thread->m_id
-                << " inter-return" << (current_frame->is_top_frame()? "(top) " : " ") << "#" << target_spmt_thread->m_id << " " << *current_frame->mb);
+                << " inter-return" << (current_frame->is_top_frame()? "(top) " : " ") << "#" << target_spmt_thread->m_id << " " << current_frame->mb);
 
         // MINILOG0("#" << m_spmt_thread->id() << " r<<<transfers to #" << target_spmt_thread->id()
         //          // << " " << info(current_object) << " => " << info(target_object)
@@ -303,6 +305,7 @@ CertainMode::do_method_return(int len)
             x++;
         }
 
+        assert(not current_frame->is_top_frame() or current_frame->caller_pc == 0);
 
         // 构造确定性的return_msg发送给目标线程
         ReturnMsg* return_msg = new ReturnMsg(target_spmt_thread,
@@ -324,7 +327,8 @@ CertainMode::do_method_return(int len)
 
 void
 CertainMode::invoke_impl(Object* target_object, MethodBlock* new_mb, uintptr_t* args,
-                         SpmtThread* caller, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp)
+                         SpmtThread* caller, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp,
+                         bool is_top)
 {
     MINILOG_IF(debug_scaffold::java_main_arrived,
                invoke_return_logger,
@@ -340,7 +344,8 @@ CertainMode::invoke_impl(Object* target_object, MethodBlock* new_mb, uintptr_t* 
 
 
     frame = create_frame(target_object, new_mb, args,
-                         caller, caller_pc, caller_frame, caller_sp);
+                         caller, caller_pc, caller_frame, caller_sp,
+                         is_top);
 
     // 给同步方法加锁
     if (frame->mb->is_synchronized()) {
@@ -444,12 +449,12 @@ CertainMode::before_signal_exception(Class *exception_class)
 
 Frame*
 CertainMode::create_frame(Object* object, MethodBlock* new_mb, uintptr_t* args,
-                          SpmtThread* caller,
-                          CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp)
+                          SpmtThread* caller, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp,
+                          bool is_top)
 {
     Frame* new_frame = g_create_frame(m_spmt_thread, object, new_mb, args,
-                                      caller,
-                                      caller_pc, caller_frame, caller_sp);
+                                      caller, caller_pc, caller_frame, caller_sp,
+                                      is_top);
 
     return new_frame;
 }
@@ -459,18 +464,9 @@ CertainMode::destroy_frame(Frame* frame)
 {
     MINILOG_IF(debug_scaffold::java_main_arrived && is_app_obj(frame->mb->classobj),
                c_destroy_frame_logger, "#" << m_spmt_thread->id()
-               << " (C) destroy frame " << *frame);
+               << " (C) destroy frame " << frame);
 
-    //{{{ just for debug
-    if (frame->mb
-        && strcmp("generatePatient", frame->mb->name) == 0
-        ){
-        int x = 0;
-        x++;
-    }
-    //}}} just for debug
-    //delete frame;
-    Mode::destroy_frame(frame);
+    g_destroy_frame(frame);
 }
 
 /*
@@ -681,7 +677,7 @@ CertainMode::send_msg(Message* msg)
     MINILOG(certain_msg_logger, "#" << m_spmt_thread->id()
             << " send cert msg to "
             << "#" << msg->get_target_spmt_thread()->id()
-            << " " << *msg);
+            << " " << msg);
 
     MINILOG(control_transfer_logger, "#" << m_spmt_thread->id()
             << " transfer control to "

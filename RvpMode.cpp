@@ -72,7 +72,7 @@ RvpMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
 
     if (is_priviledged(new_mb)) {
         MINILOG(r_logger, "#" << m_spmt_thread->id()
-                << " (R) is to invoke native/sync method: " << *new_mb);
+                << " (R) is to invoke native/sync method: " << new_mb);
         m_spmt_thread->sleep();
         m_spmt_thread->m_spec_running_state = SpecRunningState::cannot_exec_priviledged_method;
         return;
@@ -104,7 +104,7 @@ RvpMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
     //            );
 
     // 除了最外层的rvp栈帧，里层的rvp栈帧的caller都为0。
-    invoke_impl(target_object, rvp_mb, &args[0], 0, pc, frame, sp);
+    invoke_impl(target_object, rvp_mb, &args[0], 0, pc, frame, sp, false);
 }
 
 
@@ -192,11 +192,12 @@ RvpMode::before_signal_exception(Class *exception_class)
 
 Frame*
 RvpMode::create_frame(Object* object, MethodBlock* new_mb, uintptr_t* args,
-                      SpmtThread* caller, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp)
+                      SpmtThread* caller, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp,
+                      bool is_top)
 {
     //Frame* new_frame = g_create_frame(m_spmt_thread, object, new_mb, args, caller, caller_pc, caller_frame, caller_sp);
     // rvp模式不会抛出异常，栈帧的owner没用，我们让它为0，表示这是个rvp栈帧。用于调试。
-    Frame* new_frame = g_create_frame(0, object, new_mb, args, caller, caller_pc, caller_frame, caller_sp);
+    Frame* new_frame = g_create_frame(0, object, new_mb, args, caller, caller_pc, caller_frame, caller_sp, is_top);
 
     // record new_frame in V of effect
     return new_frame;
@@ -213,17 +214,9 @@ RvpMode::destroy_frame(Frame* frame)
     m_spmt_thread->clear_frame_in_rvp_buffer(frame);
 
     MINILOG(r_destroy_frame_logger, "#" << m_spmt_thread->id()
-            << " (R) destroy frame " << frame << " for " << *frame->mb);
-    MINILOG(r_destroy_frame_logger, "#" << m_spmt_thread->id()
-            << " free rvpframe+" << *frame);
-    // if (frame->xxx == 999)
-    //     cout << "xxx999" << endl;
+            << " (R) destroy frame " << frame);
 
-    //{{{ just for debug
-    //assert(frame->c != 23507);
-    //{{{ just for debug
-    //delete frame;
-    Mode::destroy_frame(frame);
+    g_destroy_frame(frame);
 }
 
 void
@@ -282,7 +275,7 @@ void*
 RvpMode::do_execute_method(Object* target_object, MethodBlock *mb, std::vector<uintptr_t>& jargs)
 {
     MINILOG(step_loop_in_out_logger, "#" << m_spmt_thread->id()
-            << " (R) throw-> to be execute java method: " << *mb);
+            << " (R) throw-> to be execute java method: " << mb);
 
     m_spmt_thread->sleep();
     throw Break();
@@ -301,7 +294,8 @@ RvpMode::log_when_invoke_return(bool is_invoke, Object* caller, MethodBlock* cal
 
 void
 RvpMode::invoke_impl(Object* target_object, MethodBlock* new_mb, uintptr_t* args,
-                     SpmtThread* caller, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp)
+                     SpmtThread* caller, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp,
+                     bool is_top)
 {
     Frame* new_frame = create_frame(target_object,
                                     new_mb,
@@ -309,7 +303,8 @@ RvpMode::invoke_impl(Object* target_object, MethodBlock* new_mb, uintptr_t* args
                                     caller,
                                     caller_pc,
                                     caller_frame,
-                                    caller_sp);
+                                    caller_sp,
+                                    is_top);
 
     pc = (CodePntr)new_frame->mb->code;
     frame = new_frame;

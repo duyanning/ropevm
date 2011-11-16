@@ -192,13 +192,15 @@ Mode::process_msg(Message* msg)
     if (type == MsgType::INVOKE) {
         InvokeMsg* invoke_msg = static_cast<InvokeMsg*>(msg);
 
+        assert(not invoke_msg->is_top()); // 顶级方法不在这里处理
+
         // 为invoke_msg指定的方法及参数创建栈帧并设置
         invoke_impl(invoke_msg->get_target_object(),
                     invoke_msg->mb, &invoke_msg->parameters[0],
                     invoke_msg->get_source_spmt_thread(),
                     invoke_msg->caller_pc,
                     invoke_msg->caller_frame,
-                    invoke_msg->caller_sp);
+                    invoke_msg->caller_sp, false);
     }
     else if (type == MsgType::PUT) {
         PutMsg* put_msg = static_cast<PutMsg*>(msg);
@@ -333,9 +335,9 @@ Mode::destroy_frame(Frame* frame)
 {
     //assert(m_spmt_thread->frame_is_not_in_snapshots(frame));
 
-    MINILOG(delete_frame_logger, "#" << m_spmt_thread->id() << " delete frame: " << info(frame) << frame);
+
     delete frame;
-    //frame->magic = 2009; // only mark dead, do not delete for debug purpose
+
 }
 
 void
@@ -343,17 +345,17 @@ show_triple(std::ostream& os, int id, Frame* frame, uintptr_t* sp, CodePntr pc, 
             bool more)
 {
     if (frame) {
-        if (frame->is_alive())
-            os << "alive" << endl;
-        if (frame->is_dead())
-            os << "dead" << endl;
-        if (frame->is_bad())
-            os << "bad" << endl;
+        // if (frame->is_alive())
+        //     os << "alive" << endl;
+        // if (frame->is_dead())
+        //     os << "dead" << endl;
+        // if (frame->is_bad())
+        //     os << "bad" << endl;
     }
 
     os << "#" << id << " frame = " << frame;
     if (more && frame && frame->mb) {
-        os << " " << *frame->mb << "\n";
+        os << " " << frame->mb << "\n";
         os << "#" << id << " lvars = " << frame->lvars << "\n";
         os << "#" << id << " ostack_base = " << frame->ostack_base << "\n";
     }
@@ -402,7 +404,7 @@ show_invoke_return(std::ostream& os, bool is_invoke, int id, const char* tag,
     // else
     //     os << "(#none)";
     os << " ";
-    os << *caller_mb;
+    os << caller_mb;
     os << (is_invoke ? " ===>>> " : " <<<=== ");
     os << callee;
     // if (callee->get_group())
@@ -410,7 +412,7 @@ show_invoke_return(std::ostream& os, bool is_invoke, int id, const char* tag,
     // else
     //     os << "(#none)";
     os << " ";
-    os << *callee_mb;
+    os << callee_mb;
     os << endl;
 }
 

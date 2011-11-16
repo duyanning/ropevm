@@ -33,7 +33,8 @@ public:
 
     // 参数用无模式方式读取
     virtual void invoke_impl(Object* target_object, MethodBlock* new_mb, uintptr_t* args,
-                             SpmtThread* caller, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp) =0;
+                             SpmtThread* caller, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp,
+                             bool is_top) = 0;
 
 
     void load_from_array(uintptr_t* sp, Object* array, int index, int type_size);
@@ -43,8 +44,8 @@ public:
 
 
     virtual Frame* create_frame(Object* object, MethodBlock* new_mb, uintptr_t* args,
-                                SpmtThread* caller,
-                                CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp) = 0;
+                                SpmtThread* caller, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp,
+                                bool is_top) = 0;
 
     virtual void destroy_frame(Frame* frame) = 0;
 
