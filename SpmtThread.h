@@ -15,6 +15,7 @@ class MethodBlock;
 class Object;
 class Class;
 class Message;
+class RoundTripMsg;
 class InvokeMsg;
 class ReturnMsg;
 class Snapshot;
@@ -75,13 +76,13 @@ public:
     // 推测消息最终还要被affirm或被revoke。
     void send_msg(Message* msg);
     void affirm_spec_msg(Message* msg);
-    void revoke_spec_msg(Message* msg);
+    void revoke_spec_msg(RoundTripMsg* msg);
 
     // 由其他线程调用。注意：在多os线程实现方式下，那些由其他spmt线程调
     // 用的方法，会和由自己调用的方法，如不小心同步，就会发生冲突。
     void set_certain_msg(Message* msg);
     void add_spec_msg(Message* msg);
-    void add_revoked_spec_msg(Message* msg);
+    void add_revoked_spec_msg(RoundTripMsg* msg);
 
     // 确定消息处理
     Message* get_certain_msg();                // 检测确定消息
@@ -95,7 +96,7 @@ public:
     void launch_spec_msg(Message* msg); // 加载同步推测消息
     bool is_waiting_for_spec_msg();
     void discard_all_revoked_msgs(); // 丢弃被收回的消息
-    void discard_revoked_msg(Message* revoked_msg);
+    void discard_revoked_msg(RoundTripMsg* revoked_msg);
 
     // 根据不同的模式对消息进行处理
     void process_msg(Message* msg);
@@ -161,7 +162,7 @@ private:
     std::list<Message*>::iterator m_iter_next_spec_msg;
     Message* m_current_spec_msg; // 正在处理的推测消息。只要有正在进行的推测执行，此变量就不为空。
     SpecRunningState m_spec_running_state; // 推测执行的状态
-    std::vector<Message*> m_revoked_msgs; // 发送方要求收回这些推测消息
+    std::vector<RoundTripMsg*> m_revoked_msgs; // 发送方要求收回这些推测消息
 
     // 不同模式下读写的去处
     StateBuffer m_state_buffer;
