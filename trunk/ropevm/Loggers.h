@@ -24,6 +24,7 @@ extern MiniLogger s_new_sub_logger;
 extern MiniLogger r_new_logger;
 extern MiniLogger step_loop_in_out_logger;
 extern MiniLogger c_destroy_frame_logger;
+extern MiniLogger s_create_frame_logger;
 extern MiniLogger s_destroy_frame_logger;
 extern MiniLogger r_destroy_frame_logger;
 extern MiniLogger r_frame_logger;

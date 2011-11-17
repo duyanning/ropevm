@@ -346,10 +346,19 @@ SpmtThread::report_stat(ostream& os)
 void
 SpmtThread::commit_effect(Effect* effect)
 {
+    // effect被提交，将被销毁，在该effect中创建的那些栈桢还记录有指向该
+    // effect中C的迭代器。把这些迭代器标记为失效。
+    for (Frame* f : effect->C) {
+        f->is_iter_in_current_effect = false;
+    }
+
+    // 为effect->C与effect->R可能有交集，所以得在销毁R中栈桢之前设置该值。
+
     // 释放栈帧R（推测模式下返回时因为被钉住而没能释放）
     for (Frame* f : effect->R) {
-        f->pinned = false;
-        m_spec_mode.destroy_frame(f);
+
+        clear_frame_in_state_buffer(f);
+        g_destroy_frame(f);
     }
 
 
@@ -370,6 +379,9 @@ SpmtThread::commit_effect(Effect* effect)
         m_certain_mode.sp = snapshot->sp;
 
         MINILOG(snapshot_logger, "#" << m_id << " commit "<< snapshot);
+
+        delete snapshot;
+        snapshot = nullptr;
 
     }
     else {
@@ -469,10 +481,10 @@ SpmtThread::discard_revoked_msg(RoundTripMsg* revoked_msg)
           销毁该消息
           结束
     */
-    auto iter_revoked_msg = find(m_spec_msg_queue.begin(),
+    auto i_revoked_msg = find(m_spec_msg_queue.begin(),
                                  m_spec_msg_queue.end(),
                                  revoked_msg);
-    if (iter_revoked_msg == m_spec_msg_queue.end()) {
+    if (i_revoked_msg == m_spec_msg_queue.end()) {
         delete revoked_msg;
         return;
     }
@@ -493,20 +505,20 @@ SpmtThread::discard_revoked_msg(RoundTripMsg* revoked_msg)
     if (revoked_msg->get_effect() == nullptr) { // 被收回的消息在待处理部分
 
         // 如果被收回的消息恰巧就是下一个待处理消息，还得调整一下m_iter_next_spec_msg
-        if (iter_revoked_msg == m_iter_next_spec_msg) {
+        if (i_revoked_msg == m_iter_next_spec_msg) {
             ++m_iter_next_spec_msg;
         }
 
         delete revoked_msg;
-        m_spec_msg_queue.erase(iter_revoked_msg);
+        m_spec_msg_queue.erase(i_revoked_msg);
 
     }
     else {                      // 被收回的消息在待验证部分
-        auto reverse_iter_msg = reverse_iterator<decltype(m_iter_next_spec_msg)>(m_iter_next_spec_msg);
-        auto reverse_iter_revoked_msg = reverse_iterator<decltype(iter_revoked_msg)>(iter_revoked_msg);
+        auto ri_msg = reverse_iterator<decltype(m_iter_next_spec_msg)>(m_iter_next_spec_msg);
+        auto ri_revoked_msg = reverse_iterator<decltype(i_revoked_msg)>(i_revoked_msg);
 
-        while (reverse_iter_msg != reverse_iter_revoked_msg) {
-            Message* msg = *reverse_iter_msg;
+        while (ri_msg != ri_revoked_msg) {
+            Message* msg = *ri_msg++;
 
             discard_effect(msg->get_effect());
             msg->set_effect(0);
@@ -514,24 +526,36 @@ SpmtThread::discard_revoked_msg(RoundTripMsg* revoked_msg)
             if (g_is_async_msg(msg)) {
                 // 异步消息变为待处理
 
-                ++reverse_iter_msg;
-                m_iter_next_spec_msg = reverse_iter_msg.base();
+                //++ri_msg;
+                m_iter_next_spec_msg = ri_msg.base();
             }
             else {
                 // 同步消息，移除并销毁
+
+                //++ri_msg;
+
+                // 注意，l.erase(ri.base())之后，下次迭代再*ri，
+                // valgrind会说*ri读了l.erase(ri.base())释放的内存。所
+                // 以我们要在l.erase(ri.base())之后，重新产生ri。
+                auto i = ri_msg.base();
+                ++i;
+                m_spec_msg_queue.erase(ri_msg.base());
+                ri_msg = reverse_iterator<decltype(i)>(i);
+
                 delete msg;
-                ++reverse_iter_msg;
-                m_spec_msg_queue.erase(reverse_iter_msg.base());
             }
         }
 
-        assert(iter_revoked_msg == m_iter_next_spec_msg); // 经过上面的循环，此处必相等。
+        assert(i_revoked_msg == m_iter_next_spec_msg); // 经过上面的循环，此处必相等。
 
         // 移除并销毁被收回的消息
-        delete revoked_msg;
         ++m_iter_next_spec_msg;
-        m_spec_msg_queue.erase(iter_revoked_msg);
+        m_spec_msg_queue.erase(i_revoked_msg);
+        delete revoked_msg;
 
+
+        // 当前正在处理的消息必然下马
+        m_current_spec_msg = nullptr;
 
 
         // 丢弃之前，可能处于推测模式或rvp模式。因为rvp执行必是推测执行
@@ -564,12 +588,17 @@ SpmtThread::discard_effect(Effect* effect)
 
     // 释放C中的栈帧（不用从状态缓存中清除栈帧中的内容，等会一把丢弃）
     for (Frame* f : effect->C) {
-        delete f;
+
+        g_destroy_frame(f);
     }
 
     // 丢弃快照中记录的版本以及之后所有版本（若无快照，丢弃最新版本）
     if (effect->snapshot) {
         m_state_buffer.discard(effect->snapshot->version);
+
+        delete effect->snapshot;
+        effect->snapshot = nullptr;
+
     }
     else {
         m_state_buffer.discard(m_state_buffer.latest_ver());
@@ -644,8 +673,27 @@ SpmtThread::verify_speculation(Message* certain_msg)
     //     处理确定消息
     //     结束
     if (m_spec_msg_queue.begin() == m_iter_next_spec_msg) {
+
+        if (g_is_async_msg(certain_msg)) {
+            assert(m_iter_next_spec_msg == m_spec_msg_queue.begin());
+
+            auto iter_certain_msg = find(m_spec_msg_queue.begin(),
+                                         m_spec_msg_queue.end(),
+                                         certain_msg);
+
+            // 如果确定消息在队列中，将其移除。
+            if (iter_certain_msg != m_spec_msg_queue.end()) {
+                m_spec_msg_queue.erase(iter_certain_msg);
+
+                // 万一被移除的消息恰好就是队列中的第一条消息，我们还得调整m_iter_next_spec_msg
+                m_iter_next_spec_msg = m_spec_msg_queue.begin();
+            }
+        }
+
         process_msg(certain_msg);
         delete certain_msg;
+        certain_msg = nullptr;
+
         return;
     }
 
@@ -699,6 +747,7 @@ SpmtThread::verify_speculation(Message* certain_msg)
         // 验证失败时，如果确定消息是个异步消息，那么它有可能在队列中。从队列中移除（但不销毁）。
         if (g_is_async_msg(certain_msg)) {
             // 因为上面的abort_uncertain_execution，此时队列中没有待验证消息。
+            assert(m_iter_next_spec_msg == m_spec_msg_queue.begin());
 
 
             auto iter_certain_msg = find(m_spec_msg_queue.begin(),
@@ -842,13 +891,20 @@ SpmtThread::launch_spec_msg(Message* msg)
 {
     assert(is_spec_mode());
 
+    MINILOG(task_load_logger, "#" << id()
+            << " launch spec msg " << msg);
+
     // 在处理新的推测之前对处理上一消息形成的状态进行快照
     snapshot(true);
+
+    m_current_spec_msg = msg;
+
+    assert(not g_is_async_msg(m_current_spec_msg));
+
 
     // 将msg插在待处理消息之前，作为当前消息
     m_spec_msg_queue.insert(m_iter_next_spec_msg, msg);
 
-    m_current_spec_msg = msg;
     m_current_spec_msg->set_effect(new Effect); // 处理前给消息配上effect
     m_spec_running_state = SpecRunningState::ongoing;
 
@@ -932,7 +988,7 @@ SpmtThread::on_event_top_invoke(InvokeMsg* msg)
                                msg->caller_sp,
                                true);
 
-
+    delete msg;
 }
 
 
@@ -944,10 +1000,14 @@ SpmtThread::on_event_top_return(ReturnMsg* return_msg)
     m_certain_mode.frame = return_msg->caller_frame;
     m_certain_mode.sp = return_msg->caller_sp;
 
+
+
     // 把消息中的返回值写入接收返回值的dummy frame的ostack
     for (auto i : return_msg->retval) {
         *m_certain_mode.sp++ = i;
     }
+
+    delete return_msg;
 
     assert(m_certain_mode.pc == 0);
     assert(m_certain_mode.frame->is_dummy());

@@ -63,7 +63,8 @@ Frame::Frame(int lvars_size, int ostack_size)
     prev(nullptr),
     caller_sp(nullptr),
     pinned(false),
-    is_top(false)
+    is_top(false),
+    is_iter_in_current_effect(false)
 {
     //assert(lvars_size);
     //assert(ostack_size);
