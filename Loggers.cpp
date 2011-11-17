@@ -51,7 +51,7 @@ MiniLogger step_loop_in_out_logger(cout, false);
 MiniLogger snapshot_logger(cout, true);
 MiniLogger snapshot_detail_logger(cout, false, &snapshot_logger);
 
-MiniLogger task_load_logger(cout, false);
+MiniLogger task_load_logger(cout, true);
 
 MiniLogger commit_logger(cout, false);
 MiniLogger commit_detail_logger(cout, true, &commit_logger);

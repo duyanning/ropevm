@@ -56,13 +56,8 @@ Message::equal(Message* msg)
 }
 
 
-bool g_equal_msg_content(Message* msg1, Message* msg2)
-{
-    return msg1->equal(msg2);
-}
-
-
-ostream& operator<<(ostream& os, const Message* msg)
+ostream&
+operator<<(ostream& os, const Message* msg)
 {
     msg->show(os);
     os << " (" << (void*)msg << ")";

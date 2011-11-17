@@ -200,8 +200,6 @@ Mode::write(T* addr, U value)
 
 
 
-
-
 void
 g_load_from_stable_array_to_c(uintptr_t* sp, Object* array, int index, int type_size);
 

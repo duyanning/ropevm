@@ -214,9 +214,7 @@ public:
 };
 
 
-//================================================================
 
-bool g_equal_msg_content(Message* msg1, Message* msg2);
 std::ostream& operator<<(std::ostream& os, const Message* msg);
 void show_msg_detail(std::ostream& os, int id, Message* msg);
 bool g_is_async_msg(Message* msg);

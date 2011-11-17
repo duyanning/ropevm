@@ -21,7 +21,7 @@ using namespace std;
 
 SpeculativeMode::SpeculativeMode()
 :
-    UncertainMode("Speculative mode")
+    UncertainMode("SPEC mode")
 {
 }
 
@@ -174,6 +174,9 @@ SpeculativeMode::do_method_return(int len)
         destroy_frame(current_frame);
 
         m_spmt_thread->send_msg(return_msg);
+
+        // 加载下一条待处理消息
+        m_spmt_thread->launch_next_spec_msg();
     }
 }
 
@@ -205,7 +208,7 @@ void
 SpeculativeMode::destroy_frame(Frame* frame)
 {
     MINILOG(s_destroy_frame_logger, "#" << m_spmt_thread->id()
-            << " (S) destroy " << (frame->pinned ? "pinned " : "") << "frame "
+            << " (S) destroy " << (frame->pinned ? "(skipped) " : "") << "frame "
             << frame);
 
     if (not frame->pinned) {
@@ -449,12 +452,14 @@ SpeculativeMode::send_msg(Message* msg)
     Effect* current_effect = m_spmt_thread->m_current_spec_msg->get_effect();
     current_effect->msg_sent = msg;
 
+    MINILOG(spec_msg_logger, "#" << m_spmt_thread->id()
+            << " send " << (g_is_async_msg(msg) ? "" : "(only record)")
+            << " spec msg to "
+            << "#" << msg->get_target_spmt_thread()->id()
+            << " " << msg);
+
     // 同步消息是只记录，但不真正发送出去
     if (g_is_async_msg(msg)) {
-        MINILOG(spec_msg_logger, "#" << m_spmt_thread->id()
-                << " send spec msg to "
-                << "#" << msg->get_target_spmt_thread()->id()
-                << " " << msg);
         msg->get_target_spmt_thread()->add_spec_msg(msg);
     }
 }

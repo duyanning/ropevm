@@ -3,6 +3,7 @@
 #include "Snapshot.h"
 #include "Mode.h"
 #include "Message.h"
+#include "Triple.h"
 
 using namespace std;
 
@@ -24,12 +25,8 @@ Snapshot::~Snapshot()
 void
 show_snapshot(std::ostream& os, const Snapshot* snapshot)
 {
-    os << "(" << snapshot->version << ")";
-    if (snapshot->frame) {
-        os << " at " << snapshot->pc - (CodePntr)snapshot->frame->mb->code
-           << " of " << snapshot->frame;
-    }
-
+    os << "(" << snapshot->version << ")"
+       << Triple(snapshot->pc, snapshot->frame, snapshot->sp);
 }
 
 

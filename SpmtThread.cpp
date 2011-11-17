@@ -15,6 +15,7 @@
 #include "lock.h"
 #include "Effect.h"
 #include "Break.h"
+#include "Triple.h"
 
 using namespace std;
 
@@ -226,7 +227,17 @@ SpmtThread::switch_to_previous_mode()
 {
     assert(is_certain_mode());
     m_mode = m_previous_mode;
+
+    MINILOG_IF(is_spec_mode(), certain_msg_logger, "#" << m_id
+               << " resume SPEC mode"
+               << Triple(m_spec_mode.pc, m_spec_mode.frame, m_spec_mode.sp));
+
+    MINILOG_IF(is_rvp_mode(), certain_msg_logger, "#" << m_id
+               << " resume RVP mode"
+               << Triple(m_rvp_mode.pc, m_rvp_mode.frame, m_rvp_mode.sp));
+
 }
+
 
 void
 SpmtThread::add_spec_msg(Message* msg)
@@ -370,9 +381,8 @@ SpmtThread::commit_effect(Effect* effect)
         m_certain_mode.sp = m_spec_mode.sp;
 
         MINILOG(snapshot_logger, "#" << m_id
-                << " commit ("<< commit_ver << ")"
-                << " at " << m_certain_mode.pc - (CodePntr)m_certain_mode.frame->mb->code
-                << " of " << m_certain_mode.frame->mb);
+                << " commit ("<< commit_ver << ") latest"
+                << Triple(m_spec_mode.pc, m_spec_mode.frame, m_spec_mode.sp));
 
         // 此时已无推测状态。
         m_current_spec_msg = nullptr;
@@ -394,10 +404,10 @@ SpmtThread::affirm_spec_msg(Message* msg)
     assert(is_certain_mode());
 
     switch_to_previous_mode();  // 转入之前的模式：推测模式或rvp模式
+
     if (m_spec_running_state != SpecRunningState::ongoing) { // 如果之前在睡眠，那就恢复睡眠。
         sleep();
     }
-
 
     MINILOG(certain_msg_logger, "#" << m_id
             << " affirm spec msg to "
@@ -647,7 +657,7 @@ SpmtThread::verify_speculation(Message* certain_msg)
         success = (spec_msg == certain_msg);
     }
     else {
-        success = g_equal_msg_content(spec_msg, certain_msg);
+        success = certain_msg->equal(spec_msg);
     }
 
 
@@ -790,7 +800,7 @@ SpmtThread::launch_next_spec_msg()
         return;
 
     // 不一定有待处理的消息
-    MINILOG(task_load_logger, "#" << id() << " try to load a spec msg");
+    MINILOG(task_load_logger, "#" << id() << " try to launch a spec msg");
 
     if (not has_unprocessed_spec_msg()) {
         MINILOG(task_load_logger, "#" << id() << " no spec msg, waiting for spec msg");
@@ -810,6 +820,8 @@ SpmtThread::launch_next_spec_msg()
 
     // 使下一个待处理消息成为当前消息
     m_current_spec_msg = *m_iter_next_spec_msg++;
+    MINILOG(task_load_logger, "#" << id()
+            << " launch spec msg " << m_current_spec_msg);
 
     assert(g_is_async_msg(m_current_spec_msg));
 
@@ -878,19 +890,20 @@ SpmtThread::snapshot(bool pin)
     snapshot->version = m_state_buffer.latest_ver();
     m_state_buffer.freeze();
 
-    snapshot->pc = m_spec_mode.pc;
-    snapshot->frame = m_spec_mode.frame;
-    snapshot->sp = m_spec_mode.sp;
+    // 如果不钉住栈帧，快照中就只有个版本号。其他部分都为0。
+    if (pin) {
+
+        snapshot->pc = m_spec_mode.pc;
+        snapshot->frame = m_spec_mode.frame;
+        snapshot->sp = m_spec_mode.sp;
+
+        pin_frames();
+    }
 
     MINILOG(snapshot_logger, "#" << m_id << " freeze " << snapshot);
 
-
     Effect* current_effect = m_current_spec_msg->get_effect();
     current_effect->snapshot = snapshot;
-
-    if (pin)
-        pin_frames();
-
 }
 
 
