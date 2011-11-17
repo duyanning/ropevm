@@ -18,7 +18,7 @@ using namespace std;
 
 CertainMode::CertainMode()
 :
-    Mode("Certain mode")
+    Mode("CERT mode")
 {
 }
 

@@ -330,15 +330,6 @@ Mode::process_msg(Message* msg)
 
 }
 
-void
-Mode::destroy_frame(Frame* frame)
-{
-    //assert(m_spmt_thread->frame_is_not_in_snapshots(frame));
-
-
-    delete frame;
-
-}
 
 void
 show_triple(std::ostream& os, int id, Frame* frame, uintptr_t* sp, CodePntr pc, Object* user,

@@ -18,7 +18,7 @@ using namespace std;
 
 RvpMode::RvpMode()
 :
-    UncertainMode("Rvp mode")
+    UncertainMode("RVP mode")
 {
 }
 
