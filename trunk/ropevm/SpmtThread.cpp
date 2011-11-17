@@ -422,7 +422,7 @@ SpmtThread::affirm_spec_msg(Message* msg)
 }
 
 void
-SpmtThread::revoke_spec_msg(Message* msg)
+SpmtThread::revoke_spec_msg(RoundTripMsg* msg)
 {
     MINILOG(spec_msg_logger, "#" << m_id
             << " revoke spec msg to "
@@ -434,7 +434,7 @@ SpmtThread::revoke_spec_msg(Message* msg)
 
 
 void
-SpmtThread::add_revoked_spec_msg(Message* msg)
+SpmtThread::add_revoked_spec_msg(RoundTripMsg* msg)
 {
     m_revoked_msgs.push_back(msg);
 }
@@ -446,7 +446,7 @@ SpmtThread::discard_all_revoked_msgs()
     if (m_revoked_msgs.empty())
         return;
 
-    for (Message* msg : m_revoked_msgs) {
+    for (RoundTripMsg* msg : m_revoked_msgs) {
         discard_revoked_msg(msg);
     }
 
@@ -456,7 +456,7 @@ SpmtThread::discard_all_revoked_msgs()
 
 // 丢弃被其他线程收回的消息
 void
-SpmtThread::discard_revoked_msg(Message* revoked_msg)
+SpmtThread::discard_revoked_msg(RoundTripMsg* revoked_msg)
 {
     MINILOG(spec_msg_logger, "#" << m_id
             << " discard spec msg from "
@@ -578,7 +578,7 @@ SpmtThread::discard_effect(Effect* effect)
     // 收回消息（如果是异步消息，则收回）
     if (effect->msg_sent) {
         if (g_is_async_msg(effect->msg_sent)) {
-            revoke_spec_msg(effect->msg_sent);
+            revoke_spec_msg(static_cast<RoundTripMsg*>(effect->msg_sent));
         }
         else {
             delete effect->msg_sent;
@@ -799,11 +799,15 @@ SpmtThread::launch_next_spec_msg()
     if (RopeVM::model == 2)     // 模型2是不推测执行的。
         return;
 
+    assert(is_spec_mode());
+
     // 不一定有待处理的消息
     MINILOG(task_load_logger, "#" << id() << " try to launch a spec msg");
 
     if (not has_unprocessed_spec_msg()) {
         MINILOG(task_load_logger, "#" << id() << " no spec msg, waiting for spec msg");
+
+        m_current_spec_msg = nullptr;
 
         m_spec_mode.pc = 0;
         m_spec_mode.frame = 0;
@@ -815,13 +819,14 @@ SpmtThread::launch_next_spec_msg()
         return;
     }
 
+    MINILOG(task_load_logger, "#" << id()
+            << " launch spec msg " << *m_iter_next_spec_msg);
+
     // 在处理新的推测之前对处理上一消息形成的状态进行快照
     snapshot(false);
 
     // 使下一个待处理消息成为当前消息
     m_current_spec_msg = *m_iter_next_spec_msg++;
-    MINILOG(task_load_logger, "#" << id()
-            << " launch spec msg " << m_current_spec_msg);
 
     assert(g_is_async_msg(m_current_spec_msg));
 
@@ -835,6 +840,8 @@ SpmtThread::launch_next_spec_msg()
 void
 SpmtThread::launch_spec_msg(Message* msg)
 {
+    assert(is_spec_mode());
+
     // 在处理新的推测之前对处理上一消息形成的状态进行快照
     snapshot(true);
 
@@ -903,6 +910,8 @@ SpmtThread::snapshot(bool pin)
     MINILOG(snapshot_logger, "#" << m_id << " freeze " << snapshot);
 
     Effect* current_effect = m_current_spec_msg->get_effect();
+    assert(current_effect);
+
     current_effect->snapshot = snapshot;
 }
 
