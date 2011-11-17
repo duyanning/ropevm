@@ -199,7 +199,16 @@ SpeculativeMode::create_frame(Object* object, MethodBlock* new_mb, uintptr_t* ar
 
 {
     Frame* new_frame = g_create_frame(m_spmt_thread, object, new_mb, args, caller, caller_pc, caller_frame, caller_sp, is_top);
-    // record new_frame in effect
+
+    MINILOG(s_create_frame_logger, "#" << m_spmt_thread->id()
+            << " (S) create frame " << new_frame);
+
+    // 把创建的栈桢记录下来
+    Effect* current_effect = m_spmt_thread->m_current_spec_msg->get_effect();
+    assert(current_effect);
+
+    current_effect->add_to_C(new_frame);
+
     return new_frame;
 }
 
@@ -211,11 +220,20 @@ SpeculativeMode::destroy_frame(Frame* frame)
             << " (S) destroy " << (frame->pinned ? "(skipped) " : "") << "frame "
             << frame);
 
+    Effect* current_effect = m_spmt_thread->m_current_spec_msg->get_effect();
+    assert(current_effect);
+
     if (not frame->pinned) {
 
         m_spmt_thread->clear_frame_in_state_buffer(frame);
 
+        // 把已销毁的栈桢从记录中去掉
+        current_effect->remove_from_C(frame);
+
         g_destroy_frame(frame);
+    }
+    else {
+        current_effect->add_to_R(frame);
     }
 }
 

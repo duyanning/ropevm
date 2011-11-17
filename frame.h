@@ -21,12 +21,19 @@ public:
     bool pinned;
     bool is_top;
 
+
+    // 该栈桢在创建其的effect的C集合中的位置，为方便在栈桢销毁时快速地
+    // 从effect的C集合中删除。但是，当栈桢被销毁时，创建其的effect可能
+    // 已经因为提交被销毁了，也就是说该effect中的C也随之销毁了。在这种
+    // 情况下，iter_in_C_of_effect已经变成无效的，不能使用。
+    std::list<Frame*>::iterator iter_in_C_of_effect;
+    bool is_iter_in_current_effect;
+
     unsigned long long c; // just for debug
     int magic; // just for debug
     int xxx;
 
     const char* _name_;
-
 
     std::vector<Object*> * lrefs;
 

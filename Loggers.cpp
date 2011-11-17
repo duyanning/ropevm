@@ -39,6 +39,7 @@ MiniLogger s_logger(cout, true);
 MiniLogger s_new_logger(cout, false, &s_logger);
 MiniLogger s_new_main_logger(cout, false, &s_new_logger);
 MiniLogger s_new_sub_logger(cout, false, &s_new_logger);
+MiniLogger s_create_frame_logger(cout, true, &s_logger);
 MiniLogger s_destroy_frame_logger(cout, true, &s_logger);
 
 MiniLogger r_logger(cout, true);
