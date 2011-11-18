@@ -17,7 +17,7 @@ public:
     virtual void before_alloc_object();
     virtual void after_alloc_object(Object* obj);
 
-    virtual void* do_execute_method(Object* target_object, MethodBlock *mb, std::vector<uintptr_t>& jargs) = 0;
+    virtual void* do_execute_method(Object* target_object, MethodBlock *mb, std::vector<uintptr_t>& jargs, DummyFrame* dummy) = 0;
     virtual void do_invoke_method(Object* objectref, MethodBlock* new_mb) = 0;
     virtual void do_method_return(int len) = 0;
     virtual void before_signal_exception(Class *exception_class) = 0;

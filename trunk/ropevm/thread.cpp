@@ -334,7 +334,8 @@ Object *initJavaThread(Thread *thread, char is_daemon, const char *name) {
 
     /* Call the initialiser method -- this is for use by threads
        created or attached by the VM "outside" of Java */
-    executeMethod(jlthread, init_mb, vmthread, thread_name, NORM_PRIORITY, is_daemon);
+    DummyFrame dummy;
+    executeMethod(&dummy, jlthread, init_mb, vmthread, thread_name, NORM_PRIORITY, is_daemon);
 
     /* Add thread to thread ID map hash table. */
     addThreadToHash(thread);
@@ -413,7 +414,8 @@ Thread *attachThread(char *name, char is_daemon, void *stack_base, Thread *threa
 
     /* Initialiser doesn't handle the thread group */
     INST_DATA(java_thread)[group_offset] = (uintptr_t)group;
-    executeMethod(group, addThread_mb, java_thread);
+    DummyFrame dummy;
+    executeMethod(&dummy, group, addThread_mb, java_thread);
 
     /* We're now attached to the VM...*/
     TRACE("Thread 0x%x id: %d attached\n", thread, thread->id);
@@ -443,13 +445,15 @@ void detachThread(Thread *thread) {
 
         if(uncaught_exp) {
             clearException();
-            executeMethod(handler, uncaught_exp, jThread, excep);
+            DummyFrame dummy;
+            executeMethod(&dummy, handler, uncaught_exp, jThread, excep);
         } else
             printException();
     }
 
     /* remove thread from thread group */
-    executeMethod(group, (CLASS_CB(group->classobj))->method_table[rmveThrd_mtbl_idx], jThread);
+    DummyFrame dummy;
+    executeMethod(&dummy, group, (CLASS_CB(group->classobj))->method_table[rmveThrd_mtbl_idx], jThread);
 
     /* set VMThread ref in Thread object to null - operations after this
        point will result in an IllegalThreadStateException */
@@ -528,7 +532,8 @@ void *threadStart(void *arg) {
     addThreadToHash(thread);
 
     /* Execute the thread's run method */
-    executeMethod(jThread, CLASS_CB(jThread->classobj)->method_table[run_mtbl_idx]);
+    DummyFrame dummy;
+    executeMethod(&dummy, jThread, CLASS_CB(jThread->classobj)->method_table[run_mtbl_idx]);
 
     /* Run has completed.  Detach the thread from the VM and exit */
     detachThread(thread);
@@ -963,8 +968,10 @@ void exitVM(int status) {
         Class *system = findSystemClass(SYMBOL(java_lang_System));
         if(system) {
             MethodBlock *exit = findMethod(system, SYMBOL(exit), SYMBOL(_I__V));
-            if(exit)
-                executeStaticMethod(system, exit, status);
+            if(exit) {
+                DummyFrame dummy;
+                executeStaticMethod(&dummy, system, exit, status);
+            }
         }
     }
 
@@ -1116,7 +1123,10 @@ void initialiseThreadStage2(InitArgs *args) {
 
     /* Add the main thread to the root thread group */
     INST_DATA(java_thread)[group_offset] = root->static_value;
-    executeMethod(((Object*)root->static_value), addThread_mb, java_thread);
+    {
+        DummyFrame dummy;
+        executeMethod(&dummy, ((Object*)root->static_value), addThread_mb, java_thread);
+    }
 
     // dyn
     INST_DATA(java_thread)[vmthread_offset] = 0;

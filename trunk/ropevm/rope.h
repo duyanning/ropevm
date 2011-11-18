@@ -710,15 +710,17 @@ extern char arrayStoreCheck(Class *classobj, Class *test);
 
 /* execute */
 
-extern void *executeMethodArgs(Object *ob, Class *classobj, MethodBlock *mb, ...);
-extern void *executeMethodVaList(Object *ob, Class *classobj, MethodBlock *mb, va_list args);
-extern void *executeMethodList(Object *ob, Class *classobj, MethodBlock *mb, u8 *args);
+extern void *executeMethodArgs(DummyFrame* dummy, Object *ob, Class *classobj, MethodBlock *mb, ...);
+extern void *executeMethodVaList(DummyFrame* dummy, Object *ob, Class *classobj, MethodBlock *mb, va_list args);
+extern void *executeMethodList(DummyFrame* dummy, Object *ob, Class *classobj, MethodBlock *mb, u8 *args);
 
-#define executeMethod(ob, mb, args...)              \
-    executeMethodArgs(ob, ob->classobj, mb, ##args)
+#define executeMethod(dummy, ob, mb, args...)                \
+    executeMethodArgs(dummy, ob, ob->classobj, mb, ##args)
 
-#define executeStaticMethod(clazz, mb, args...) \
-    executeMethodArgs(NULL, clazz, mb, ##args)
+
+
+#define executeStaticMethod(dummy, clazz, mb, args...)   \
+    executeMethodArgs(dummy, NULL, clazz, mb, ##args)
 
 /* excep */
 
@@ -859,7 +861,7 @@ extern Object *getMethodDefaultValue(MethodBlock *mb);
 extern Object *getReflectReturnObject(Class *type, uintptr_t *pntr);
 extern uintptr_t *widenPrimitiveValue(int src_idx, int dest_idx, uintptr_t *src, uintptr_t *dest);
 extern uintptr_t *unwrapAndWidenObject(Class *type, Object *arg, uintptr_t *pntr);
-extern Object *invoke(Object *ob, MethodBlock *mb, Object *arg_array, Object *param_types,
+extern Object *invoke(DummyFrame* dummy, Object *ob, MethodBlock *mb, Object *arg_array, Object *param_types,
                       int check_access);
 
 extern MethodBlock *mbFromReflectObject(Object *reflect_ob);

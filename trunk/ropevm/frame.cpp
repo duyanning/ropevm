@@ -131,6 +131,15 @@ void copy_args_to_params(uintptr_t* arg, uintptr_t* param, int count)
     std::copy(arg, arg + count, param);
 }
 
+
+DummyFrame::DummyFrame()
+:
+    Frame(5, 20)
+{
+    _name_ = "dummy frame";
+}
+
+
 Frame*
 create_dummy_frame(Frame* caller_frame)
 {

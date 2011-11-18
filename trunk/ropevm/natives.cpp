@@ -715,7 +715,8 @@ uintptr_t *constructNative(Class *classobj, MethodBlock *mb2, uintptr_t *ostack)
         return ostack;
 
     if((ob = allocObject(decl_class)) != NULL) {
-        invoke(ob, mb, array, param_types, !no_access_check);
+        DummyFrame dummy;
+        invoke(&dummy, ob, mb, array, param_types, !no_access_check);
         *ostack++ = (uintptr_t) ob;
     }
 
@@ -918,7 +919,8 @@ uintptr_t *invokeNative(Class *classobj, MethodBlock *mb2, uintptr_t *ostack) {
                                    ((mb = lookupVirtualMethod(ob, mb)) == NULL))
             return ostack;
 
-    if((ret = (uintptr_t*) invoke(ob, mb, array, param_types, !no_access_check)) != NULL)
+    DummyFrame dummy;
+    if((ret = (uintptr_t*) invoke(&dummy, ob, mb, array, param_types, !no_access_check)) != NULL)
         *ostack++ = (uintptr_t) getReflectReturnObject(ret_type, ret);
 
     return ostack;
@@ -1144,8 +1146,8 @@ uintptr_t *getThreadInfoForId(Class *classobj, MethodBlock *mb, uintptr_t *ostac
                         //Object *lock_owner = owner != NULL ? owner->ee->thread : NULL;
                         Object *lock_owner = owner != NULL ? owner->thread : NULL;
 
-                        //executeMethod(info, init, thread->ee->thread, thread->blocked_count, 0LL, lock,
-                        executeMethod(info, init, thread->thread, thread->blocked_count, 0LL, lock,
+                        DummyFrame dummy;
+                        executeMethod(&dummy, info, init, thread->thread, thread->blocked_count, 0LL, lock,
                                       lock_owner, thread->waited_count, 0LL, in_native, FALSE, trace);
                     }
                 }

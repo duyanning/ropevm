@@ -87,13 +87,16 @@ void signalChainedExceptionClass(Class *exception, const char* message, Object *
     MethodBlock *init = lookupMethod(exception, SYMBOL(object_init),
                                                 SYMBOL(_java_lang_String__V));
     if(exp && init) {
-        executeMethod(exp, init, str);
+        DummyFrame dummy;
+        executeMethod(&dummy, exp, init, str);
 
         if(cause && !exceptionOccurred()) {
             MethodBlock *mb = lookupMethod(exception, SYMBOL(initCause),
                                            SYMBOL(_java_lang_Throwable__java_lang_Throwable));
-            if(mb)
-                executeMethod(exp, mb, cause);
+            if(mb) {
+                DummyFrame dummy;
+                executeMethod(&dummy, exp, mb, cause);
+            }
         }
         setException(exp);
     }
@@ -139,7 +142,8 @@ void printException() {
         MethodBlock *mb = lookupMethod(exception->classobj, SYMBOL(printStackTrace),
                                                          SYMBOL(___V));
         clearException();
-        executeMethod(exception, mb);
+        DummyFrame dummy;
+        executeMethod(&dummy, exception, mb);
 
         /* If we're really low on memory we might have been able to throw
          * OutOfMemory, but then been unable to print any part of it!  In
@@ -338,7 +342,8 @@ Object *convertStackTrace(Object *vmthrwble) {
         if(exceptionOccurred())
             return NULL;
 
-        executeMethod(ste, vmthrow_init_mb, filename, isNative ? -1 : mapPC2LineNo(mb, pc),
+        DummyFrame dummy;
+        executeMethod(&dummy, ste, vmthrow_init_mb, filename, isNative ? -1 : mapPC2LineNo(mb, pc),
                         classname, methodname, isNative);
 
         if(exceptionOccurred())
