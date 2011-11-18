@@ -52,6 +52,13 @@ private:
     Frame& operator=(const Frame&);
 };
 
+
+class DummyFrame : public Frame {
+public:
+    DummyFrame();
+};
+
+
 /* typedef struct jni_frame { */
 /*    Object **next_ref; */
 /*    Object **lrefs; */

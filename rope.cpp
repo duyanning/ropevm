@@ -308,12 +308,10 @@ int main(int argc, char *argv[])
 
         /* Call the main method */
         if(i == argc) {
-            //assert(threadSelf()->get_certain_core()->get_group() == 0);
             debug_scaffold::java_main_arrived = true;
 
-            //threadSelf()->get_certain_core()->m_is_waiting_for_task = false;
-
-            executeStaticMethod(main_class, mb, array);
+            DummyFrame dummy;
+            executeStaticMethod(&dummy, main_class, mb, array);
 
         }
     }

@@ -440,7 +440,7 @@ SpeculativeMode::do_array_store(Object* array, int index, int type_size)
 void*
 SpeculativeMode::do_execute_method(Object* target_object,
                                    MethodBlock *mb,
-                                   std::vector<uintptr_t>& jargs)
+                                   std::vector<uintptr_t>& jargs, DummyFrame* dummy)
 {
     MINILOG(step_loop_in_out_logger, "#" << m_spmt_thread->id()
             << " (S) throw-> to be execute java method: " << mb);

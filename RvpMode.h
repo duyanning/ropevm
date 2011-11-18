@@ -18,7 +18,7 @@ public:
     virtual void do_invoke_method(Object* target_object, MethodBlock* new_mb);
     virtual void do_method_return(int len);
     virtual void before_signal_exception(Class *exception_class);
-    virtual void* do_execute_method(Object* target_object, MethodBlock *mb, std::vector<uintptr_t>& jargs);
+    virtual void* do_execute_method(Object* target_object, MethodBlock *mb, std::vector<uintptr_t>& jargs, DummyFrame* dummy);
 
     virtual void do_get_field(Object* obj, FieldBlock* fb, uintptr_t* addr, int size, bool is_static = false);
     virtual void do_put_field(Object* obj, FieldBlock* fb, uintptr_t* addr, int size, bool is_static = false);

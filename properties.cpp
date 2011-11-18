@@ -41,7 +41,8 @@ void setProperty(Object* properties, const char* key, const char* value) {
 
     MethodBlock *mb = lookupMethod(properties->classobj, SYMBOL(put),
                            SYMBOL(_java_lang_Object_java_lang_Object__java_lang_Object));
-    executeMethod(properties, mb, k, v);
+    DummyFrame dummy;
+    executeMethod(&dummy, properties, mb, k, v);
 }
 
 void addCommandLineProperties(Object *properties) {

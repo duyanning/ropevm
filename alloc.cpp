@@ -1583,8 +1583,9 @@ void asyncGCThreadLoop(Thread *self) {
             enableSuspend(self);                                                \
                                                                                 \
             /* Run the process method */                                        \
-            executeMethod(ob, CLASS_CB(ob->classobj)->method_table[method_idx]);   \
-                                                                                \
+            DummyFrame dummy;                                           \
+executeMethod(&dummy, ob, CLASS_CB(ob->classobj)->method_table[method_idx]); \
+                                                                        \
             /* Should be nothing interesting on stack or in                     \
              * registers so use same stack top as thread start. */              \
                                                                                 \
@@ -1639,7 +1640,8 @@ void initialiseGC(InitArgs *args) {
     oom = allocObject(oom_clazz);
     registerStaticObjectRef(&oom);
 
-    executeMethod(oom, init, NULL);
+    DummyFrame dummy;
+    executeMethod(&dummy, oom, init, NULL);
 
     /* Create and start VM threads for the reference handler and finalizer */
     createVMThread("Finalizer", finalizerThreadLoop);

@@ -50,8 +50,8 @@ CertainMode::step()
 // DO NOT forget function 'invoke' in reflect.cpp!!!
 void*
 CertainMode::do_execute_method(Object* target_object,
-                               MethodBlock *new_mb,
-                               std::vector<uintptr_t>& jargs)
+                               MethodBlock* new_mb,
+                               std::vector<uintptr_t>& jargs, DummyFrame* dummy)
 {
     assert(frame);              // see also: initialiseJavaStack
 
@@ -63,7 +63,8 @@ CertainMode::do_execute_method(Object* target_object,
 
     // dummy frame is used to receive RV of top_frame
     // dummy->prev is current frame
-    Frame* dummy = create_dummy_frame(frame);
+    //Frame* dummy = create_dummy_frame(frame);
+    dummy->prev = frame;
 
     void *ret;
     ret = dummy->ostack_base;

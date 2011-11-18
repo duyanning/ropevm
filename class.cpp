@@ -1262,8 +1262,10 @@ Class *initClass(Class *classobj)
             fb->static_value = resolveSingleConstant(classobj, fb->constant);
       }
 
-   if((mb = findMethod(classobj, SYMBOL(class_init), SYMBOL(___V))) != NULL)
-      executeStaticMethod(classobj, mb);
+   if((mb = findMethod(classobj, SYMBOL(class_init), SYMBOL(___V))) != NULL) {
+       DummyFrame dummy;
+       executeStaticMethod(&dummy, classobj, mb);
+   }
 
    if((excep = exceptionOccurred())) {
        Class *error, *eiie;
@@ -1279,7 +1281,8 @@ Class *initClass(Class *classobj)
            Object *ob = allocObject(eiie);
 
            if(ob != NULL) {
-               executeMethod(ob, mb, excep);
+               DummyFrame dummy;
+               executeMethod(&dummy, ob, mb, excep);
                setException(ob);
            }
        } else
@@ -1501,7 +1504,8 @@ Class *findNonArrayClassFromClassLoader(char *classname, Object *loader) {
         /* The public loadClass is not synchronized.
            Lock the class-loader to be thread-safe */
         objectLock(loader);
-        classobj = *(Class**)executeMethod(loader,
+        DummyFrame dummy;
+        classobj = *(Class**)executeMethod(&dummy, loader,
                     CLASS_CB(loader->classobj)->method_table[loadClass_mtbl_idx], string);
         objectUnlock(loader);
 
@@ -1548,7 +1552,8 @@ Object *getSystemClassLoader() {
 
         if((mb = findMethod(class_loader, SYMBOL(getSystemClassLoader),
                                           SYMBOL(___java_lang_ClassLoader))) != NULL) {
-            Object *system_loader = *(Object**)executeStaticMethod(class_loader, mb);
+            DummyFrame dummy;
+            Object *system_loader = *(Object**)executeStaticMethod(&dummy, class_loader, mb);
 
             if(!exceptionOccurred())
                 return system_loader;
@@ -1718,8 +1723,10 @@ void freeClassLoaderData(Object *class_loader) {
 void newLibraryUnloader(Object *class_loader, void *entry) {
     Object *vmdata = (Object*)INST_DATA(class_loader)[ldr_vmdata_offset];
 
-    if(vmdata != NULL)
-        executeMethod(vmdata, ldr_new_unloader, (long long)(uintptr_t)entry);
+    if(vmdata != NULL) {
+        DummyFrame dummy;
+        executeMethod(&dummy, vmdata, ldr_new_unloader, (long long)(uintptr_t)entry);
+    }
 }
 
 int parseBootClassPath(char *cp_var) {

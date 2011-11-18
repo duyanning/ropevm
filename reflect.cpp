@@ -164,7 +164,8 @@ Object *createConstructorObject(MethodBlock *mb) {
         if((classes == NULL) || (exceps == NULL))
             return NULL;
 
-        executeMethod(reflect_ob, cons_init_mb, mb->classobj, classes, exceps,
+        DummyFrame dummy;
+        executeMethod(&dummy, reflect_ob, cons_init_mb, mb->classobj, classes, exceps,
                       mb - CLASS_CB(mb->classobj)->methods);
     }
 
@@ -222,7 +223,8 @@ Object *createMethodObject(MethodBlock *mb) {
         if((classes == NULL) || (exceps == NULL) || (name == NULL) || (ret == NULL))
             return NULL;
 
-        executeMethod(reflect_ob, method_init_mb, mb->classobj, classes, exceps, ret, name,
+        DummyFrame dummy;
+        executeMethod(&dummy, reflect_ob, method_init_mb, mb->classobj, classes, exceps, ret, name,
                       mb - CLASS_CB(mb->classobj)->methods);
     }
 
@@ -279,7 +281,8 @@ Object *createFieldObject(FieldBlock *fb) {
         if((type == NULL) || (name == NULL))
             return NULL;
 
-        executeMethod(reflect_ob, field_init_mb, fb->classobj, type, name,
+        DummyFrame dummy;
+        executeMethod(&dummy, reflect_ob, field_init_mb, fb->classobj, type, name,
                       fb - CLASS_CB(fb->classobj)->fields);
     }
 
@@ -540,7 +543,8 @@ Object *parseElementValue(Class *classobj, u1 **data_ptr, int *data_len) {
             if(type_class == NULL || const_name == NULL)
                 return NULL;
 
-            enum_obj = *(Object**)executeStaticMethod(enum_class, enum_valueof_mb, type_class, const_name);
+            DummyFrame dummy;
+            enum_obj = *(Object**)executeStaticMethod(&dummy, enum_class, enum_valueof_mb, type_class, const_name);
             if(exceptionOccurred())
                 return NULL;
 
@@ -587,7 +591,10 @@ Object *parseAnnotation(Class *classobj, u1 **data_ptr, int *data_len) {
     if((map = allocObject(map_class)) == NULL)
         return NULL;
 
-    executeMethod(map, map_init_mb);
+    {
+        DummyFrame dummy;
+        executeMethod(&dummy, map, map_init_mb);
+    }
     if(exceptionOccurred())
         return NULL;
 
@@ -608,12 +615,14 @@ Object *parseAnnotation(Class *classobj, u1 **data_ptr, int *data_len) {
         if(element_name == NULL || element_value == NULL)
             return NULL;
 
-        executeMethod(map, map_put_mb, element_name, element_value);
+        DummyFrame dummy;
+        executeMethod(&dummy, map, map_put_mb, element_name, element_value);
         if(exceptionOccurred())
             return NULL;
     }
 
-    anno = *(Object**)executeStaticMethod(anno_inv_class, anno_create_mb, type_class, map);
+    DummyFrame dummy;
+    anno = *(Object**)executeStaticMethod(&dummy, anno_inv_class, anno_create_mb, type_class, map);
     if(exceptionOccurred())
         return NULL;
 
@@ -844,7 +853,7 @@ uintptr_t *unwrapAndWidenObject(Class *type, Object *arg, uintptr_t *pntr) {
 }
 
 Object*
-invoke(Object* ob, MethodBlock* mb, Object* arg_array, Object* param_types, int check_access)
+invoke(DummyFrame* dummy, Object* ob, MethodBlock* mb, Object* arg_array, Object* param_types, int check_access)
 {
     Object **args = (Object**)ARRAY_DATA(arg_array);
     // Class **types = (Object**)ARRAY_DATA(param_types);
@@ -892,7 +901,7 @@ invoke(Object* ob, MethodBlock* mb, Object* arg_array, Object* param_types, int 
         }
 
     assert(ob);
-    ret = this_spmt_thread->get_current_mode()->do_execute_method(ob, mb, arguments);
+    ret = this_spmt_thread->get_current_mode()->do_execute_method(ob, mb, arguments, dummy);
 
 
     if((excep = exceptionOccurred())) {
@@ -905,7 +914,8 @@ invoke(Object* ob, MethodBlock* mb, Object* arg_array, Object* param_types, int 
 
         if(!exceptionOccurred() && (ite_excep = allocObject(ite_class)) &&
                         (init = lookupMethod(ite_class, SYMBOL(object_init), SYMBOL(_java_lang_Throwable__V)))) {
-            executeMethod(ite_excep, init, excep);
+            DummyFrame dummy;
+            executeMethod(&dummy, ite_excep, init, excep);
             setException(ite_excep);
         }
         return NULL;

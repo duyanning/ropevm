@@ -54,18 +54,18 @@
     }                                           \
     sp++; args++
 
-void *executeMethodArgs(Object *ob, Class *classobj, MethodBlock *mb, ...) {
+void *executeMethodArgs(DummyFrame* dummy, Object *ob, Class *classobj, MethodBlock *mb, ...) {
     va_list jargs;
     void *ret;
 
     va_start(jargs, mb);
-    ret = executeMethodVaList(ob, classobj, mb, jargs);
+    ret = executeMethodVaList(dummy, ob, classobj, mb, jargs);
     va_end(jargs);
 
     return ret;
 }
 
-void *executeMethodVaList(Object *ob, Class *classobj, MethodBlock *mb, va_list jargs) {
+void *executeMethodVaList(DummyFrame* dummy, Object *ob, Class *classobj, MethodBlock *mb, va_list jargs) {
     void *ret;
 
     SpmtThread* current_spmt_thread = g_get_current_spmt_thread();
@@ -82,12 +82,12 @@ void *executeMethodVaList(Object *ob, Class *classobj, MethodBlock *mb, va_list 
 
     char *sig = mb->type;
     SCAN_SIG(sig, VA_DOUBLE(jargs, arg), VA_SINGLE(jargs, arg));
-    ret = current_spmt_thread->get_current_mode()->do_execute_method((ob ? ob : classobj), mb, arguments);
+    ret = current_spmt_thread->get_current_mode()->do_execute_method((ob ? ob : classobj), mb, arguments, dummy);
 
     return ret;
 }
 
-void *executeMethodList(Object *ob, Class *classobj, MethodBlock *mb, u8 *jargs) {
+void *executeMethodList(DummyFrame* dummy, Object *ob, Class *classobj, MethodBlock *mb, u8 *jargs) {
     void *ret;
 
     SpmtThread* current_spmt_thread = g_get_current_spmt_thread();
@@ -104,7 +104,7 @@ void *executeMethodList(Object *ob, Class *classobj, MethodBlock *mb, u8 *jargs)
 
     char *sig = mb->type;
     SCAN_SIG(sig, JA_DOUBLE(jargs, arg), JA_SINGLE(jargs, arg));
-    ret = current_spmt_thread->get_current_mode()->do_execute_method((ob ? ob : classobj), mb, arguments);
+    ret = current_spmt_thread->get_current_mode()->do_execute_method((ob ? ob : classobj), mb, arguments, dummy);
 
     return ret;
 }
