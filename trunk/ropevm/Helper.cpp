@@ -472,13 +472,6 @@ get_foreign_policy(Object* obj)
 }
 
 
-bool
-g_is_pure_code_method(MethodBlock* mb)
-{
-    return false;
-}
-
-
 string
 info(MethodBlock* mb)
 {

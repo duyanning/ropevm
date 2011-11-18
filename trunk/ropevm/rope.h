@@ -377,7 +377,9 @@ public:
     LineNoTableEntry *line_no_table;
     int method_table_index;
     MethodAnnotationData *annotations;
+    bool m_is_rope_const;
 public:
+    bool is_rope_const() const {  return m_is_rope_const;  }
     bool is_native() const {  return access_flags & ACC_NATIVE;  }
     bool is_synchronized() const {  return access_flags & ACC_SYNCHRONIZED;  }
     bool is_static() const {  return access_flags & ACC_STATIC;  }
@@ -947,10 +949,6 @@ public:
 std::ostream& operator<<(std::ostream& os, const MethodBlock* mb);
 std::ostream& operator<<(std::ostream& os, const FieldBlock& fb);
 
-
-// bool is_speculative_object(Object* obj);
-// bool is_speculative_class(Class* classobj);
-bool g_is_pure_code_method(MethodBlock* mb);
 
 inline
 void*

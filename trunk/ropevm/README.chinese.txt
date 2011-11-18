@@ -55,6 +55,8 @@ log-model-3.txt
 epmacs的设置
 当前目录 包含.java文件的目录
 命令行参数 -cp bin-javac -Xmodel:3 -Xlog:off Health -l 3 -t 16 -s 1 -m
+或
+-cp bin-javac Hello
 
 虚拟机在解释过程中，可能会使用库中的java代码，如ClassLoader
 在调试过程中看着这些java代码的字节码是很有帮助的。
@@ -64,3 +66,18 @@ epmacs的设置
 最好在emacs的shell中查看，方便查找。为了在emacs的shell中使用show，需要先 . env-vars
 对应的classpath的源代码位于classpath-0,97.2/java/lang
 由于这些代码的缩进，在emacs中看有些乱，用gedit看。
+* 一些工具
+class editor
+http://classeditor.sourceforge.net/
+
+按照其安装帮助，解压后得一目录，在该目录中运行一次：
+java -jar ce.jar
+以便创建相关配置文件。
+然后在~/bin中新建一脚本ce，内容如下
+#!/usr/bin/env sh
+java -jar ~/ce2.23/ce.jar
+以后运行ce即可。
+
+
+
+
