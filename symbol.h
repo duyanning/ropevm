@@ -49,17 +49,18 @@ extern const char* symbol_values[];
     action(contextClassLoader, "contextClassLoader"), \
     action(getSystemClassLoader, "getSystemClassLoader"), \
     \
-    /* Speculative related */\
-    action(GroupingPolicy, "LGroupingPolicy;"), \
-    action(UNSPECIFIED, "UNSPECIFIED"), \
-    action(NEW_GROUP, "NEW_GROUP"), \
-    action(CURRENT_GROUP, "CURRENT_GROUP"), \
-    action(NO_GROUP, "NO_GROUP"), \
-    action(GroupingPolicies, "LGroupingPolicies;"), \
-    action(ClassGroupingPolicies, "LClassGroupingPolicies;"), \
-    action(self, "self"), \
-    action(others, "others"), \
-    \
+    /* Rope related */                                   \
+    action(GroupingPolicy, "LGroupingPolicy;"),                 \
+    action(UNSPECIFIED, "UNSPECIFIED"),                         \
+    action(NEW_GROUP, "NEW_GROUP"),                             \
+    action(CURRENT_GROUP, "CURRENT_GROUP"),                     \
+    action(NO_GROUP, "NO_GROUP"),                               \
+    action(GroupingPolicies, "LGroupingPolicies;"),             \
+    action(ClassGroupingPolicies, "LClassGroupingPolicies;"),   \
+    action(self, "self"),                                       \
+    action(others, "others"),                                   \
+    action(RopeConst, "LRopeConst;"),                           \
+                                                                \
     /* Constant pool attribute names */\
     action(Code, "Code"), \
     action(Signature, "Signature"), \

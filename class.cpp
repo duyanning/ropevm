@@ -126,20 +126,10 @@ static void prepareClass(Class *classobj)
             findSystemClass0(SYMBOL(java_lang_Class));
         classobj->classobj = java_lang_Class;
     }
-    // dynsearch
-    // std::cout << "prepareClass: " << classobj->name() << "UUU" << std::endl;
-    // //if (strcmp(classobj->name(), "Hello") == 0) {
-    // if (std::string(classobj->name()) == "Hello") {
-    // //if (*(classobj->name()) == 'H') {
-    //     std::cout << "fuck" << std::endl;
-    //     int x = 0;
-    //     x++;
-    // }
-    // SpmtThread* current_core = g_current_core();
-    // current_core->after_alloc_object(classobj);
 }
 
-void process_policies(unsigned char*& ptr, ConstantPool* constant_pool, int& self_policy, int& others_policy)
+void process_rope_grouping_policies(unsigned char*& ptr, ConstantPool* constant_pool,
+                                    int& self_policy, int& others_policy)
 {
     int len = 0;
     u2 elem_count;
@@ -199,8 +189,8 @@ void process_policies(unsigned char*& ptr, ConstantPool* constant_pool, int& sel
     }
 }
 
-void process_runtime_visible_annotations(void* data,
-                                         ClassBlock* classblock, ConstantPool* constant_pool)
+void process_rope_class_annotations(void* data, ClassBlock* classblock,
+                                    ConstantPool* constant_pool)
 {
     unsigned char* ptr = (unsigned char*)data;
     int len = 0;                // no use
@@ -213,18 +203,40 @@ void process_runtime_visible_annotations(void* data,
         anno_name = CP_UTF8(constant_pool, anno_name_idx);
 
         if (anno_name == SYMBOL(GroupingPolicies)) {
-            process_policies(ptr, constant_pool,
-                             classblock->grouping_policy_self,
-                             classblock->grouping_policy_others);
+            process_rope_grouping_policies(ptr, constant_pool,
+                                           classblock->grouping_policy_self,
+                                           classblock->grouping_policy_others);
         }
         else if (anno_name == SYMBOL(ClassGroupingPolicies)) {
-            process_policies(ptr, constant_pool,
-                             classblock->class_grouping_policy_self,
-                             classblock->class_grouping_policy_others);
+            process_rope_grouping_policies(ptr, constant_pool,
+                                           classblock->class_grouping_policy_self,
+                                           classblock->class_grouping_policy_others);
         }
         else {
             std::cout << "ROPEVM: unknown annotation on class " << classblock->name << std::endl;
         }
+    }
+}
+
+void process_rope_method_annotations(void* data, MethodBlock* mb,
+                                     ConstantPool* constant_pool)
+{
+    unsigned char* ptr = (unsigned char*)data;
+    int len = 0;                // no use
+    u2 anno_count;
+    READ_U2(anno_count, ptr, len);
+    for (; anno_count != 0; anno_count--) {
+        u2 anno_name_idx;
+        char* anno_name;
+        READ_TYPE_INDEX(anno_name_idx, constant_pool, CONSTANT_Utf8, ptr, len);
+        anno_name = CP_UTF8(constant_pool, anno_name_idx);
+
+        if (anno_name == SYMBOL(RopeConst)) {
+            mb->m_is_rope_const = true;
+        }
+
+        // 其他不认识的标注不用管
+
     }
 }
 
@@ -383,7 +395,7 @@ Class *defineClass(const char* classname, char *data, int offset, int len, Objec
     classblock->fields = (FieldBlock *)
                      sysMalloc(classblock->fields_count * sizeof(FieldBlock));
 
-    for(i = 0; i < classblock->fields_count; i++) {
+    for(i = 0; i < classblock->fields_count; i++) { // 对类的每个field
         u2 name_idx, type_idx;
 
         READ_U2(classblock->fields[i].access_flags, ptr, len);
@@ -422,7 +434,7 @@ Class *defineClass(const char* classname, char *data, int offset, int len, Objec
                     } else
                         ptr += attr_length;
         }
-    }
+    } // 对类的每个field
 
     READ_U2(classblock->methods_count, ptr, len);
 
@@ -431,7 +443,7 @@ Class *defineClass(const char* classname, char *data, int offset, int len, Objec
 
     memset(classblock->methods, 0, classblock->methods_count * sizeof(MethodBlock));
 
-    for(i = 0; i < classblock->methods_count; i++) {
+    for(i = 0; i < classblock->methods_count; i++) { // 对类的每个method
         MethodBlock *method = &classblock->methods[i];
         MethodAnnotationData annos;
         u2 name_idx, type_idx;
@@ -446,7 +458,7 @@ Class *defineClass(const char* classname, char *data, int offset, int len, Objec
         method->type = CP_UTF8(constant_pool, type_idx);
 
         READ_U2(attr_count, ptr, len);
-        for(; attr_count != 0; attr_count--) {
+        for(; attr_count != 0; attr_count--) { // 对方法的每个attribute
             u2 attr_name_idx;
             char *attr_name;
             u4 attr_length;
@@ -527,6 +539,12 @@ Class *defineClass(const char* classname, char *data, int offset, int len, Objec
                             annos.annotations->data = (u1*)sysMalloc(attr_length);
                             memcpy(annos.annotations->data, ptr, attr_length);
                             ptr += attr_length;
+
+                            // 在此检测RopeConst
+                            process_rope_method_annotations(annos.annotations->data,
+                                                            method,
+                                                            constant_pool);
+
                         } else
                             if(attr_name == SYMBOL(RuntimeVisibleParameterAnnotations)) {
                                 annos.parameters = (AnnotationData*)sysMalloc(sizeof(AnnotationData));
@@ -543,16 +561,16 @@ Class *defineClass(const char* classname, char *data, int offset, int len, Objec
                                     ptr += attr_length;
                                 } else
                                     ptr += attr_length;
-        }
+        } // end. 对方法的每个attribute
         if(annos.annotations != NULL || annos.parameters != NULL
                                      || annos.dft_val != NULL) {
             method->annotations = (MethodAnnotationData*)sysMalloc(sizeof(MethodAnnotationData));
             memcpy(method->annotations, &annos, sizeof(MethodAnnotationData));
         }
-    }
+    } // end. 对类的每个method
 
     READ_U2(attr_count, ptr, len);
-    for(; attr_count != 0; attr_count--) {
+    for(; attr_count != 0; attr_count--) { // 对类的每个attribute
         u2 attr_name_idx;
         char *attr_name;
         u4 attr_length;
@@ -622,11 +640,11 @@ Class *defineClass(const char* classname, char *data, int offset, int len, Objec
                                 memcpy(classblock->annotations->data, ptr, attr_length);
                                 ptr += attr_length;
 
-                                process_runtime_visible_annotations(classblock->annotations->data, classblock, constant_pool);
+                                process_rope_class_annotations(classblock->annotations->data, classblock, constant_pool);
 
                             } else
                                 ptr += attr_length;
-    }
+    } // end. 对类的每个attribute
 
     classblock->super = super_idx ? resolveClass(classobj, super_idx, FALSE) : NULL;
 
@@ -644,11 +662,6 @@ Class *defineClass(const char* classname, char *data, int offset, int len, Objec
         return found;
     }
 
-    // dynsearch
-    if (strcmp(classobj->name(), "Hello") == 0) {
-        int x = 0;
-        x++;
-    }
     SpmtThread* current_spmt_thread = g_get_current_spmt_thread();
     current_spmt_thread->after_alloc_object(classobj);
 
@@ -718,7 +731,7 @@ Class *createArrayClass(const char *classname, Object *class_loader) {
     if((found = addClassToHash(classobj, classblock->class_loader)) == classobj) {
         if(verbose)
             jam_printf("[Created array class %s]\n", classname);
-        // dynsearch
+
         SpmtThread* current_spmt_thread = g_get_current_spmt_thread();
         current_spmt_thread->after_alloc_object(classobj);
 
@@ -744,7 +757,7 @@ createPrimClass(const char *classname, int index) {
     classblock->access_flags = ACC_PUBLIC | ACC_FINAL | ACC_ABSTRACT;
 
     prepareClass(classobj);
-    // dynsearch
+
     SpmtThread* current_spmt_thread = g_get_current_spmt_thread();
     current_spmt_thread->after_alloc_object(classobj);
 
@@ -1240,14 +1253,6 @@ Class *initClass(Class *classobj)
           goto set_state_and_notify;
       }
    }
-
-    {
-        // dynsearch
-        // std::cout << "ininClass: " << classobj->name() << std::endl;
-        // SpmtThread* current_core = g_current_core();
-        // current_core->after_alloc_object(classobj);
-
-    }
 
    /* Never used to bother with this as only static finals use it and
       the constant value's copied at compile time.  However, separate

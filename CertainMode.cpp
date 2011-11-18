@@ -80,7 +80,7 @@ CertainMode::do_execute_method(Object* target_object,
     MINILOG(top_method_logger, "#" << m_spmt_thread->m_id
             << " top-invoke " << "#" << target_spmt_thread->m_id << " " << new_mb);
 
-    if (target_spmt_thread == m_spmt_thread or g_is_pure_code_method(new_mb)) {
+    if (target_spmt_thread == m_spmt_thread or new_mb->is_rope_const()) {
 
         // 对top method的调用是从native代码中发出，所以caller的pc设为0
         // dummy frame作为顶级方法的上级，用来接收top frame的返回值
@@ -147,7 +147,7 @@ CertainMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
     SpmtThread* target_spmt_thread = target_object->get_spmt_thread();
     assert(target_spmt_thread->m_thread == m_spmt_thread->m_thread);
 
-    if (target_spmt_thread == m_spmt_thread or g_is_pure_code_method(new_mb)) {
+    if (target_spmt_thread == m_spmt_thread or new_mb->is_rope_const()) {
 
         sp -= new_mb->args_count;
         invoke_impl(target_object, new_mb, sp,
