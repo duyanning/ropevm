@@ -20,14 +20,22 @@ class InvokeMsg;
 class ReturnMsg;
 class Snapshot;
 
-// 枚举常量用小写，免得跟其他人定义的宏冲突
-enum class SpecRunningState {
-    ongoing,                    // 除了这一种，其他都是睡眠状态
-    no_asyn_msg,
-    no_syn_msg,
-    cannot_signal_exception,
-    cannot_alloc_object,
-    cannot_exec_priviledged_method
+
+
+
+
+// 非确定模式下才会停机，确定模式是不会停机的。所以这些状态只对推测模式
+// 有意义。
+enum class RunningState {
+    ongoing,                    // 推测执行进行中
+    halt_no_asyn_msg,                // 无异步消息，无法继续推测执行
+    halt_no_syn_msg,                 // 无同步消息（即无返回值方法），无法继续推测执行
+    halt_cannot_signal_exception,    // 非确定模式不能抛出异常
+    halt_cannot_alloc_object,        // rvp模式不能产生新对象
+    halt_cannot_exec_priviledged_method, // 非确定模式不能执行特权方法
+    halt_cannot_exec_method,             // 非确定模式不能execute_method
+    halt_worthless_to_execute,       // 时间太短，不值得推测执行
+    halt_model2_requirement          // 模型2
 };
 
 
@@ -53,12 +61,14 @@ public:
     void set_leader(Object* leader);
     //Object* get_leader();
 
-    // 唤醒与睡眠
+    // 唤醒与停机。为什么叫停机而不叫睡眠，停机是指停止解释java指令，睡
+    // 眠是指线程睡眠，因为停机而睡眠，不可混淆。
     bool is_halt();
-    void sleep();
+    void halt(RunningState reason); // 推测模式下停机（即停止解释java指令），停机必须给出原因。
+    //void halt();
     void wakeup();
 
-    // 只要醒着就step
+    // 只要没停机就step
     void step();
     void idle();                // 仅为统计而存在
 
@@ -77,6 +87,9 @@ public:
     void send_msg(Message* msg);
     void affirm_spec_msg(Message* msg);
     void revoke_spec_msg(RoundTripMsg* msg);
+
+    void start_afresh_spec_execution(); // 开始新的推测执行
+    void resume_suspended_spec_execution(); // 恢复被确定执行挂起的推测执行或rvp执行
 
     // 由其他线程调用。注意：在多os线程实现方式下，那些由其他spmt线程调
     // 用的方法，会和由自己调用的方法，如不小心同步，就会发生冲突。
@@ -161,7 +174,7 @@ private:
     std::list<Message*> m_spec_msg_queue;
     std::list<Message*>::iterator m_iter_next_spec_msg;
     Message* m_current_spec_msg; // 正在处理的推测消息。只要有正在进行的推测执行，此变量就不为空。
-    SpecRunningState m_spec_running_state; // 推测执行的状态
+    RunningState m_spec_running_state; // 推测执行的状态
     std::vector<RoundTripMsg*> m_revoked_msgs; // 发送方要求收回这些推测消息
 
     // 不同模式下读写的去处

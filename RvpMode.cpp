@@ -49,8 +49,8 @@ void
 RvpMode::before_alloc_object()
 {
     MINILOG(r_new_logger, "#" << m_spmt_thread->id() << " (R) hits NEW ");
-    m_spmt_thread->sleep();
-    m_spmt_thread->m_spec_running_state = SpecRunningState::cannot_alloc_object;
+    m_spmt_thread->halt(RunningState::halt_cannot_alloc_object);
+
     throw Break();
 }
 
@@ -73,8 +73,7 @@ RvpMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
     if (is_priviledged(new_mb)) {
         MINILOG(r_logger, "#" << m_spmt_thread->id()
                 << " (R) is to invoke native/sync method: " << new_mb);
-        m_spmt_thread->sleep();
-        m_spmt_thread->m_spec_running_state = SpecRunningState::cannot_exec_priviledged_method;
+        m_spmt_thread->halt(RunningState::halt_cannot_exec_priviledged_method);
         return;
     }
 
@@ -88,8 +87,8 @@ RvpMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
     MethodBlock* rvp_mb = get_rvp_method(new_mb);
     assert(rvp_mb);
 
-    // if (rvp_method == nullptr) { // 若无rvp方法就不推测执行了，睡眠。
-    //     m_spmt_thread->sleep();
+    // if (rvp_method == nullptr) { // 若无rvp方法就不推测执行了，停机。
+    //     m_spmt_thread->halt();
     //     return;
     // }
 
@@ -184,8 +183,7 @@ RvpMode::before_signal_exception(Class *exception_class)
 {
     MINILOG(r_exception_logger, "#" << m_spmt_thread->id()
             << " (R) exception detected!!! " << exception_class->name());
-    m_spmt_thread->sleep();
-    m_spmt_thread->m_spec_running_state = SpecRunningState::cannot_signal_exception;
+    m_spmt_thread->halt(RunningState::halt_cannot_signal_exception);
     throw Break();
 }
 
@@ -275,9 +273,12 @@ void*
 RvpMode::do_execute_method(Object* target_object, MethodBlock *mb, std::vector<uintptr_t>& jargs, DummyFrame* dummy)
 {
     MINILOG(step_loop_in_out_logger, "#" << m_spmt_thread->id()
-            << " (R) throw-> to be execute java method: " << mb);
+            << " (R) to be execute java method: " << mb);
 
-    m_spmt_thread->sleep();
+    assert(false);
+    //m_spmt_thread->halt(RunningState::halt_cannot_exec_method);
+    //m_spmt_thread->halt();
+
     throw Break();
 
     return 0;

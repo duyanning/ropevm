@@ -4,6 +4,8 @@
 
 using namespace std;
 
+bool p = false;           // 控制是否输出指针值，在对比日志的时候输出指针的话，两次运行，其指针值必然不等。此时就应当关闭。
+
 // 所有的invoke、return、get、put、aload、astore，无论是否跨线程，都被
 // 记录。
 MiniLogger order_logger(cout, false);
@@ -18,6 +20,8 @@ MiniLogger spec_msg_logger(cout, true);
 
 // 记录确定控制转移
 MiniLogger control_transfer_logger(cout, true);
+
+MiniLogger wakeup_halt_logger(cout, true);
 
 MiniLogger owner_change_logger(cout, false);
 MiniLogger user_change_logger(cout, false);
@@ -47,7 +51,7 @@ MiniLogger r_new_logger(cout, true, &r_logger);
 MiniLogger r_frame_logger(cout, true, &r_logger);
 MiniLogger r_destroy_frame_logger(cout, true, &r_logger);
 
-MiniLogger step_loop_in_out_logger(cout, false);
+MiniLogger step_loop_in_out_logger(cout, true);
 
 MiniLogger snapshot_logger(cout, true);
 MiniLogger snapshot_detail_logger(cout, false, &snapshot_logger);

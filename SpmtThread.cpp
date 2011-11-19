@@ -29,7 +29,7 @@ SpmtThread::SpmtThread(int id)
     m_quit_causer(nullptr),
     m_certain_message(nullptr),
     m_current_spec_msg(nullptr),
-    m_spec_running_state(SpecRunningState::no_asyn_msg),
+    m_spec_running_state(RunningState::halt_no_asyn_msg),
     m_excep_threw_to_me(nullptr),
     m_excep_frame(nullptr)
 {
@@ -117,32 +117,55 @@ SpmtThread::idle()
 }
 
 
+ostream&
+operator<<(ostream& os, RunningState reason)
+{
+    if (reason == RunningState::ongoing)
+        os << "ongoing";
+    else if (reason == RunningState::halt_no_asyn_msg)
+        os << "halt_no_asyn_msg";
+    else if (reason == RunningState::halt_no_syn_msg)
+        os << "halt_no_syn_msg";
+    else if (reason == RunningState::halt_cannot_signal_exception)
+        os << "halt_cannot_signal_exception";
+    else if (reason == RunningState::halt_cannot_alloc_object)
+        os << "halt_cannot_alloc_object";
+    else if (reason == RunningState::halt_cannot_exec_priviledged_method)
+        os << "halt_cannot_exec_priviledged_method";
+    else if (reason == RunningState::halt_cannot_exec_method)
+        os << "halt_cannot_exec_method";
+    else if (reason == RunningState::halt_worthless_to_execute)
+        os << "halt_worthless_to_execute";
+    else
+        os << "unknow state";
+    return os;
+}
+
 void
 SpmtThread::wakeup()
 {
-    if (m_id == 5) {
-        int x = 0;
-        x++;
-    }
+    MINILOG(wakeup_halt_logger, "#" << id() << " awake " << m_spec_running_state);
     if (m_halt) {
         m_halt = false;
-        // MINILOG0("#" << id() << " (state)start");
     }
 }
 
 
 void
-SpmtThread::sleep()
+SpmtThread::halt(RunningState reason)
 {
-    //{{{ just for debug
-    if (id() == 6) {
-        int x = 0;
-        x++;
-    }
-    //}}} just for debug
-    // MINILOG0("#" << id() << " (state)sleep");
     m_halt = true;
+    m_spec_running_state = reason;
+    MINILOG(wakeup_halt_logger, "#" << id() << " halt " << m_spec_running_state);
 }
+
+
+// void
+// SpmtThread::halt()
+// {
+//     m_halt = true;
+//     MINILOG(wakeup_halt_logger, "#" << id() << " halt " << m_spec_running_state);
+// }
 
 
 void
@@ -230,11 +253,13 @@ SpmtThread::switch_to_previous_mode()
 
     MINILOG_IF(is_spec_mode(), certain_msg_logger, "#" << m_id
                << " resume SPEC mode"
-               << Triple(m_spec_mode.pc, m_spec_mode.frame, m_spec_mode.sp));
+               << Triple(m_spec_mode.pc, m_spec_mode.frame, m_spec_mode.sp)
+               << m_spec_running_state);
 
     MINILOG_IF(is_rvp_mode(), certain_msg_logger, "#" << m_id
                << " resume RVP mode"
-               << Triple(m_rvp_mode.pc, m_rvp_mode.frame, m_rvp_mode.sp));
+               << Triple(m_rvp_mode.pc, m_rvp_mode.frame, m_rvp_mode.sp)
+               << m_spec_running_state);
 
 }
 
@@ -257,9 +282,9 @@ SpmtThread::add_spec_msg(Message* msg)
     }
 
 
-    // 如果本线程是因为推测执行缺乏任务而睡眠，则唤醒。
-    //if (m_halt and is_spec_mode() and m_need_spec_msg) {
-    if (m_halt and m_spec_running_state == SpecRunningState::no_asyn_msg) {
+    // 如果本线程是因为推测执行缺乏异步消息而停机，则唤醒。
+    if (m_halt and m_spec_running_state == RunningState::halt_no_asyn_msg) {
+        //if (m_halt and m_spec_running_state != RunningState::halt_no_syn_msg) {
         // MINILOG0("#" << id() << " is waken(sleeping, waiting for task)");
         wakeup();
     }
@@ -411,15 +436,34 @@ SpmtThread::commit_effect(Effect* effect)
 
 
 void
+SpmtThread::resume_suspended_spec_execution()
+{
+    switch_to_previous_mode();  // 转入之前的模式：推测模式或rvp模式
+
+    // 原因见SpeculativeMode::do_execute_method。
+    if (m_spec_running_state == RunningState::halt_cannot_exec_method) {
+        m_spec_running_state = RunningState::ongoing;
+    }
+
+    if (m_spec_running_state != RunningState::ongoing) { // 如果之前处于停机状态，那就恢复停机状态。
+        halt(m_spec_running_state);
+    }
+}
+
+
+void
+SpmtThread::start_afresh_spec_execution()
+{
+    m_spec_running_state = RunningState::ongoing;
+}
+
+
+void
 SpmtThread::affirm_spec_msg(Message* msg)
 {
     assert(is_certain_mode());
 
-    switch_to_previous_mode();  // 转入之前的模式：推测模式或rvp模式
-
-    if (m_spec_running_state != SpecRunningState::ongoing) { // 如果之前在睡眠，那就恢复睡眠。
-        sleep();
-    }
+    resume_suspended_spec_execution();
 
     MINILOG(certain_msg_logger, "#" << m_id
             << " affirm spec msg to "
@@ -567,7 +611,8 @@ SpmtThread::discard_revoked_msg(RoundTripMsg* revoked_msg)
         // 推测执行本来可能因为多种原因睡眠，睡眠是推测执行的最前沿。所
         // 以但凡丢弃了待验证部分的消息，睡眠原因必然不再成立。现在是否
         // 睡眠，全看有没有待处理消息。
-        m_spec_running_state = SpecRunningState::no_asyn_msg; // 表明推测执行需要加载推测消息（因为收回消息把人家正在处理的消息下马了）
+        //m_spec_running_state = RunningState::halt_no_asyn_msg; // 表明推测执行需要加载推测消息（因为收回消息把人家正在处理的消息下马了）
+        launch_next_spec_msg();
 
     }
 }
@@ -660,6 +705,8 @@ SpmtThread::abort_uncertain_execution()
     // 清空state buffer与rvp buffer
     m_state_buffer.reset();
     m_rvp_buffer.clear();
+
+    m_spec_running_state = RunningState::halt_no_asyn_msg;
 
 }
 
@@ -862,8 +909,7 @@ SpmtThread::launch_next_spec_msg()
         m_spec_mode.frame = 0;
         m_spec_mode.sp = 0;
 
-        sleep();
-        m_spec_running_state = SpecRunningState::no_asyn_msg;
+        halt(RunningState::halt_no_asyn_msg);
 
         return;
     }
@@ -880,7 +926,7 @@ SpmtThread::launch_next_spec_msg()
     assert(g_is_async_msg(m_current_spec_msg));
 
     m_current_spec_msg->set_effect(new Effect); // 处理前给消息配上effect
-    m_spec_running_state = SpecRunningState::ongoing;
+    m_spec_running_state = RunningState::ongoing;
 
     process_msg(m_current_spec_msg);
 }
@@ -906,7 +952,7 @@ SpmtThread::launch_spec_msg(Message* msg)
     m_spec_msg_queue.insert(m_iter_next_spec_msg, msg);
 
     m_current_spec_msg->set_effect(new Effect); // 处理前给消息配上effect
-    m_spec_running_state = SpecRunningState::ongoing;
+    m_spec_running_state = RunningState::ongoing;
 
     process_msg(m_current_spec_msg);
     // if 刚处理的是get,put等，就要加载下一条。

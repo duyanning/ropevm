@@ -1,6 +1,7 @@
 #ifndef LOGGERS_H
 #define LOGGERS_H
 
+extern MiniLogger wakeup_halt_logger;
 extern MiniLogger order_logger;
 extern MiniLogger top_method_logger;
 extern MiniLogger inter_spmt_thread_logger;
@@ -48,5 +49,7 @@ extern MiniLogger cache_logger;
 extern MiniLogger free_frames_logger;
 extern MiniLogger delete_frame_logger;
 extern MiniLogger invoke_return_logger;
+
+extern bool p;
 
 #endif // LOGGERS_H
