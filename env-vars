@@ -8,6 +8,6 @@ export FIXEDJAMROOT=$HOME/work/fixed-jamvm
 export CLASSPATH=.:$ROPECLASSPATH
 export PATH=$ROPEVMROOT/debug:$ROPEVMROOT/tools:$FIXEDJAMROOT/debug:$PATH
 
-export model=3
+export model=4
 export log=0
 

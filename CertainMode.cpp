@@ -184,7 +184,7 @@ CertainMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
 
         m_spmt_thread->send_msg(invoke_msg);
 
-        if (RopeVM::model == 2) // 模型2不推测执行。
+        if (RopeVM::model < 3) // 模型3以上才支持推测执行。
             return;
 
         MethodBlock* rvp_method = get_rvp_method(new_mb);
@@ -677,9 +677,9 @@ CertainMode::log_when_invoke_return(bool is_invoke, Object* caller, MethodBlock*
 void
 CertainMode::send_msg(Message* msg)
 {
-    assert(RopeVM::model == 2 or RopeVM::model == 3);  // 模型2，3才有消息，模型1无消息。
+    assert(RopeVM::model >= 2);  // 模型2以上才有消息
 
-    if (RopeVM::model == 2)     // 模型2失去确定控制后停机，模型3则不。
+    if (RopeVM::model < 3)     // 模型2失去确定控制后停机，模型3、模型4则不。
         m_spmt_thread->halt(RunningState::halt_model2_requirement);
 
     MINILOG(certain_msg_logger, "#" << m_spmt_thread->id()

@@ -890,9 +890,9 @@ SpmtThread::has_unprocessed_spec_msg()
 void
 SpmtThread::launch_next_spec_msg()
 {
-    assert(RopeVM::model == 2 or RopeVM::model == 3);
+    assert(RopeVM::model >= 2);
 
-    if (RopeVM::model == 2)     // 模型2是不推测执行的。
+    if (RopeVM::model < 3)     // 模型3以上才支持推测执行
         return;
 
     assert(is_spec_mode());
