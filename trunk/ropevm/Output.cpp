@@ -1,5 +1,6 @@
 #include "std.h"
 #include "rope.h"
+#include "Loggers.h"
 
 using namespace std;
 
@@ -26,7 +27,10 @@ operator<<(ostream& os, const FieldBlock& fb)
 ostream&
 operator<<(ostream& os, const Frame* f)
 {
-    os << f->mb << " (" << (void*)f << ")";
+    os << f->mb;
+    if (p) {
+        os << " (" << (void*)f << ")";
+    }
 
        // << " obj: " << f.object
        // << " prev: " << f.prev

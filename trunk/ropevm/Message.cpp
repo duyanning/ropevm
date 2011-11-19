@@ -1,6 +1,7 @@
 #include "std.h"
 #include "rope.h"
 #include "Message.h"
+#include "Loggers.h"
 
 using namespace std;
 
@@ -60,7 +61,9 @@ ostream&
 operator<<(ostream& os, const Message* msg)
 {
     msg->show(os);
-    os << " (" << (void*)msg << ")";
+    if (p) {
+        os << " (" << (void*)msg << ")";
+    }
     return os;
 }
 

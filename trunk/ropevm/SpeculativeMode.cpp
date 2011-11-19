@@ -50,8 +50,7 @@ SpeculativeMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
     if (is_priviledged(new_mb)) {
         MINILOG(s_logger, "#" << m_spmt_thread->id()
                 << " (S) " << new_mb << "is native/sync method");
-        m_spmt_thread->sleep();
-        m_spmt_thread->m_spec_running_state = SpecRunningState::cannot_exec_priviledged_method;
+        m_spmt_thread->halt(RunningState::halt_cannot_exec_priviledged_method);
 
         return;
     }
@@ -102,9 +101,8 @@ SpeculativeMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
 
         MethodBlock* rvp_method = ::get_rvp_method(new_mb);
 
-        if (rvp_method == nullptr) { // 若无rvp方法就不推测执行了，睡眠。
-            m_spmt_thread->sleep();
-            m_spmt_thread->m_spec_running_state = SpecRunningState::no_syn_msg;
+        if (rvp_method == nullptr) { // 若无rvp方法就不推测执行了，停机。
+            m_spmt_thread->halt(RunningState::halt_no_syn_msg);
             throw Break();
         }
 
@@ -185,8 +183,7 @@ SpeculativeMode::before_signal_exception(Class *exception_class)
 {
     MINILOG(s_exception_logger, "#" << m_spmt_thread->id()
             << " (S) exception detected!!! " << exception_class->name());
-    m_spmt_thread->sleep();
-    m_spmt_thread->m_spec_running_state = SpecRunningState::cannot_signal_exception;
+    m_spmt_thread->halt(RunningState::halt_cannot_signal_exception);
 
     throw Break();
 }
@@ -243,9 +240,8 @@ SpeculativeMode::do_get_field(Object* target_object, FieldBlock* fb, uintptr_t* 
     assert(size == 1 || size == 2);
 
     MINILOG(s_logger, "#" << m_spmt_thread->id()
-            << " (S) is to getfield: " << *fb
-            //            << " of " << static_cast<void*>(target_object));
-            << " of " << target_object);
+            << " (S) is to getfield: " << *fb)
+            //<< " of " << target_object);
 
 
     SpmtThread* target_spmt_thread = target_object->get_spmt_thread();
@@ -443,8 +439,20 @@ SpeculativeMode::do_execute_method(Object* target_object,
                                    std::vector<uintptr_t>& jargs, DummyFrame* dummy)
 {
     MINILOG(step_loop_in_out_logger, "#" << m_spmt_thread->id()
-            << " (S) throw-> to be execute java method: " << mb);
-    m_spmt_thread->sleep();
+            << " (S) to be execute java method: " << mb);
+
+    // 大多数execute_method调用的目的都是为了在解释new指令的时候通过解
+    // 释方法ClassLoader.loadClass来加载类。如果我们需要的类已经被加载，
+    // 就不会调用execute_method。而且，就算现在这个类尚未加载，需要解释
+    // ClassLoader.loadClass，而我们（在推测模式下）又没有资格调用
+    // execute_method，只能中断new指令的解释过程，但过了一会之后，可能
+    // 其他线程（在确定模式下）已经调用execute_method解释了
+    // ClassLoader.loadClass，从而加载了我们没能加载的类，那么我们的
+    // new指令就可以重新执行了。是让被中断的new指令不停地重试，还是等一
+    // 会？前者代价太大。那么就等一会，等到什么时候（在推测模式下）重试
+    // 呢？等到我们resume推测执行的时候。
+    // SpmtThread::resume_suspended_spec_execution中有对应实现。
+    m_spmt_thread->halt(RunningState::halt_cannot_exec_method);
 
     throw Break();
 

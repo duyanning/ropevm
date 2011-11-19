@@ -40,17 +40,19 @@ ReturnMsg::show(ostream& os) const
 {
     int len = retval.size();
     assert(len == 0 || len == 1 || len == 2);
-    if (len == 0) {
-        os << "RETURN";
-    }
-    else if (len == 1) {
-        os << "RETURN" << hex <<  *((int*)&retval[0]) << dec;
-    }
-    else if (len == 2) {
-        os << "RETURN" << hex << *((long*)&retval[0]) << dec;
-    }
 
-    //os << " from " << mb->classobj->name() << '.' << mb->name << ':' << mb->type;
+    os << "RETURN" << (m_is_top ? "(top) " : " ");
+
+
+    // if (len == 0) {
+    // }
+    // else if (len == 1) {
+    //     os << hex <<  *((int*)&retval[0]) << dec;
+    // }
+    // else if (len == 2) {
+    //     os << hex << *((long*)&retval[0]) << dec;
+    // }
+
 }
 
 

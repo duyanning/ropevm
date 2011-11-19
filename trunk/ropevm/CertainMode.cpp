@@ -111,11 +111,16 @@ CertainMode::do_execute_method(Object* target_object,
 
         //frame->last_pc = pc;
 
-        // 转入推测模式，但不要执行
-        m_spmt_thread->sleep(); // 睡等其他线程完成顶级方法的执行
-        //m_spmt_thread->m_need_spec_msg = false;
-
         m_spmt_thread->send_msg(invoke_msg);
+
+        // 虽然进入了推测模式，但没有异步消息，推测执行无法继续。注意，
+        //因为对本条指令的解释过程还没结束，使不能推测执行该指令后边的
+        //指令的。
+        m_spmt_thread->m_spec_mode.pc = 0;
+        m_spmt_thread->m_spec_mode.frame = 0;
+        m_spmt_thread->m_spec_mode.sp = 0;
+        m_spmt_thread->halt(RunningState::halt_no_asyn_msg);
+
     }
 
 
@@ -184,9 +189,8 @@ CertainMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
 
         MethodBlock* rvp_method = get_rvp_method(new_mb);
 
-        if (rvp_method == nullptr) { // 若无rvp方法就不推测执行了，睡眠。
-            m_spmt_thread->sleep();
-            m_spmt_thread->m_spec_running_state = SpecRunningState::no_syn_msg;
+        if (rvp_method == nullptr) { // 若无rvp方法就不推测执行了，停机。
+            m_spmt_thread->halt(RunningState::halt_no_syn_msg);
             return;
         }
 
@@ -510,7 +514,8 @@ CertainMode::do_get_field(Object* target_object, FieldBlock* fb,
         // 构造确定性的get_msg发送给目标线程
         GetMsg* get_msg = new GetMsg(m_spmt_thread, target_spmt_thread, target_object, fb);
 
-        m_spmt_thread->sleep();
+        m_spmt_thread->halt(RunningState::halt_worthless_to_execute);
+
         m_spmt_thread->send_msg(get_msg);
 
     }
@@ -565,7 +570,7 @@ CertainMode::do_put_field(Object* target_object, FieldBlock* fb,
 
         sp -= is_static ? 0 : 1;
 
-        m_spmt_thread->sleep(); // 睡等其他线程完成put，此为确定模式睡眠
+        m_spmt_thread->halt(RunningState::halt_worthless_to_execute);
 
         m_spmt_thread->send_msg(put_msg);
     }
@@ -598,7 +603,8 @@ CertainMode::do_array_load(Object* array, int index, int type_size)
         ArrayLoadMsg* arrayload_msg = new ArrayLoadMsg(m_spmt_thread, target_spmt_thread,
                                                        array, type_size, index);
 
-        m_spmt_thread->sleep();
+        m_spmt_thread->halt(RunningState::halt_worthless_to_execute);
+
         m_spmt_thread->send_msg(arrayload_msg);
 
     }
@@ -644,7 +650,8 @@ CertainMode::do_array_store(Object* array, int index, int type_size)
                                                           type_size, index, sp);
         sp -= 2;                    // pop up arrayref and index
 
-        m_spmt_thread->sleep();
+        m_spmt_thread->halt(RunningState::halt_worthless_to_execute);
+
         m_spmt_thread->send_msg(arraystore_msg);
 
     }
@@ -672,8 +679,8 @@ CertainMode::send_msg(Message* msg)
 {
     assert(RopeVM::model == 2 or RopeVM::model == 3);  // 模型2，3才有消息，模型1无消息。
 
-    if (RopeVM::model == 2)     // 模型2失去确定控制后睡眠，模型3则不。
-        m_spmt_thread->sleep();
+    if (RopeVM::model == 2)     // 模型2失去确定控制后停机，模型3则不。
+        m_spmt_thread->halt(RunningState::halt_model2_requirement);
 
     MINILOG(certain_msg_logger, "#" << m_spmt_thread->id()
             << " send cert msg to "
@@ -685,7 +692,8 @@ CertainMode::send_msg(Message* msg)
             << "#" << msg->get_target_spmt_thread()->id());
 
     m_spmt_thread->switch_to_speculative_mode();
-    m_spmt_thread->m_spec_running_state = SpecRunningState::ongoing;
+
+    m_spmt_thread->start_afresh_spec_execution();
 
     msg->get_target_spmt_thread()->set_certain_msg(msg);
 }
