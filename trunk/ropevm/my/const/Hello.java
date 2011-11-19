@@ -1,11 +1,4 @@
 class Beast {
-    public int f()
-    {
-        //System.out.println("Beast.f");
-        return 0;
-    }
-
-
 }
 
 
@@ -29,11 +22,12 @@ class Wolf extends Beast {
     }
 
 
-    public int f()
+    public int f(Dog d)
     {
         int x = 0;
         x++;
         x++;
+        d.g();
         x++;
         x++;
         x++;
@@ -41,7 +35,7 @@ class Wolf extends Beast {
         return x;
     }
 
-    public int __rvp__f()
+    public int __rvp__f(Dog d)
     {
         return 6;
         //return 5;	// wrong pslice
@@ -50,6 +44,9 @@ class Wolf extends Beast {
     @RopeConst
     public int g()
     {
+        int y = 0;
+        y++;
+        y++;
         return 0;
     }
 
@@ -76,11 +73,12 @@ class Dog extends Beast {
     }
 
 
-    public int f()
+    public int f(Wolf w)
     {
         int x = 0;
         x++;
         x++;
+        w.g();
         x++;
         x++;
         x++;
@@ -88,10 +86,19 @@ class Dog extends Beast {
         return x;
     }
 
-    public int __rvp__f()
+    public int __rvp__f(Wolf w)
     {
         return 6;
         //return 5;	// wrong pslice
+    }
+
+    @RopeConst
+    public int g()
+    {
+        int y = 0;
+        y++;
+        y++;
+        return 0;
     }
 
 }
@@ -102,11 +109,10 @@ class Hello {
     public static void main(String[] args)
     {
 
-///*
+
         int x = 9;
-        Beast b = new Wolf();
-        // 不等碰到对b.f()的调用，构造函数的pslice就已经返回，所以将在确定模式下碰到对b.f的调用。
-        // 48 x++
+        Wolf w = new Wolf();
+        Dog d = new Dog();
         x++;
         x++;
         x++;
@@ -155,10 +161,26 @@ class Hello {
         x++;
         x++;
         x++;
-
-        x -= b.f();
-
-        // 48 x++
+        w.f(d);
+        d.f(w);
+        w.f(d);
+        d.f(w);
+        w.f(d);
+        d.f(w);
+        w.f(d);
+        d.f(w);
+        w.f(d);
+        d.f(w);
+        w.f(d);
+        d.f(w);
+        w.f(d);
+        d.f(w);
+        w.f(d);
+        d.f(w);
+        w.f(d);
+        d.f(w);
+        x -= w.f(d);
+        x -= d.f(w);
         x++;
         x++;
         x++;

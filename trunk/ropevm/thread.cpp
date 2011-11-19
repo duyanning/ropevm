@@ -1308,7 +1308,7 @@ query_grouping_policy_for_object(Object* object)
 SpmtThread*
 Thread::assign_spmt_thread_for(Object* object)
 {
-    if (RopeVM::model < 2) {
+    if (RopeVM::model < 2) {    // 模型2以上才分组
         return get_initial_spmt_thread();
     }
 

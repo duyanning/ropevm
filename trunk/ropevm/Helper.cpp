@@ -1,6 +1,7 @@
 #include "std.h"
 #include "rope.h"
 #include "Helper.h"
+#include "RopeVM.h"
 
 using namespace std;
 
@@ -519,3 +520,13 @@ info(Object* o)
     }
     return "";
 }
+
+
+bool
+MethodBlock::is_rope_const() const
+{
+    if (RopeVM::model < 4)      // 只有模型4才支持const方法
+        return false;
+    return m_is_rope_const;
+}
+

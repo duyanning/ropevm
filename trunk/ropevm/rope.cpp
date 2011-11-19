@@ -226,9 +226,6 @@ int parseCommandLine(int argc, char *argv[], InitArgs *args) {
 
         } else if(strcmp(argv[i], "-Xcompactalways") == 0) {
             args->compact_specified = args->do_compact = TRUE;
-        // } else if (strncmp(argv[i], "-Xspec:", 7) == 0) {
-        //     const char* val = argv[i] + 7;
-        //     args->do_spec = get_bool(val);
         } else if (strncmp(argv[i], "-Xmodel:", 8) == 0) {
             const char* val = argv[i] + 8;
             args->model = get_int(val);
@@ -259,7 +256,6 @@ int main(int argc, char *argv[])
     int i;
 
     setDefaultInitArgs(&args);
-    //std::cout << "spec: " << args.do_spec << ", log: " << args.do_log << "\n";
     class_arg = parseCommandLine(argc, argv, &args);
     std::cout << "model: " << args.model << ", log: " << args.do_log << "\n";
 
