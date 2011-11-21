@@ -1005,7 +1005,8 @@ void linkClass(Class *classobj) {
    /* if we're an interface all finished - offsets aren't used */
 
    if(!(cb->access_flags & ACC_INTERFACE)) {
-       int *offsets_pntr = (int*)sysMalloc(itbl_offset_count * sizeof(int));
+       //int *offsets_pntr = (int*)sysMalloc(itbl_offset_count * sizeof(int));
+       // 上面这句放在这里有内存泄漏：一旦下边的循环不进入，将有内存泄漏。所以把它移到下边的循环中。
        int old_mtbl_size = method_table_size;
        MethodBlock *miranda[MRNDA_CACHE_SZE];
        int miranda_count = 0;
@@ -1014,8 +1015,9 @@ void linkClass(Class *classobj) {
        /* run through table again, this time filling in the offsets array -
         * for each new interface, run through it's methods and locate
         * each method in this classes method table */
-
+       //assert(cb->imethod_table_size > spr_imthd_tbl_sze); 经这个assert验证表明，有时候循环可能不会进入。
        for(i = spr_imthd_tbl_sze; i < cb->imethod_table_size; i++) {
+           int *offsets_pntr = (int*)sysMalloc(itbl_offset_count * sizeof(int)); // 上边这句移到这里就不会内存泄漏
            ClassBlock *intf_cb = CLASS_CB(cb->imethod_table[i].interface);
            cb->imethod_table[i].offsets = offsets_pntr;
 
@@ -1540,14 +1542,6 @@ Class *findClassFromClassLoader(char *classname, Object *loader) {
     return findSystemClass0(classname);
 }
 
-// duyanning, do not use class loader to load class
-// Class *findClassFromClassLoader(char *classname, Object *loader) {
-
-//     if(*classname == '[')
-//         return findArrayClassFromClassLoader(classname, 0);
-
-//     return findSystemClass0(classname);
-// }
 
 Object *getSystemClassLoader() {
     Class *class_loader = findSystemClass(SYMBOL(java_lang_ClassLoader));

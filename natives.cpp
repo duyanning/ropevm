@@ -690,6 +690,8 @@ uintptr_t *getBootClassPathResource(Class *classobj, MethodBlock *mb, uintptr_t 
     int index = ostack[1];
 
     *ostack++ = (uintptr_t) bootClassPathResource(filename, index);
+
+    sysFree(filename);
     return ostack;
 }
 

@@ -103,7 +103,7 @@ SpeculativeMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
 
         if (rvp_method == nullptr) { // 若无rvp方法就不推测执行了，停机。
             m_spmt_thread->halt(RunningState::halt_no_syn_msg);
-            throw Break();
+            throw  Break();
         }
 
 
