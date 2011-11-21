@@ -87,10 +87,6 @@ final class BiGraph
         BiGraph g = new BiGraph(eTable[0], hTable[0]);
         return g;
     }
-    static BiGraph _p_slice_for_create(int numNodes, int numDegree, boolean verbose)
-    {
-        return null;
-    }
 
     /**
      * Update the field values of e-nodes based on the values of
@@ -102,12 +98,17 @@ final class BiGraph
             Node n = (Node) e.nextElement();
             n.computeNewValue();
         }
+
+        System.out.print("");   // spec barrier
+
         for (Enumeration e = hNodes.elements(); e.hasMoreElements(); ) {
             Node n = (Node) e.nextElement();
             n.computeNewValue();
         }
+
+        System.out.print(""); // spec barrier
     }
-    void _p_slice_for_compute()
+    void __rvp__compute()
     {
     }
 

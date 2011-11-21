@@ -6,7 +6,6 @@ import java.util.Enumeration;
  * This class implements nodes (both E- and H-nodes) of the EM graph. Sets
  * up random neighbors and propagates field values among neighbors.
  */
-@Speculative(type=3)
 @GroupingPolicies(self=GroupingPolicy.NEW_GROUP)
 @ClassGroupingPolicies(self=GroupingPolicy.NEW_GROUP)
 final class Node {
@@ -75,7 +74,7 @@ final class Node {
         fromCount = 0;
         fromLength = 0;
     }
-    void _p_slice_for_ctor(int degree)
+    void __rvp__ctor(int degree)
     {
     }
 
@@ -99,10 +98,6 @@ final class Node {
             prevNode = curNode;
         }
         return table;
-    }
-    static Node[] _p_slice_for_fillTable(int size, int degree)
-    {
-        return null;
     }
 
     /**
@@ -141,7 +136,7 @@ final class Node {
             otherNode.fromCount++;
         }
     }
-    void _p_slice_for_makeUniqueNeighbors(Node[] nodeTable)
+    void __rvp__makeUniqueNeighbors(Node[] nodeTable)
     {
     }
 
@@ -157,7 +152,7 @@ final class Node {
         fromNodes = new Node[fromCount]; // nodes fill be filled in later
         coeffs = new double[fromCount];
     }
-    void _p_slice_for_makeFromNodes()
+    void __rvp__makeFromNodes()
     {
     }
 
@@ -176,7 +171,7 @@ final class Node {
             otherNode.coeffs[count] = rand.nextDouble();
         }
     }
-    void _p_slice_for_updateFromNodes()
+    void __rvp__updateFromNodes()
     {
     }
 
@@ -190,7 +185,7 @@ final class Node {
             value -= coeffs[i] * fromNodes[i].value;
         }
     }
-    void _p_slice_for_computeNewValue()
+    void __rvp__computeNewValue()
     {
     }
 
@@ -201,7 +196,6 @@ final class Node {
     Enumeration elements()
     {
         // a local class that implements the enumeration
-        @Speculative(type = 1)
         class Enumerate implements Enumeration {
             private Node current;
             public Enumerate() { this.current = Node.this; }
@@ -213,10 +207,6 @@ final class Node {
             }
         }
         return new Enumerate();
-    }
-    Enumeration _p_slice_for_elements()
-    {
-        return null;
     }
 
     /**
