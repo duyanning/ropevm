@@ -1221,8 +1221,9 @@ SpmtThread::process_exception(Object* excep, Frame* excep_frame)
             objectUnlock(sync_ob);
         }
 
+        Frame* old_current_frame = current_frame;
         current_frame = current_frame->prev;
-        // destroy_frame();
+        m_certain_mode.destroy_frame(old_current_frame);
         handler_pc = findCatchBlockInMethod(current_frame->mb,
                                             excep->classobj,
                                             current_frame->last_pc);
