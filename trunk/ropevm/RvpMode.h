@@ -12,6 +12,7 @@ public:
     virtual uint32_t mode_read(uint32_t* addr);
     virtual void mode_write(uint32_t* addr, uint32_t value);
 
+    virtual void do_spec_barrier();
     virtual void before_alloc_object();
     virtual void after_alloc_object(Object* obj);
 

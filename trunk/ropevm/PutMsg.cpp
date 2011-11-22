@@ -28,15 +28,16 @@ PutMsg::get_field_addr()
 void
 PutMsg::show(ostream& os) const
 {
-    int len = val.size();
-    assert(len == 1 || len == 2);
+    os << "PUT";
+    // int len = val.size();
+    // assert(len == 1 || len == 2);
 
-    if (len == 1) {
-        os << "PUT" << *fb << hex << *((int*)&val[0]) << dec;
-    }
-    else if (len == 2) {
-        os << "PUT" << *fb << hex << *((long*)&val[0]) << dec;
-    }
+    // if (len == 1) {
+    //     os << "PUT" << *fb << hex << *((int*)&val[0]) << dec;
+    // }
+    // else if (len == 2) {
+    //     os << "PUT" << *fb << hex << *((long*)&val[0]) << dec;
+    // }
 }
 
 void

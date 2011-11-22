@@ -14,6 +14,8 @@ public:
     virtual void step() = 0;
     void fetch_and_interpret_an_instruction();
 
+    virtual void do_spec_barrier() = 0;
+
     virtual void before_alloc_object();
     virtual void after_alloc_object(Object* obj);
 

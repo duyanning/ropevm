@@ -144,7 +144,8 @@ operator<<(ostream& os, RunningState reason)
 void
 SpmtThread::wakeup()
 {
-    MINILOG(wakeup_halt_logger, "#" << id() << " awake " << m_spec_running_state);
+    MINILOG(wakeup_halt_logger, "#" << id() << " awake. "
+            << "(before: " << m_spec_running_state << ")");
     if (m_halt) {
         m_halt = false;
     }
@@ -156,7 +157,8 @@ SpmtThread::halt(RunningState reason)
 {
     m_halt = true;
     m_spec_running_state = reason;
-    MINILOG(wakeup_halt_logger, "#" << id() << " halt " << m_spec_running_state);
+    MINILOG(wakeup_halt_logger, "#" << id() << " halt. "
+            << "(now: " << m_spec_running_state << ")");
 }
 
 
@@ -254,12 +256,12 @@ SpmtThread::switch_to_previous_mode()
     MINILOG_IF(is_spec_mode(), certain_msg_logger, "#" << m_id
                << " resume SPEC mode"
                << Triple(m_spec_mode.pc, m_spec_mode.frame, m_spec_mode.sp)
-               << m_spec_running_state);
+               << " " << m_spec_running_state);
 
     MINILOG_IF(is_rvp_mode(), certain_msg_logger, "#" << m_id
                << " resume RVP mode"
                << Triple(m_rvp_mode.pc, m_rvp_mode.frame, m_rvp_mode.sp)
-               << m_spec_running_state);
+               << " " << m_spec_running_state);
 
 }
 
@@ -440,6 +442,8 @@ SpmtThread::resume_suspended_spec_execution()
 {
     switch_to_previous_mode();  // 转入之前的模式：推测模式或rvp模式
 
+    //assert(m_current_spec_msg); 这个断言有误，因为恢复之前的推测模式，而之前的推测模式可能没有异步消息正在处理。
+
     // 原因见SpeculativeMode::do_execute_method。
     if (m_spec_running_state == RunningState::halt_cannot_exec_method) {
         m_spec_running_state = RunningState::ongoing;
@@ -516,7 +520,7 @@ SpmtThread::discard_revoked_msg(RoundTripMsg* revoked_msg)
 {
     MINILOG(spec_msg_logger, "#" << m_id
             << " discard spec msg from "
-            << "#" << revoked_msg->get_target_spmt_thread()->id()
+            << "#" << revoked_msg->get_source_spmt_thread()->id()
             << " " << revoked_msg);
 
 
@@ -598,8 +602,17 @@ SpmtThread::discard_revoked_msg(RoundTripMsg* revoked_msg)
         delete revoked_msg;
 
 
-        // 当前正在处理的消息必然下马
-        m_current_spec_msg = nullptr;
+        // 当前正在处理的消息必然下马。
+        // 如果之前还有未被丢弃的待验证消息，将其作为m_current_spec_msg。
+        // 否则，表明无当前推测消息。
+        if (m_spec_msg_queue.begin() != m_iter_next_spec_msg) {
+            auto iter_current_spec_msg = m_iter_next_spec_msg;
+            --iter_current_spec_msg;
+            m_current_spec_msg = * iter_current_spec_msg;
+        }
+        else {
+            m_current_spec_msg = nullptr;
+        }
 
 
         // 丢弃之前，可能处于推测模式或rvp模式。因为rvp执行必是推测执行
@@ -721,6 +734,8 @@ SpmtThread::verify_speculation(Message* certain_msg)
     //     结束
     if (m_spec_msg_queue.begin() == m_iter_next_spec_msg) {
 
+        MINILOG(verify_logger, "#" << m_id << " VERIFY empty." << " cert: " << certain_msg);
+
         if (g_is_async_msg(certain_msg)) {
             assert(m_iter_next_spec_msg == m_spec_msg_queue.begin());
 
@@ -763,6 +778,9 @@ SpmtThread::verify_speculation(Message* certain_msg)
     // else
     //     丢弃所有effect
     if (success) {
+        MINILOG(verify_logger, "#" << m_id <<
+                " VERIFY ok." << " cert: " << certain_msg << " spec: " << spec_msg);
+
         m_spec_msg_queue.pop_front();
 
         Effect* effect = spec_msg->get_effect();
@@ -789,6 +807,9 @@ SpmtThread::verify_speculation(Message* certain_msg)
 
     }
     else {
+        MINILOG(verify_logger, "#" << m_id <<
+                " VERIFY error." << " cert: " << certain_msg << " spec: " << spec_msg);
+
         abort_uncertain_execution();
 
         // 验证失败时，如果确定消息是个异步消息，那么它有可能在队列中。从队列中移除（但不销毁）。
@@ -903,13 +924,12 @@ SpmtThread::launch_next_spec_msg()
     if (not has_unprocessed_spec_msg()) {
         MINILOG(task_load_logger, "#" << id() << " no spec msg, waiting for spec msg");
 
-        m_current_spec_msg = nullptr;
-
         m_spec_mode.pc = 0;
         m_spec_mode.frame = 0;
         m_spec_mode.sp = 0;
 
         halt(RunningState::halt_no_asyn_msg);
+        //m_current_spec_msg = nullptr; 不能把m_current_spec_msg设为nullptr，因为使用下一个消息前快照还需要用上一个消息。
 
         return;
     }
@@ -989,14 +1009,17 @@ SpmtThread::pin_frames()
 void
 SpmtThread::snapshot(bool pin)
 {
-    // 若是从确定模式进入推测模式，使用推测性return_msg之前快照，并没有
-    // 什么推测状态。
-    if (m_current_spec_msg == nullptr)
+    // 若是从确定模式进入推测模式，使用推测性return_msg之前快照，之前并
+    // 没有什么推测状态需要快照。
+    if (m_current_spec_msg == nullptr) {
+        MINILOG(snapshot_logger, "#" << m_id << " snapshot NOT needed, no prev spec state");
         return;
+    }
 
     Snapshot* snapshot = new Snapshot;
 
     snapshot->version = m_state_buffer.latest_ver();
+    assert(snapshot->version >= 0);
     m_state_buffer.freeze();
 
     // 如果不钉住栈帧，快照中就只有个版本号。其他部分都为0。

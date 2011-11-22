@@ -60,6 +60,7 @@ extern const char* symbol_values[];
     action(self, "self"),                                       \
     action(others, "others"),                                   \
     action(RopeConst, "LRopeConst;"),                           \
+    action(RopeSpecBarrier, "RopeSpecBarrier"),                           \
                                                                 \
     /* Constant pool attribute names */\
     action(Code, "Code"), \
