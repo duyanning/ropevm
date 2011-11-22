@@ -1578,6 +1578,22 @@ Mode::fetch_and_interpret_an_instruction()
                 pc +=  3;
                 return;
             }
+            else if (new_mb->classobj->name() == SYMBOL(RopeVMBackdoor)) {
+                if (not m_spmt_thread->is_certain_mode()) { // 只有确定模式可以开启或关闭统计
+                    pc +=  3;
+                    return;
+                }
+
+                if (new_mb->name == SYMBOL(turn_on_statistic)) {
+                    Statistic::instance()->turn_on_statistic();
+                }
+                else if (new_mb->name == SYMBOL(turn_off_statistic)) {
+                    Statistic::instance()->turn_off_statistic();
+                }
+                pc +=  3;
+                return;
+            }
+
             return do_invoke_method(new_mb->classobj, new_mb);
 
         }

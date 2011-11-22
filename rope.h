@@ -947,7 +947,7 @@ public:
 
 
 std::ostream& operator<<(std::ostream& os, const MethodBlock* mb);
-std::ostream& operator<<(std::ostream& os, const FieldBlock& fb);
+std::ostream& operator<<(std::ostream& os, const FieldBlock* fb);
 
 
 inline

@@ -19,6 +19,7 @@ Statistic::instance()
 
 Statistic::Statistic()
 :
+    m_enabled(true),
     m_certain_instr_count(0)
 {
 }
@@ -34,5 +35,23 @@ Statistic::report_stat(ostream& os)
 void
 Statistic::probe_instr_exec(int opcode)
 {
+    if (not m_enabled)
+        return;
+
     m_certain_instr_count++;
+}
+
+
+
+void
+Statistic::turn_on_statistic()
+{
+    m_enabled = true;
+}
+
+
+void
+Statistic::turn_off_statistic()
+{
+    m_enabled = false;
 }

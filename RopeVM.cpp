@@ -91,3 +91,4 @@ RopeVM::report_stat(std::ostream& os)
         st->report_stat(os);
     }
 }
+

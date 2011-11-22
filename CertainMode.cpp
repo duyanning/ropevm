@@ -489,7 +489,7 @@ CertainMode::do_get_field(Object* target_object, FieldBlock* fb,
 {
     assert(size == 1 || size == 2);
 
-    MINILOG_IF((m_spmt_thread->m_id == 0 or m_spmt_thread->m_id >= 5), order_logger, "get " << *fb);
+    MINILOG_IF((m_spmt_thread->m_id == 0 or m_spmt_thread->m_id >= 5), order_logger, "get " << fb);
 
     SpmtThread* target_spmt_thread = target_object->get_spmt_thread();
     assert(target_spmt_thread->m_thread == m_spmt_thread->m_thread);
@@ -540,7 +540,7 @@ CertainMode::do_put_field(Object* target_object, FieldBlock* fb,
 {
     assert(size == 1 || size == 2);
 
-    MINILOG_IF((m_spmt_thread->m_id == 0 or m_spmt_thread->m_id >= 5), order_logger, "put " << *fb);
+    MINILOG_IF((m_spmt_thread->m_id == 0 or m_spmt_thread->m_id >= 5), order_logger, "put " << fb);
 
     SpmtThread* target_spmt_thread = target_object->get_spmt_thread();
     assert(target_spmt_thread->m_thread == m_spmt_thread->m_thread);
