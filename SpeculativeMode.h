@@ -9,6 +9,7 @@ public:
     SpeculativeMode();
     virtual const char* tag() { return "(S)"; }
 
+    virtual void do_spec_barrier();
     virtual void do_invoke_method(Object* target_object, MethodBlock* new_mb);
     virtual void do_method_return(int len);
     virtual void before_signal_exception(Class *exception_class);

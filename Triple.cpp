@@ -21,7 +21,7 @@ operator<<(ostream& os, const Triple& triple)
            << " of " << triple.frame;
     }
     else {
-        os << " at none";
+        os << " without frame";
     }
 
     return os;

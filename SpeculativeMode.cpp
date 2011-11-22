@@ -479,7 +479,7 @@ SpeculativeMode::send_msg(Message* msg)
     current_effect->msg_sent = msg;
 
     MINILOG(spec_msg_logger, "#" << m_spmt_thread->id()
-            << " send " << (g_is_async_msg(msg) ? "" : "(only record)")
+            << " send" << (g_is_async_msg(msg) ? "" : "(only record)")
             << " spec msg to "
             << "#" << msg->get_target_spmt_thread()->id()
             << " " << msg);
@@ -508,4 +508,13 @@ SpeculativeMode::invoke_impl(Object* target_object, MethodBlock* new_mb, uintptr
     pc = (CodePntr)new_frame->mb->code;
     frame = new_frame;
     sp = (uintptr_t*)new_frame->ostack_base;
+}
+
+
+void
+SpeculativeMode::do_spec_barrier()
+{
+    if (RopeVM::model < 5)      // 5以下的模型不支持推测路障
+        return;
+    m_spmt_thread->halt(RunningState::halt_cannot_exec_priviledged_method);
 }

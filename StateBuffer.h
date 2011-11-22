@@ -20,7 +20,6 @@ public:
     // log
     void show(std::ostream& os = std::cout, int id = 0, bool integer = false);
 private:
-    void clear();
     int size() { return m_hashtable.size(); }
     void access(Word* addr);    // for debug
 

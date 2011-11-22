@@ -311,3 +311,10 @@ RvpMode::invoke_impl(Object* target_object, MethodBlock* new_mb, uintptr_t* args
     frame = new_frame;
     sp = (uintptr_t*)new_frame->ostack_base;
 }
+
+
+void
+RvpMode::do_spec_barrier()
+{
+    m_spmt_thread->halt(RunningState::halt_cannot_exec_priviledged_method);
+}

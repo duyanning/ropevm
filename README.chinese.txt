@@ -58,6 +58,10 @@ epmacs的设置
 或
 -cp bin-javac Hello
 
+-cp bin-javac -Xmodel:4 -Xlog:off Em3d -n 7 -d 3 -m -p -i 100
+
+-cp bin-javac -Xmodel:3 -Xlog:off Em3d -n 5 -d 3 -m -p -i 1
+
 虚拟机在解释过程中，可能会使用库中的java代码，如ClassLoader
 在调试过程中看着这些java代码的字节码是很有帮助的。
 这些java类位于

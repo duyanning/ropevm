@@ -9,7 +9,7 @@ class Beast {
 }
 
 
-@GroupingPolicies(self=GroupingPolicy.NEW_GROUP)
+//@GroupingPolicies(self=GroupingPolicy.NEW_GROUP)
 class Wolf extends Beast {
     public Wolf()
     {
@@ -27,7 +27,7 @@ class Wolf extends Beast {
         int x = 0;
         x = 6;
     }
-    
+
 
     public int f()
     {
@@ -47,16 +47,19 @@ class Wolf extends Beast {
         //return 5;	// wrong pslice
     }
 
+    public static native void bar();
+
 }
 
 //@ClassGroupingPolicies(self=GroupingPolicy.NEW_GROUP)
 class Hello {
     public static void main(String[] args)
     {
-		//return;
-///*
+
         int x = 9;
-        Beast b = new Wolf();
+        Wolf b = new Wolf();
+        //Wolf.bar();
+        RopeSpecBarrier.set();
         // 不等碰到对b.f()的调用，构造函数的pslice就已经返回，所以将在确定模式下碰到对b.f的调用。
         // 48 x++
         x++;

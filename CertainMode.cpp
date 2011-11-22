@@ -340,13 +340,6 @@ CertainMode::invoke_impl(Object* target_object, MethodBlock* new_mb, uintptr_t* 
                "III to " << info(new_mb)
                );
 
-    //{{{ just for debug
-    if (strcmp("forName", new_mb->name) == 0) {
-        int x = 0;
-        x++;
-    }
-    //}}} just for debug
-
 
     frame = create_frame(target_object, new_mb, args,
                          caller, caller_pc, caller_frame, caller_sp,
@@ -696,4 +689,10 @@ CertainMode::send_msg(Message* msg)
     m_spmt_thread->start_afresh_spec_execution();
 
     msg->get_target_spmt_thread()->set_certain_msg(msg);
+}
+
+
+void
+CertainMode::do_spec_barrier()
+{
 }

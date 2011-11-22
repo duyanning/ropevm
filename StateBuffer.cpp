@@ -156,11 +156,12 @@ StateBuffer::commit(int ver)
 void
 StateBuffer::discard(int ver)
 {
-    //assert(ver >= m_oldest_ver and ver <= m_latest_ver);
+    assert(ver >= m_oldest_ver); // m_oldest_ver在提交后增加，即消息得到确认后增加，该消息不可能再被丢弃。
+    //assert(ver <= m_latest_ver); 这个assert有误，因为有可能先丢弃的消息对应buffer中的低版本（从而拉低m_latest_ver至低版本），后丢弃的消息对应buffer中高版本。
 
     m_latest_ver = ver;
 
-   // 对各个地址：
+    // 对各个地址：
     for (auto n = m_hashtable.begin(); n != m_hashtable.end(); ) {
         Hashtable::iterator i = n++;
 
@@ -186,6 +187,9 @@ StateBuffer::discard(int ver)
 
     // 将buf的当前版本改为i-1。
     m_latest_ver = ver-1;
+    if (m_latest_ver < m_oldest_ver) {
+        m_latest_ver = m_oldest_ver;
+    }
 
 }
 
@@ -226,18 +230,6 @@ StateBuffer::show(std::ostream& os, int id, bool integer)
 
 }
 
-void
-StateBuffer::clear()
-{
-    for (Hashtable::iterator i = m_hashtable.begin(); i != m_hashtable.end(); ++i) {
-        History* history = i->second;
-        assert(history);
-        assert(not history->empty());
-        delete history;
-    }
-    m_hashtable.clear();
-    m_latest_ver = m_initial_ver;
-}
 
 void
 StateBuffer::clear(void* begin, void* end)
@@ -278,8 +270,16 @@ StateBuffer::~StateBuffer()
 void
 StateBuffer::reset()
 {
-    clear();
+    for (auto i = m_hashtable.begin(); i != m_hashtable.end(); ++i) {
+        History* history = i->second;
+        assert(history);
+        assert(not history->empty());
+        delete history;
+    }
+    m_hashtable.clear();
+
     m_latest_ver = m_initial_ver;
+    m_oldest_ver = m_initial_ver;
 }
 
 void

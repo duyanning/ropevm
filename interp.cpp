@@ -1571,10 +1571,15 @@ Mode::fetch_and_interpret_an_instruction()
 
         case OPC_INVOKESTATIC_QUICK: {
             new_mb = ((MethodBlock *) CP_INFO(cp, READ_U2_OP(pc)));
-            //arg1 = sp - new_mb->args_count;
-            arg1 = (uintptr_t*)&new_mb->classobj;
+            if (new_mb->classobj->name() == SYMBOL(RopeSpecBarrier)) {
+                assert(strcmp(new_mb->name, "set") == 0);
+                assert(new_mb->args_count == 0);
+                do_spec_barrier();
+                pc +=  3;
+                return;
+            }
             return do_invoke_method(new_mb->classobj, new_mb);
-            break;
+
         }
 
 
