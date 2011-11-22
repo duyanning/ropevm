@@ -77,10 +77,6 @@ protected:
     SpmtThread* m_spmt_thread;
 private:
     const char* m_name;
-
-    // for logging
-private:
-    virtual void log_when_invoke_return(bool is_invoke, Object* caller, MethodBlock* caller_mb, Object* callee, MethodBlock* callee_mb) = 0;
 };
 
 // 因为mode_read和mode_write都是以4字节为单位读写。所以对于读取1或2字节

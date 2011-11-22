@@ -39,9 +39,6 @@ public:
     virtual uint32_t mode_read(uint32_t* addr);
     virtual void mode_write(uint32_t* addr, uint32_t value);
 private:
-    // for logging
-private:
-    void log_when_invoke_return(bool is_invoke, Object* caller, MethodBlock* caller_mb, Object* callee, MethodBlock* callee_mb);
 };
 
 #endif // CERTAINMODE_H

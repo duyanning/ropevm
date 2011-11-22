@@ -652,15 +652,6 @@ CertainMode::do_array_store(Object* array, int index, int type_size)
 }
 
 
-void
-CertainMode::log_when_invoke_return(bool is_invoke, Object* caller, MethodBlock* caller_mb,
-                      Object* callee, MethodBlock* callee_mb)
-{
-    log_invoke_return(c_invoke_return_logger, is_invoke, m_spmt_thread->id(), "(C)",
-                      caller, caller_mb, callee, callee_mb);
-}
-
-
 /*
   转交确定模式，必须自己先放弃确定模式，然后再发出确定消息。如果你先发
   出确定消息，然后才放弃确定模式，在多os线程实现方式下，这之间其他spmt

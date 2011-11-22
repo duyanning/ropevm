@@ -197,9 +197,6 @@ public:
 
     // for debugging
 
-    // for logging
-    void log_when_leave_certain();
-
 private:
     long long m_count_spec_msgs_sent;
     long long m_count_spec_msgs_used;
