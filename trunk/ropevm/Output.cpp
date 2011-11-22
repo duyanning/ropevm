@@ -15,11 +15,11 @@ operator<<(ostream& os, const MethodBlock* mb)
 
 
 ostream&
-operator<<(ostream& os, const FieldBlock& fb)
+operator<<(ostream& os, const FieldBlock* fb)
 {
-    os << (fb.is_static() ? "c" : "");
-    os << fb.classobj->name() << '.' << fb.name;
-        //<< ':' << fb.type;
+    os << (fb->is_static() ? "c" : "");
+    os << fb->classobj->name() << '.' << fb->name;
+        //<< ':' << fb->type;
     return os;
 }
 

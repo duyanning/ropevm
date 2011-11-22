@@ -316,5 +316,6 @@ RvpMode::invoke_impl(Object* target_object, MethodBlock* new_mb, uintptr_t* args
 void
 RvpMode::do_spec_barrier()
 {
-    m_spmt_thread->halt(RunningState::halt_cannot_exec_priviledged_method);
+    assert(false);              // rvp方法中不该有推测路障
+    m_spmt_thread->halt(RunningState::halt_spec_barrier);
 }

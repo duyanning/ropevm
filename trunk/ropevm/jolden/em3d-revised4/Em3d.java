@@ -45,6 +45,8 @@ public class Em3d
      **/
     public static final void main(String args[])
     {
+        RopeVMBackdoor.turn_off_statistic();
+
         parseCmdLine(args);
 
         if (printMsgs)
@@ -58,6 +60,7 @@ public class Em3d
             System.out.println("Propagating field values for " + numIter +
                                " iteration(s)...");
         long start1 = System.currentTimeMillis();
+        RopeVMBackdoor.turn_on_statistic();
         for (int i = 0; i < numIter; i++) {
             graph.compute();
         }

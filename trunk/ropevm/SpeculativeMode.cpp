@@ -240,7 +240,7 @@ SpeculativeMode::do_get_field(Object* target_object, FieldBlock* fb, uintptr_t* 
     assert(size == 1 || size == 2);
 
     MINILOG(s_logger, "#" << m_spmt_thread->id()
-            << " (S) is to getfield: " << *fb)
+            << " (S) is to getfield: " << fb)
             //<< " of " << target_object);
 
 
@@ -291,7 +291,7 @@ SpeculativeMode::do_put_field(Object* target_object, FieldBlock* fb,
     assert(size == 1 || size == 2);
 
     MINILOG(s_logger, "#" << m_spmt_thread->id()
-            << " (S) is to put: " << *fb);
+            << " (S) is to put: " << fb);
 
     SpmtThread* target_spmt_thread = target_object->get_spmt_thread();
     assert(target_spmt_thread->m_thread == m_spmt_thread->m_thread);
@@ -516,5 +516,5 @@ SpeculativeMode::do_spec_barrier()
 {
     if (RopeVM::model < 5)      // 5以下的模型不支持推测路障
         return;
-    m_spmt_thread->halt(RunningState::halt_cannot_exec_priviledged_method);
+    m_spmt_thread->halt(RunningState::halt_spec_barrier);
 }
