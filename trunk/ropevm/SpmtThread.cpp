@@ -191,35 +191,6 @@ SpmtThread::get_certain_msg()
     return msg;
 }
 
-void
-SpmtThread::log_when_leave_certain()
-{
-    MINILOG(when_leave_certain_logger,
-            "#" << id() << " when leave certain mode");
-    MINILOG(when_leave_certain_logger,
-            "#" << id() << " ---------------------------");
-    MINILOG(when_leave_certain_logger,
-            "#" << id() << " now use cache ver(" << m_state_buffer.latest_ver() << ")");
-    MINILOG(when_leave_certain_logger,
-            "#" << id() << " SPEC details:");
-    // MINILOGPROC(when_leave_certain_logger,
-    //             show_triple,
-    //             (os, id(),
-    //              m_spec_mode.frame, m_spec_mode.sp, m_spec_mode.pc,
-    //              m_spec_mode.m_user,
-    //              true));
-
-    MINILOG(when_leave_certain_logger,
-            "#" << id() << " ---------------------------");
-    MINILOG(when_leave_certain_logger,
-            "#" << id() << " RVP details:");
-    // MINILOGPROC(when_leave_certain_logger,
-    //             show_triple,
-    //             (os, id(), m_rvp_mode.frame, m_rvp_mode.sp, m_rvp_mode.pc, m_rvp_mode.m_user, true));
-    MINILOG(when_leave_certain_logger,
-            "#" << id() << " ---------------------------");
-}
-
 
 void
 SpmtThread::switch_to_certain_mode()

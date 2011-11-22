@@ -38,9 +38,6 @@ public:
     virtual void destroy_frame(Frame* frame);
 
     //virtual void step();
-    // for logging
-private:
-    void log_when_invoke_return(bool is_invoke, Object* caller, MethodBlock* caller_mb, Object* callee, MethodBlock* callee_mb);
 };
 
 

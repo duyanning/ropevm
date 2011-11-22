@@ -63,8 +63,6 @@ RvpMode::after_alloc_object(Object* obj)
 void
 RvpMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
 {
-    //if (intercept_vm_backdoor(target_object, new_mb)) return;
-
     SpmtThread* target_spmt_thread = target_object->get_spmt_thread();
     assert(target_spmt_thread->m_thread == m_spmt_thread->m_thread);
 
@@ -275,21 +273,12 @@ RvpMode::do_execute_method(Object* target_object, MethodBlock *mb, std::vector<u
     MINILOG(step_loop_in_out_logger, "#" << m_spmt_thread->id()
             << " (R) to be execute java method: " << mb);
 
-    assert(false);
+    assert(false);              // 产生的rvp方法中不应该遇到这种情况
     //m_spmt_thread->halt(RunningState::halt_cannot_exec_method);
-    //m_spmt_thread->halt();
 
     throw Break();
 
     return 0;
-}
-
-void
-RvpMode::log_when_invoke_return(bool is_invoke, Object* caller, MethodBlock* caller_mb,
-                      Object* callee, MethodBlock* callee_mb)
-{
-    log_invoke_return(r_invoke_return_logger, is_invoke, m_spmt_thread->id(), "(R)",
-                      caller, caller_mb, callee, callee_mb);
 }
 
 

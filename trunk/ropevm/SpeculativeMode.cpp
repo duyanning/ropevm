@@ -41,9 +41,6 @@ SpeculativeMode::mode_write(uint32_t* addr, uint32_t value)
 void
 SpeculativeMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
 {
-    if (intercept_vm_backdoor(target_object, new_mb)) return;
-
-
     MINILOG(s_logger, "#" << m_spmt_thread->id()
             << " (S) is to invoke method: " << new_mb);
 
@@ -457,17 +454,6 @@ SpeculativeMode::do_execute_method(Object* target_object,
     throw Break();
 
     return 0;
-}
-
-
-
-
-void
-SpeculativeMode::log_when_invoke_return(bool is_invoke, Object* caller, MethodBlock* caller_mb,
-                      Object* callee, MethodBlock* callee_mb)
-{
-    log_invoke_return(s_invoke_return_logger, is_invoke, m_spmt_thread->id(), "(S)",
-                      caller, caller_mb, callee, callee_mb);
 }
 
 

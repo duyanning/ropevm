@@ -129,16 +129,12 @@ final class BiGraph
             Node n = eTable[i];
             n.computeNewValue();
         }
-
-
-        //System.out.print("");   // spec barrier
         RopeSpecBarrier.set();
 
         for (int i = 0; i < hTable.length; i++) {
             Node n = hTable[i];
             n.computeNewValue();
         }
-        //System.out.print(""); // spec barrier
         RopeSpecBarrier.set();
 
     }

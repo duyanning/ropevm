@@ -69,7 +69,7 @@ UncertainMode::step()
     if (m_spmt_thread->is_spec_mode() and m_spmt_thread->m_spec_running_state == RunningState::halt_no_asyn_msg) {
 
         MINILOG(task_load_logger, "#" << m_spmt_thread->id()
-                << " is waiting for task");
+                << " is waiting for msg");
 
         m_spmt_thread->launch_next_spec_msg();
 

@@ -130,56 +130,12 @@ Mode::intercept_vm_backdoor(Object* objectref, MethodBlock* mb)
     return false;
 }
 
-void
-Mode::do_invoke_method(Object* objectref, MethodBlock* new_mb)
-{
-    assert(false);
-}
-
-void
-Mode::do_method_return(int len)
-{
-    assert(false);
-}
-
-void
-Mode::do_get_field(Object* obj, FieldBlock* fb, uintptr_t* addr, int size, bool is_static)
-{
-    assert(false);
-}
-
-void
-Mode::do_put_field(Object* obj, FieldBlock* fb, uintptr_t* addr, int size, bool is_static)
-{
-    assert(false);
-}
-
-void
-Mode::do_array_load(Object* array, int index, int type_size)
-{
-    assert(false);
-}
-
-void
-Mode::do_array_store(Object* array, int index, int type_size)
-{
-    assert(false);
-}
-
 
 void
 Mode::send_msg(Message* msg)
 {
     assert(false);
 }
-
-
-// void
-// Mode::invoke_impl(Object* target_object, MethodBlock* new_mb, uintptr_t* args,
-//                   SpmtThread* spmt_thread, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp)
-// {
-//     assert(false);
-// }
 
 
 // 在确定模式下处理确定消息，在推测模式下处理推测消息。
@@ -334,84 +290,6 @@ Mode::process_msg(Message* msg)
     }
 
 }
-
-
-void
-show_triple(std::ostream& os, int id, Frame* frame, uintptr_t* sp, CodePntr pc, Object* user,
-            bool more)
-{
-    if (frame) {
-        // if (frame->is_alive())
-        //     os << "alive" << endl;
-        // if (frame->is_dead())
-        //     os << "dead" << endl;
-        // if (frame->is_bad())
-        //     os << "bad" << endl;
-    }
-
-    os << "#" << id << " frame = " << frame;
-    if (more && frame && frame->mb) {
-        os << " " << frame->mb << "\n";
-        os << "#" << id << " lvars = " << frame->lvars << "\n";
-        os << "#" << id << " ostack_base = " << frame->ostack_base << "\n";
-    }
-    os << "\n";
-
-
-
-    os << "#" << id << " sp = " << (void*)sp;
-    if (more && frame) {
-        os << " " << sp - frame->ostack_base;
-    }
-    os << "\n";
-
-    os << "#" << id << " pc = " << (void*)pc;
-    if (more && frame && frame->mb) {
-        os << " " << pc - (CodePntr)frame->mb->code;
-    }
-    os << endl;
-
-    os << "#" << id << " user = " << user;
-    os << endl;
-}
-
-void log_invoke_return(MiniLogger& logger, bool is_invoke, int id, const char* tag,
-                       Object* caller, MethodBlock* caller_mb,
-                       Object* callee, MethodBlock* callee_mb)
-{
-    MINILOGPROC_IF(debug_scaffold::java_main_arrived
-                   && caller && callee
-                   && caller_mb && callee_mb
-                   && (is_app_obj(caller->classobj) || is_app_obj(callee->classobj)),
-                   logger, show_invoke_return,
-                   (os, is_invoke, id, tag, caller, caller_mb, callee, callee_mb));
-}
-
-void
-show_invoke_return(std::ostream& os, bool is_invoke, int id, const char* tag,
-                   Object* caller, MethodBlock* caller_mb,
-                   Object* callee, MethodBlock* callee_mb)
-{
-    os << "#" << id << " " << tag << " ";
-    //os << (is_invoke ? "invoke " : "return ");
-    os << caller;
-    // if (caller->get_group())
-    //     os << "(#" << caller->get_group()->get_core()->id() << ")";
-    // else
-    //     os << "(#none)";
-    os << " ";
-    os << caller_mb;
-    os << (is_invoke ? " ===>>> " : " <<<=== ");
-    os << callee;
-    // if (callee->get_group())
-    //     os << "(#" << callee->get_group()->get_core()->id() << ")";
-    // else
-    //     os << "(#none)";
-    os << " ";
-    os << callee_mb;
-    os << endl;
-}
-
 
 
 /*
