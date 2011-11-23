@@ -4,6 +4,7 @@
 #include "Mode.h"
 #include "Message.h"
 #include "Triple.h"
+#include "Loggers.h"
 
 using namespace std;
 
@@ -27,6 +28,11 @@ show_snapshot(std::ostream& os, const Snapshot* snapshot)
 {
     os << "(" << snapshot->version << ")"
        << Triple(snapshot->pc, snapshot->frame, snapshot->sp);
+
+    if (p) {
+        os << " (snapshot: " << (void*)snapshot << ")";
+    }
+
 }
 
 

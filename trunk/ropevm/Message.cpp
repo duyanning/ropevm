@@ -62,7 +62,7 @@ operator<<(ostream& os, const Message* msg)
 {
     msg->show(os);
     if (p) {
-        os << " (" << (void*)msg << ")";
+        os << " (msg: " << (void*)msg << ")";
     }
     return os;
 }

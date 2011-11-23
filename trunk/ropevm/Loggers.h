@@ -27,12 +27,15 @@ extern MiniLogger commit_detail_logger;
 extern MiniLogger verify_logger;
 extern MiniLogger verify_detail_logger;
 extern MiniLogger snapshot_logger;
+extern MiniLogger snapshot_take_logger;
+extern MiniLogger snapshot_take_pin_logger;
+extern MiniLogger snapshot_commit_logger;
+extern MiniLogger snapshot_discard_logger;
 extern MiniLogger when_leave_rvp_logger;
 extern MiniLogger c_exception_logger;
 extern MiniLogger s_exception_logger;
 extern MiniLogger r_exception_logger;
 extern MiniLogger free_frames_logger;
-extern MiniLogger delete_frame_logger;
 extern MiniLogger invoke_return_logger;
 
 extern bool p;

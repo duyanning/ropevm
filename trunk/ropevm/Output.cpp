@@ -29,7 +29,7 @@ operator<<(ostream& os, const Frame* f)
 {
     os << f->mb;
     if (p) {
-        os << " (" << (void*)f << ")";
+        os << " (frame: " << (void*)f << ")";
     }
 
        // << " obj: " << f.object

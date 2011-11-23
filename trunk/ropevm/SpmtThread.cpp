@@ -29,6 +29,7 @@ SpmtThread::SpmtThread(int id)
     m_quit_causer(nullptr),
     m_certain_message(nullptr),
     m_current_spec_msg(nullptr),
+    //m_need_launch_new_spec_msg(true),
     m_spec_running_state(RunningState::halt_no_asyn_msg),
     m_excep_threw_to_me(nullptr),
     m_excep_frame(nullptr)
@@ -122,6 +123,8 @@ operator<<(ostream& os, RunningState reason)
 {
     if (reason == RunningState::ongoing)
         os << "ongoing";
+    else if (reason == RunningState::ongoing_but_need_launch_new_msg)
+        os << "ongoing_but_need_launch_new_msg";
     else if (reason == RunningState::halt_no_asyn_msg)
         os << "halt_no_asyn_msg";
     else if (reason == RunningState::halt_no_syn_msg)
@@ -257,8 +260,7 @@ SpmtThread::add_spec_msg(Message* msg)
 
     // 如果本线程是因为推测执行缺乏异步消息而停机，则唤醒。
     if (m_halt and m_spec_running_state == RunningState::halt_no_asyn_msg) {
-        //if (m_halt and m_spec_running_state != RunningState::halt_no_syn_msg) {
-        // MINILOG0("#" << id() << " is waken(sleeping, waiting for task)");
+        m_spec_running_state = RunningState::ongoing_but_need_launch_new_msg;
         wakeup();
     }
 }
@@ -376,21 +378,21 @@ SpmtThread::commit_effect(Effect* effect)
         m_certain_mode.frame = snapshot->frame;
         m_certain_mode.sp = snapshot->sp;
 
-        MINILOG(snapshot_logger, "#" << m_id << " commit "<< snapshot);
+        MINILOG(snapshot_commit_logger, "#" << m_id << " commit "<< snapshot);
 
         delete snapshot;
         snapshot = nullptr;
 
     }
     else {
-        int commit_ver = m_state_buffer.latest_ver();
+        int commit_ver = m_state_buffer.current_ver();
         m_state_buffer.commit(commit_ver);
 
         m_certain_mode.pc = m_spec_mode.pc;
         m_certain_mode.frame = m_spec_mode.frame;
         m_certain_mode.sp = m_spec_mode.sp;
 
-        MINILOG(snapshot_logger, "#" << m_id
+        MINILOG(snapshot_commit_logger, "#" << m_id
                 << " commit ("<< commit_ver << ") latest"
                 << Triple(m_spec_mode.pc, m_spec_mode.frame, m_spec_mode.sp));
 
@@ -420,7 +422,8 @@ SpmtThread::resume_suspended_spec_execution()
         m_spec_running_state = RunningState::ongoing;
     }
 
-    if (m_spec_running_state != RunningState::ongoing) { // 如果之前处于停机状态，那就恢复停机状态。
+    if (m_spec_running_state != RunningState::ongoing and
+        m_spec_running_state != RunningState::ongoing_but_need_launch_new_msg) { // 如果之前处于停机状态，那就恢复停机状态。
         halt(m_spec_running_state);
     }
 }
@@ -579,7 +582,7 @@ SpmtThread::discard_revoked_msg(RoundTripMsg* revoked_msg)
         if (m_spec_msg_queue.begin() != m_iter_next_spec_msg) {
             auto iter_current_spec_msg = m_iter_next_spec_msg;
             --iter_current_spec_msg;
-            m_current_spec_msg = * iter_current_spec_msg;
+            m_current_spec_msg = *iter_current_spec_msg;
         }
         else {
             m_current_spec_msg = nullptr;
@@ -593,13 +596,7 @@ SpmtThread::discard_revoked_msg(RoundTripMsg* revoked_msg)
 
 
         // 表明推测执行需要加载推测消息（因为收回消息把人家正在处理的消息下马了）
-        halt(RunningState::halt_no_asyn_msg);
-
-
-        // // 推测执行本来可能因为多种原因睡眠，睡眠是推测执行的最前沿。所
-        // // 以但凡丢弃了待验证部分的消息，睡眠原因必然不再成立。现在是否
-        // // 睡眠，全看有没有待处理消息。
-        // //launch_next_spec_msg();
+        m_spec_running_state = RunningState::ongoing_but_need_launch_new_msg;
 
     }
 }
@@ -626,6 +623,11 @@ SpmtThread::discard_effect(Effect* effect)
 
     // 丢弃快照中记录的版本以及之后所有版本（若无快照，丢弃最新版本）
     if (effect->snapshot) {
+        // 此时snapshot中的frame可以已经被销毁，所以不要访问frame所指对象。
+        MINILOG(snapshot_discard_logger, "#" << m_id <<
+                " discard (" << effect->snapshot->version << ")"
+                << "(snapshot: " << (void*)effect->snapshot << ")");
+
         m_state_buffer.discard(effect->snapshot->version);
 
         delete effect->snapshot;
@@ -633,7 +635,10 @@ SpmtThread::discard_effect(Effect* effect)
 
     }
     else {
-        m_state_buffer.discard(m_state_buffer.latest_ver());
+        MINILOG(snapshot_discard_logger, "#" << m_id
+                << " discard ("<< m_state_buffer.current_ver() << ") latest");
+
+        m_state_buffer.discard(m_state_buffer.current_ver());
     }
 
     // 收回消息（如果是异步消息，则收回）
@@ -916,7 +921,7 @@ SpmtThread::launch_next_spec_msg()
             << " launch spec msg " << *m_iter_next_spec_msg);
 
     // 在处理新的推测之前对处理上一消息形成的状态进行快照
-    snapshot(false);
+    take_snapshot(false);
 
     // 使下一个待处理消息成为当前消息
     m_current_spec_msg = *m_iter_next_spec_msg++;
@@ -939,7 +944,7 @@ SpmtThread::launch_spec_msg(Message* msg)
             << " launch spec msg " << msg);
 
     // 在处理新的推测之前对处理上一消息形成的状态进行快照
-    snapshot(true);
+    take_snapshot(true);
 
     m_current_spec_msg = msg;
 
@@ -963,7 +968,7 @@ SpmtThread::pin_frames()
     Frame* f = m_spec_mode.frame;
 
     for (;;) {
-        MINILOG(snapshot_logger, "#" << m_id
+        MINILOG(snapshot_take_pin_logger, "#" << m_id
                 << " pin " << f);
 
         if (f->pinned)
@@ -985,18 +990,30 @@ SpmtThread::pin_frames()
 
 
 void
-SpmtThread::snapshot(bool pin)
+SpmtThread::take_snapshot(bool pin)
 {
     // 若是从确定模式进入推测模式，使用推测性return_msg之前快照，之前并
     // 没有什么推测状态需要快照。
     if (m_current_spec_msg == nullptr) {
-        MINILOG(snapshot_logger, "#" << m_id << " snapshot NOT needed, no prev spec state");
+        MINILOG(snapshot_take_logger, "#" << m_id << " snapshot NOT needed, no prev spec state");
         return;
     }
 
+    Effect* current_effect = m_current_spec_msg->get_effect();
+    assert(current_effect);
+
+    // 处理消息n之前，要在消息n-1的effect中添加快照。如果消息n后来被丢
+    // 弃，然后在消息n-1之后处理消息n+1，那么消息n-1的effect中已经有快
+    // 照了，就不用再照了。
+    if (current_effect->snapshot != nullptr) {
+        MINILOG(snapshot_take_logger, "#" << m_id << " snapshot already exists");
+        return;
+    }
+
+
     Snapshot* snapshot = new Snapshot;
 
-    snapshot->version = m_state_buffer.latest_ver();
+    snapshot->version = m_state_buffer.current_ver();
     assert(snapshot->version >= 0);
     m_state_buffer.freeze();
 
@@ -1010,10 +1027,7 @@ SpmtThread::snapshot(bool pin)
         pin_frames();
     }
 
-    MINILOG(snapshot_logger, "#" << m_id << " freeze " << snapshot);
-
-    Effect* current_effect = m_current_spec_msg->get_effect();
-    assert(current_effect);
+    MINILOG(snapshot_take_logger, "#" << m_id << " freeze " << snapshot);
 
     current_effect->snapshot = snapshot;
 }

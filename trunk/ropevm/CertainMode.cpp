@@ -324,7 +324,7 @@ CertainMode::do_method_return(int len)
 
         m_spmt_thread->send_msg(return_msg);
 
-        m_spmt_thread->launch_next_spec_msg();
+        m_spmt_thread->m_spec_running_state = RunningState::ongoing_but_need_launch_new_msg;
     }
 
 }

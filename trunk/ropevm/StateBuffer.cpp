@@ -17,7 +17,7 @@ StateBuffer::write(Word* addr, Word value)
     // 并记录当前版本下的该数值
     if (i == m_hashtable.end()) {
         History* history = new History;
-        history->push_back(Node(m_latest_ver, value));
+        history->push_back(Node(m_current_ver, value));
         m_hashtable.insert(Hashtable::value_type(addr, history));
         return;
     }
@@ -27,14 +27,14 @@ StateBuffer::write(Word* addr, Word value)
     assert(history);
     assert(not history->empty());
     Node& back = history->back();
-    if (back.start_ver == m_latest_ver) {
+    if (back.start_ver == m_current_ver) {
         back.value = value;
         return;
     }
 
     // 在历史中添加新的版本
-    assert(back.start_ver < m_latest_ver);
-    history->push_back(Node(m_latest_ver, value));
+    assert(back.start_ver < m_current_ver);
+    history->push_back(Node(m_current_ver, value));
 }
 
 
@@ -86,13 +86,16 @@ void
 StateBuffer::commit(int ver)
 {
     access(0);
-    assert(ver <= m_latest_ver);   // buffer中尚无如此高的版本。此为错误。
+    assert(ver <= m_current_ver);   // buffer中尚无如此高的版本。此为错误。
 
-    m_oldest_ver = ver;
+    m_oldest_ver = ver + 1;
+    if (m_oldest_ver > m_current_ver) {
+        m_oldest_ver = m_current_ver;
+    }
 
     // 若i等于buf的当前版本，提交所有历史的最后一个节点。
     // 然后扔掉所有历史。
-    if (ver == m_latest_ver) {
+    if (ver == m_current_ver) {
         for (auto i = m_hashtable.begin(); i != m_hashtable.end(); ++i) {
             Word* addr = i->first;
             History* history = i->second;
@@ -157,9 +160,12 @@ void
 StateBuffer::discard(int ver)
 {
     assert(ver >= m_oldest_ver); // m_oldest_ver在提交后增加，即消息得到确认后增加，该消息不可能再被丢弃。
-    //assert(ver <= m_latest_ver); 这个assert有误，因为有可能先丢弃的消息对应buffer中的低版本（从而拉低m_latest_ver至低版本），后丢弃的消息对应buffer中高版本。
+    //assert(ver <= m_current_ver); 这个assert有误，因为有可能先丢弃的消息对应buffer中的低版本（从而拉低m_current_ver至低版本），后丢弃的消息对应buffer中高版本。
 
-    m_latest_ver = ver;
+    m_current_ver = ver;
+    if (m_current_ver < m_oldest_ver) {
+        m_current_ver = m_oldest_ver;
+    }
 
     // 对各个地址：
     for (auto n = m_hashtable.begin(); n != m_hashtable.end(); ) {
@@ -185,11 +191,6 @@ StateBuffer::discard(int ver)
 
     }
 
-    // 将buf的当前版本改为i-1。
-    m_latest_ver = ver-1;
-    if (m_latest_ver < m_oldest_ver) {
-        m_latest_ver = m_oldest_ver;
-    }
 
 }
 
@@ -197,14 +198,14 @@ StateBuffer::discard(int ver)
 void
 StateBuffer::freeze()
 {
-    m_latest_ver++;
+    m_current_ver++;
 }
 
 void
 StateBuffer::show(std::ostream& os, int id, bool integer)
 {
     os << "#" << id << " /----------\\\n";
-    os << "#" << id << " latest version: " << latest_ver()
+    os << "#" << id << " latest version: " << current_ver()
        << "\t" << "size: " << m_hashtable.size()
        << "\t" << "this: " << this << endl;
     vector<Word*> addrs;
@@ -254,7 +255,7 @@ StateBuffer::StateBuffer()
 :
     m_hashtable(),
     m_oldest_ver(m_initial_ver),
-    m_latest_ver(m_initial_ver)
+    m_current_ver(m_initial_ver)
 
 {
 }
@@ -278,7 +279,7 @@ StateBuffer::reset()
     }
     m_hashtable.clear();
 
-    m_latest_ver = m_initial_ver;
+    m_current_ver = m_initial_ver;
     m_oldest_ver = m_initial_ver;
 }
 
