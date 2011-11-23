@@ -177,8 +177,8 @@ Mode::process_msg(Message* msg)
 
         send_msg(put_ret_msg);
 
-        // 加载下一条待处理消息
-        m_spmt_thread->launch_next_spec_msg();
+        // 需要加载下一条待处理消息
+        m_spmt_thread->m_spec_running_state = RunningState::ongoing_but_need_launch_new_msg;
     }
     else if (type == MsgType::GET) {
         GetMsg* get_msg = static_cast<GetMsg*>(msg);
@@ -197,8 +197,8 @@ Mode::process_msg(Message* msg)
 
         send_msg(get_ret_msg);
 
-        // 加载下一条待处理消息
-        m_spmt_thread->launch_next_spec_msg();
+        // 需要加载下一条待处理消息
+        m_spmt_thread->m_spec_running_state = RunningState::ongoing_but_need_launch_new_msg;
     }
     else if (type == MsgType::ASTORE) {
         ArrayStoreMsg* astore_msg = static_cast<ArrayStoreMsg*>(msg);
@@ -216,8 +216,8 @@ Mode::process_msg(Message* msg)
 
         send_msg(astore_ret_msg);
 
-        // 加载下一条待处理消息
-        m_spmt_thread->launch_next_spec_msg();
+        // 需要加载下一条待处理消息
+        m_spmt_thread->m_spec_running_state = RunningState::ongoing_but_need_launch_new_msg;
     }
     else if (type == MsgType::ALOAD) {
         ArrayLoadMsg* aload_msg = static_cast<ArrayLoadMsg*>(msg);
@@ -237,8 +237,8 @@ Mode::process_msg(Message* msg)
 
         send_msg(aload_ret_msg);
 
-        // 加载下一条待处理消息
-        m_spmt_thread->launch_next_spec_msg();
+        // 需要加载下一条待处理消息
+        m_spmt_thread->m_spec_running_state = RunningState::ongoing_but_need_launch_new_msg;
     }
     else if (type == MsgType::RETURN) {
         ReturnMsg* return_msg = static_cast<ReturnMsg*>(msg);

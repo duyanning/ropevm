@@ -66,10 +66,11 @@ UncertainMode::step()
 
 
     // 2，加载新的待处理消息
-    if (m_spmt_thread->is_spec_mode() and m_spmt_thread->m_spec_running_state == RunningState::halt_no_asyn_msg) {
+    //if (m_spmt_thread->is_spec_mode() and m_spmt_thread->m_spec_running_state == RunningState::halt_no_asyn_msg) {
+    if (m_spmt_thread->is_spec_mode() and m_spmt_thread->m_spec_running_state == RunningState::ongoing_but_need_launch_new_msg) {
 
-        MINILOG(task_load_logger, "#" << m_spmt_thread->id()
-                << " is waiting for msg");
+        // MINILOG(task_load_logger, "#" << m_spmt_thread->id()
+        //         << " is waiting for msg");
 
         m_spmt_thread->launch_next_spec_msg();
 

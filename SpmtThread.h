@@ -28,6 +28,7 @@ class Snapshot;
 // 有意义。
 enum class RunningState {
     ongoing,                    // 推测执行进行中
+    ongoing_but_need_launch_new_msg, // 推测执行进行中，但是需要加载新的异步消息
     halt_no_asyn_msg,                // 无异步消息，无法继续推测执行
     halt_no_syn_msg,                 // 无同步消息（即无返回值方法），无法继续推测执行
     halt_cannot_signal_exception,    // 非确定模式不能抛出异常
@@ -121,7 +122,7 @@ public:
     void abort_uncertain_execution();
 
     // 快照
-    void snapshot(bool pin);
+    void take_snapshot(bool pin);
     void pin_frames();          // 钉住栈帧
 
     // 栈帧相关
@@ -174,7 +175,8 @@ private:
     // 推测消息
     std::list<Message*> m_spec_msg_queue;
     std::list<Message*>::iterator m_iter_next_spec_msg;
-    Message* m_current_spec_msg; // 正在处理的推测消息。只要有正在进行的推测执行，此变量就不为空。
+    Message* m_current_spec_msg; // 正在处理的推测消息。只要有正在进行的推测执行，此变量就不为nullptr。
+    //bool m_need_launch_new_spec_msg; // 需要加载新的异步推测消息来推动推测执行。该变量只在推测模式下有意义。
     RunningState m_spec_running_state; // 推测执行的状态
     std::vector<RoundTripMsg*> m_revoked_msgs; // 发送方要求收回这些推测消息
 

@@ -15,7 +15,7 @@ public:
     void discard(int ver);
     void clear(void* begin, void* end);
     void reset();
-    int latest_ver();
+    int current_ver();
     void scan();                // gc
     // log
     void show(std::ostream& os = std::cout, int id = 0, bool integer = false);
@@ -39,15 +39,15 @@ private:
     Hashtable m_hashtable;
 
     int m_oldest_ver;
-    int m_latest_ver;
+    int m_current_ver;
     static const int m_initial_ver = 0;
 };
 
 inline
 int
-StateBuffer::latest_ver()
+StateBuffer::current_ver()
 {
-    return m_latest_ver;
+    return m_current_ver;
 }
 
 void
