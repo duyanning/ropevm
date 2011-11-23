@@ -1590,6 +1590,13 @@ Mode::fetch_and_interpret_an_instruction()
                 else if (new_mb->name == SYMBOL(turn_off_statistic)) {
                     Statistic::instance()->turn_off_statistic();
                 }
+                else if (new_mb->name == SYMBOL(turn_on_log)) {
+                    RopeVM::instance()->turn_on_log_backdoor();
+                }
+                else if (new_mb->name == SYMBOL(turn_off_log)) {
+                    RopeVM::instance()->turn_off_log_backdoor();
+                }
+
                 pc +=  3;
                 return;
             }

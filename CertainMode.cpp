@@ -335,10 +335,6 @@ CertainMode::invoke_impl(Object* target_object, MethodBlock* new_mb, uintptr_t* 
                          SpmtThread* caller, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp,
                          bool is_top)
 {
-    MINILOG_IF(debug_scaffold::java_main_arrived,
-               invoke_return_logger,
-               "III to " << info(new_mb)
-               );
 
 
     frame = create_frame(target_object, new_mb, args,

@@ -64,6 +64,8 @@ extern const char* symbol_values[];
     action(RopeVMBackdoor, "RopeVMBackdoor"),                   \
     action(turn_on_statistic, "turn_on_statistic"),             \
     action(turn_off_statistic, "turn_off_statistic"),           \
+    action(turn_on_log, "turn_on_log"),                         \
+    action(turn_off_log, "turn_off_log"),                       \
                                                                 \
     /* Constant pool attribute names */\
     action(Code, "Code"), \
