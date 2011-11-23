@@ -46,6 +46,7 @@ public class Em3d
     public static final void main(String args[])
     {
         RopeVMBackdoor.turn_off_statistic();
+        //RopeVMBackdoor.turn_off_log();
 
         parseCmdLine(args);
 
@@ -61,6 +62,7 @@ public class Em3d
                                " iteration(s)...");
         long start1 = System.currentTimeMillis();
         RopeVMBackdoor.turn_on_statistic();
+        //RopeVMBackdoor.turn_on_log();
         for (int i = 0; i < numIter; i++) {
             graph.compute();
         }

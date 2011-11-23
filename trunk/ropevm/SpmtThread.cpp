@@ -592,11 +592,14 @@ SpmtThread::discard_revoked_msg(RoundTripMsg* revoked_msg)
         switch_to_speculative_mode();
 
 
-        // 推测执行本来可能因为多种原因睡眠，睡眠是推测执行的最前沿。所
-        // 以但凡丢弃了待验证部分的消息，睡眠原因必然不再成立。现在是否
-        // 睡眠，全看有没有待处理消息。
-        //m_spec_running_state = RunningState::halt_no_asyn_msg; // 表明推测执行需要加载推测消息（因为收回消息把人家正在处理的消息下马了）
-        launch_next_spec_msg();
+        // 表明推测执行需要加载推测消息（因为收回消息把人家正在处理的消息下马了）
+        halt(RunningState::halt_no_asyn_msg);
+
+
+        // // 推测执行本来可能因为多种原因睡眠，睡眠是推测执行的最前沿。所
+        // // 以但凡丢弃了待验证部分的消息，睡眠原因必然不再成立。现在是否
+        // // 睡眠，全看有没有待处理消息。
+        // //launch_next_spec_msg();
 
     }
 }
@@ -888,6 +891,10 @@ SpmtThread::launch_next_spec_msg()
         return;
 
     assert(is_spec_mode());
+
+    // 在加载新的消息之前，先丢弃被撤销的消息，免的加载了已经被撤销的消息。
+    discard_all_revoked_msgs();
+
 
     // 不一定有待处理的消息
     MINILOG(task_load_logger, "#" << id() << " try to launch a spec msg");

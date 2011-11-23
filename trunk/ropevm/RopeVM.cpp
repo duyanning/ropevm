@@ -22,6 +22,9 @@ RopeVM::instance()
 }
 
 RopeVM::RopeVM()
+:
+    m_logger_enabled(true),
+    m_logger_enabled_backdoor(true)
 {
     pthread_mutex_init(&m_lock, 0);
 
@@ -92,3 +95,41 @@ RopeVM::report_stat(std::ostream& os)
     }
 }
 
+void
+RopeVM::adjust_log_state()
+{
+    MiniLogger::disable_all_loggers = not (m_logger_enabled and
+                                           m_logger_enabled_backdoor);
+}
+
+
+void
+RopeVM::turn_on_log()
+{
+    m_logger_enabled = true;
+    adjust_log_state();
+}
+
+
+void
+RopeVM::turn_off_log()
+{
+    m_logger_enabled = false;
+    adjust_log_state();
+}
+
+
+void
+RopeVM::turn_on_log_backdoor()
+{
+    m_logger_enabled_backdoor = true;
+    adjust_log_state();
+}
+
+
+void
+RopeVM::turn_off_log_backdoor()
+{
+    m_logger_enabled_backdoor = false;
+    adjust_log_state();
+}
