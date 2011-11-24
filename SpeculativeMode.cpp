@@ -500,11 +500,16 @@ SpeculativeMode::invoke_impl(Object* target_object, MethodBlock* new_mb, uintptr
 void
 SpeculativeMode::do_spec_barrier()
 {
-    if (RopeVM::model < 5)      // 5以下的模型不支持推测路障
+    if (RopeVM::model < 5) {    // 5以下的模型不支持推测路障
+        pc +=  3;
         return;
+    }
+
     m_spmt_thread->halt(RunningState::halt_spec_barrier);
 
     MINILOG(spec_barrier_logger, "#" << m_spmt_thread->id()
             << " halt because spec barrier");
 
+
+    //pc +=  3; 不增加pc，推测模式下无法越过该路障
 }

@@ -684,4 +684,6 @@ CertainMode::do_spec_barrier()
 {
     MINILOG(spec_barrier_logger, "#" << m_spmt_thread->id()
             << " pass spec barrier");
+
+    pc +=  3; // 越过推测路障
 }
