@@ -45,7 +45,7 @@ public class Em3d
      **/
     public static final void main(String args[])
     {
-        RopeSpecBarrier.set();  // 放在此处是为了提前加载RopeSpecBarrier类
+        //RopeSpecBarrier.set();  // 放在此处是为了提前加载RopeSpecBarrier类
         RopeVMBackdoor.turn_off_statistic();
         RopeVMBackdoor.turn_off_log();
 

@@ -37,7 +37,6 @@ Mode::fetch_and_interpret_an_instruction()
 
     MethodBlock* mb = frame->mb;
     assert(mb);
-    int c = frame->c;
     uintptr_t* lvars = frame->lvars;
     ConstantPool* cp = mb->classobj->constant_pool();
 
@@ -1575,7 +1574,7 @@ Mode::fetch_and_interpret_an_instruction()
                 assert(strcmp(new_mb->name, "set") == 0);
                 assert(new_mb->args_count == 0);
                 do_spec_barrier();
-                pc +=  3;
+
                 return;
             }
             else if (new_mb->classobj->name() == SYMBOL(RopeVMBackdoor)) {

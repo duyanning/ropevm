@@ -90,18 +90,17 @@ final class BiGraph
      **/
     void compute()
     {
-
+        RopeSpecBarrier.set();
         for (int i = 0; i < eTable.length; i++) {
             Node n = eTable[i];
             n.computeNewValue();
         }
-        RopeSpecBarrier.set();
 
+        RopeSpecBarrier.set();
         for (int i = 0; i < hTable.length; i++) {
             Node n = hTable[i];
             n.computeNewValue();
         }
-        RopeSpecBarrier.set();
 
     }
     void __rvp__compute()
@@ -117,15 +116,6 @@ final class BiGraph
     public String toString()
     {
         StringBuffer retval = new StringBuffer();
-        // for (Enumeration e = eNodes.elements(); e.hasMoreElements(); ) {
-        //     Node n = (Node) e.nextElement();
-        //     retval.append("E: " + n + "\n");
-        // }
-
-        // for (Enumeration e = hNodes.elements(); e.hasMoreElements(); ) {
-        //     Node n = (Node) e.nextElement();
-        //     retval.append("H: " + n + "\n");
-        // }
 
         for (int i = 0; i < eTable.length; i++) {
             Node n = eTable[i];
