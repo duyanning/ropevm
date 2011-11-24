@@ -9,30 +9,30 @@ import java.util.Enumeration;
 @GroupingPolicies(self=GroupingPolicy.NEW_GROUP)
 final class Node {
     /**
-     * The value of the node.
+     * The value of the node. 节点的值
      **/
     double value;
+
     /**
-     * The next node in the list.
-     **/
-    //private Node next;
-    public Node next;
-    /**
-     * Array of nodes to which we send our value.
+     * Array of nodes to which we send our value. “去往”节点数组
      **/
     Node[] toNodes;
+
     /**
-     * Array of nodes from which we receive values.
+     * Array of nodes from which we receive values. “来自”节点数组
      **/
     Node[] fromNodes;
+
     /**
-     * Coefficients on the fromNodes edges
+     * Coefficients on the fromNodes edges 对应“来自”节点数组的系数数组
      **/
     double[] coeffs;
+
     /**
-     * The number of fromNodes edges
+     * The number of fromNodes edges 节点的入度
      **/
     int fromCount;
+
     /**
      * Used to create the fromEdges - keeps track of the number of edges that have
      * been added
@@ -53,11 +53,11 @@ final class Node {
         rand = new Random(seed);
     }
 
-    //native void vmlog(String s);
 
     /**
      * Constructor for a node with given `degree'.   The value of the
      * node is initialized to a random value.
+     * param degree 节点的出度
      **/
     Node(int degree)
     {
@@ -67,7 +67,6 @@ final class Node {
         // create empty array for holding toNodes
         toNodes = new Node[degree];
 
-        next = null;
         fromNodes = null;
         coeffs = null;
         fromCount = 0;
@@ -77,42 +76,26 @@ final class Node {
     {
     }
 
-    // /**
-    //  * Create the linked list of E or H nodes.  We create a table which is used
-    //  * later to create links among the nodes.
-    //  * @param size the no. of nodes to create
-    //  * @param degree the out degree of each node
-    //  * @return a table containing all the nodes.
-    //  **/
-    // static Node[] fillTable(int size, int degree)
-    // {
-    //     Node[] table = new Node[size];
-
-    //     Node prevNode = new Node(degree);
-    //     table[0] = prevNode;
-    //     for (int i = 1; i < size; i++) {
-    //         Node curNode = new Node(degree);
-    //         table[i] = curNode;
-    //         prevNode.next = curNode;
-    //         prevNode = curNode;
-    //     }
-    //     return table;
-    // }
-
     /**
      * Create unique `degree' neighbors from the nodes given in nodeTable.
      * We do this by selecting a random node from the give nodeTable to
      * be neighbor. If this neighbor has been previously selected, then
      * a different random neighbor is chosen.
-     * @param nodeTable the list of nodes to choose from.
+     * @param nodeTable the list of nodes to choose from. 从其中为当前节点挑选若干“去往”节点
      **/
+    // 本方法结束后，节点的“去往”节点就被确定下来了，节点的入度也确定下来了。
     void makeUniqueNeighbors(Node[] nodeTable)
     {
+        assert nodeTable.length <= 10;
+        // 给本节点的“去往”节点数组的各个slot填充“去往”节点
         for (int filled = 0; filled < toNodes.length; filled++) {
             int k;
-            Node otherNode;
+            Node otherNode;     // 找到的“去往”节点
 
+            // 从另一个场中的节点（nodeTable）中找一个作为本节点的“去往”节点
             do {
+                // 先随机找一个作为“去往”节点
+
                 // generate a random number in the correct range
                 int index = rand.nextInt();
                 if (index < 0) index = -index;
@@ -122,16 +105,18 @@ final class Node {
                 otherNode = nodeTable[index];
 
                 for (k = 0; k < filled; k++) {
-                    if (otherNode == toNodes[filled]) break;
-                    // dyn: bug? should be
-                    //if (otherNode == toNodes[k]) break;
+                    // [0, filled)是“去往”节点数组中已经填充好的部分
+                    //if (otherNode == toNodes[filled]) break;
+                    if (otherNode == toNodes[k]) break; // ==意味着跟某个已有节点是同一个。（原来的程序这行有bug）
                 }
-            } while (k < filled);
+            } while (k < filled); // k < filled意味着找到的这个“去往”节点跟“去往”节点数组中的某个已有节点是同一个，不行，得重新找
 
             // other node is definitely unique among "filled" toNodes
+            // 把找到的节点（即otherNode）填入当前节点（即this）的“去往”节点数组中的某个slot
             toNodes[filled] = otherNode;
 
             // update fromCount for the other node
+            // “去往”节点的入度++
             otherNode.fromCount++;
         }
     }
@@ -146,6 +131,7 @@ final class Node {
      *
      * It also initializes random coefficients on the edges.
      **/
+    // 按照节点的入度创建“来自”节点数组，以及相应的系数数组
     void makeFromNodes()
     {
         fromNodes = new Node[fromCount]; // nodes fill be filled in later
@@ -159,13 +145,13 @@ final class Node {
      * Fill in the fromNode field in "other" nodes which are pointed to
      * by this node.
      **/
+    // 填充本节点的“来自”节点数组，以及相应的系数数组
     void updateFromNodes()
     {
 
         for (int i = 0; i < toNodes.length; i++) {
             Node otherNode = toNodes[i];
             int count = otherNode.fromLength++;
-            //vmlog("count " + count);
             otherNode.fromNodes[count] = this;
             otherNode.coeffs[count] = rand.nextDouble();
         }
@@ -178,6 +164,7 @@ final class Node {
      * Get the new value of the current node based on its neighboring
      * from_nodes and coefficients.
      **/
+    // 根据各个“来自”节点的值及相应的系数，更新本节点的值
     void computeNewValue()
     {
         for (int i = 0; i < fromCount; i++) {
@@ -189,30 +176,12 @@ final class Node {
     {
     }
 
-    // /**
-    //  * Return an enumeration of the nodes.
-    //  * @return an enumeration of the nodes.
-    //  **/
-    // Enumeration elements()
-    // {
-    //     // a local class that implements the enumeration
-    //     class Enumerate implements Enumeration {
-    //         private Node current;
-    //         public Enumerate() { this.current = Node.this; }
-    //         public boolean hasMoreElements() { return (current != null); }
-    //         public Object nextElement() {
-    //             Object retval = current;
-    //             current = current.next;
-    //             return retval;
-    //         }
-    //     }
-    //     return new Enumerate();
-    // }
 
     /**
      * Override the toString method to return the value of the node.
      * @return the value of the node.
      **/
+    // 打印节点的值以及入度
     public String toString()
     {
         return "value " + value + ", from_count " + fromCount;

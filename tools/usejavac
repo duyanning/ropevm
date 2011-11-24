@@ -6,4 +6,4 @@ if [ ! -d bin-javac ] ; then
 	mkdir bin-javac
 fi
 
-javac -d bin-javac $APP.java
+javac -g -d bin-javac $APP.java
