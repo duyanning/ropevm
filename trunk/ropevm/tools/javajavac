@@ -1,5 +1,7 @@
 #!/usr/bin/env sh
 
 . cmd
-java -cp bin-javac $APP $PARMS
+
+# -ea选项开启java虚拟机的assert功能
+java -ea -cp bin-javac $APP $PARMS
 

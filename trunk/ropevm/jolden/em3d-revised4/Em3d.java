@@ -46,8 +46,8 @@ public class Em3d
     public static final void main(String args[])
     {
         RopeSpecBarrier.set();  // 放在此处是为了提前加载RopeSpecBarrier类
-        //RopeVMBackdoor.turn_off_statistic();
-        //RopeVMBackdoor.turn_off_log();
+        RopeVMBackdoor.turn_off_statistic();
+        RopeVMBackdoor.turn_off_log();
 
         parseCmdLine(args);
 
@@ -62,8 +62,8 @@ public class Em3d
             System.out.println("Propagating field values for " + numIter +
                                " iteration(s)...");
         long start1 = System.currentTimeMillis();
-        //RopeVMBackdoor.turn_on_statistic();
-        //RopeVMBackdoor.turn_on_log();
+        RopeVMBackdoor.turn_on_statistic();
+        RopeVMBackdoor.turn_on_log();
         for (int i = 0; i < numIter; i++) {
             graph.compute();
         }

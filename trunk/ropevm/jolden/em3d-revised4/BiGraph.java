@@ -6,8 +6,6 @@ import java.util.Enumeration;
  * EM3D.  The graph contains two linked structures that represent the
  * E nodes and the N nodes in the application.
  **/
-// @GroupingPolicies(self=GroupingPolicy.NEW_GROUP)
-// @ClassGroupingPolicies(self=GroupingPolicy.NEW_GROUP)
 final class BiGraph
 {
     /**
@@ -23,10 +21,9 @@ final class BiGraph
     /**
      * Create the bi graph that contains the linked list of
      * e and h nodes.
-     * @param numNodes the number of nodes to create
-     * @param numDegree the out-degree of each node
+     * @param numNodes the number of nodes to create 每个场中有多少个节点
+     * @param numDegree the out-degree of each node 每个节点的出度
      * @param verbose should we print out runtime messages
-     * @return the bi graph that we've created.
      **/
     BiGraph(int numNodes, int numDegree, boolean verbose)
     {
@@ -34,12 +31,12 @@ final class BiGraph
 
         // making nodes (we create a table)
         if (verbose) System.out.println("making nodes (tables in orig. version)");
-        // Node[] hTable = Node.fillTable(numNodes, numDegree);
-        // Node[] eTable = Node.fillTable(numNodes, numDegree);
+
         hTable = new Node[numNodes];
         for (int i = 0; i < hTable.length; i++) {
             hTable[i] = new Node(numDegree);
         }
+
         eTable = new Node[numNodes];
         for (int i = 0; i < eTable.length; i++) {
             eTable[i] = new Node(numDegree);
@@ -49,40 +46,25 @@ final class BiGraph
         // making neighbors
         if (verbose) System.out.println("updating from and coeffs");
 
-        // for (Enumeration e = hTable[0].elements(); e.hasMoreElements(); ) {
-        //     Node n = (Node) e.nextElement();
-        //     n.makeUniqueNeighbors(eTable);
-        // }
-        // for (Enumeration e = eTable[0].elements(); e.hasMoreElements(); ) {
-        //     Node n = (Node) e.nextElement();
-        //     n.makeUniqueNeighbors(hTable);
-        // }
         for (int i = 0; i < hTable.length; i++) {
             Node n = hTable[i];
             n.makeUniqueNeighbors(eTable);
         }
+
         for (int i = 0; i < eTable.length; i++) {
             Node n = eTable[i];
             n.makeUniqueNeighbors(hTable);
         }
 
 
-
-
         // Create the fromNodes and coeff field
         if (verbose) System.out.println("filling from fields");
-        // for (Enumeration e = hTable[0].elements(); e.hasMoreElements(); ) {
-        //     Node n = (Node) e.nextElement();
-        //     n.makeFromNodes();
-        // }
-        // for (Enumeration e = eTable[0].elements(); e.hasMoreElements(); ) {
-        //     Node n = (Node) e.nextElement();
-        //     n.makeFromNodes();
-        // }
+
         for (int i = 0; i < hTable.length; i++) {
             Node n = hTable[i];
             n.makeFromNodes();
         }
+
         for (int i = 0; i < eTable.length; i++) {
             Node n = eTable[i];
             n.makeFromNodes();
@@ -90,18 +72,11 @@ final class BiGraph
 
 
         // Update the fromNodes
-        // for (Enumeration e = hTable[0].elements(); e.hasMoreElements(); ) {
-        //     Node n = (Node) e.nextElement();
-        //     n.updateFromNodes();
-        // }
-        // for (Enumeration e = eTable[0].elements(); e.hasMoreElements(); ) {
-        //     Node n = (Node) e.nextElement();
-        //     n.updateFromNodes();
-        // }
         for (int i = 0; i < hTable.length; i++) {
             Node n = hTable[i];
             n.updateFromNodes();
         }
+
         for (int i = 0; i < eTable.length; i++) {
             Node n = eTable[i];
             n.updateFromNodes();
@@ -115,15 +90,6 @@ final class BiGraph
      **/
     void compute()
     {
-        // for (Enumeration e = eNodes.elements(); e.hasMoreElements(); ) {
-        //     Node n = (Node) e.nextElement();
-        //     n.computeNewValue();
-        // }
-        // for (Enumeration e = hNodes.elements(); e.hasMoreElements(); ) {
-        //     Node n = (Node) e.nextElement();
-        //     n.computeNewValue();
-        // }
-
 
         for (int i = 0; i < eTable.length; i++) {
             Node n = eTable[i];
