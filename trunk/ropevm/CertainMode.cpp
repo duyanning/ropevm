@@ -682,4 +682,6 @@ CertainMode::send_msg(Message* msg)
 void
 CertainMode::do_spec_barrier()
 {
+    MINILOG(spec_barrier_logger, "#" << m_spmt_thread->id()
+            << " pass spec barrier");
 }

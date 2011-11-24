@@ -14,7 +14,7 @@ MiniLogger top_method_logger(cout, false);
 MiniLogger inter_spmt_thread_logger(cout, false);
 
 // 确定消息相关
-MiniLogger certain_msg_logger(cout, true);
+MiniLogger certain_msg_logger(cout, false);
 
 // 推测消息相关
 MiniLogger spec_msg_logger(cout, true);
@@ -23,15 +23,15 @@ MiniLogger spec_msg_logger(cout, true);
 MiniLogger control_transfer_logger(cout, true);
 
 // 记录停机与唤醒
-MiniLogger wakeup_halt_logger(cout, true);
+MiniLogger wakeup_halt_logger(cout, false);
 
 
-MiniLogger c_logger(cout, true);
+MiniLogger c_logger(cout, false);
 MiniLogger c_new_logger(cout, true, &c_logger);
 MiniLogger c_destroy_frame_logger(cout, true, &c_logger);
 
 
-MiniLogger s_logger(cout, true);
+MiniLogger s_logger(cout, false);
 MiniLogger s_new_logger(cout, false, &s_logger);
 MiniLogger s_create_frame_logger(cout, true, &s_logger);
 MiniLogger s_destroy_frame_logger(cout, true, &s_logger);
@@ -43,7 +43,7 @@ MiniLogger r_destroy_frame_logger(cout, true, &r_logger);
 
 MiniLogger step_loop_in_out_logger(cout, true);
 
-MiniLogger snapshot_logger(cout, true); // 只用来控制下级logger，不用来输出
+MiniLogger snapshot_logger(cout, false); // 只用来控制下级logger，不用来输出
 MiniLogger snapshot_take_logger(cout, true, &snapshot_logger);
 MiniLogger snapshot_take_pin_logger(cout, false, &snapshot_take_logger);
 MiniLogger snapshot_commit_logger(cout, true, &snapshot_logger);
@@ -54,8 +54,7 @@ MiniLogger snapshot_detail_logger(cout, false, &snapshot_logger);
 
 MiniLogger task_load_logger(cout, true);
 
-MiniLogger commit_logger(cout, false);
-MiniLogger commit_detail_logger(cout, true, &commit_logger);
+MiniLogger spec_barrier_logger(cout, true); // 推测路障logger
 
 // 记录验证时的情况
 MiniLogger verify_logger(cout, true);

@@ -42,16 +42,16 @@ final class Node {
     /**
      * A random number generator.
      **/
-    //private static Random rand;
-    private Random rand;
+    private static Random rand;
+    //private Random rand;
 
     /**
      * Initialize the random number generator
      **/
-    // public static void initSeed(long seed)
-    // {
-    //     rand = new Random(seed);
-    // }
+    public static void initSeed(long seed)
+    {
+        rand = new Random(seed);
+    }
 
     //native void vmlog(String s);
 
@@ -61,7 +61,7 @@ final class Node {
      **/
     Node(int degree)
     {
-        rand = new Random(783);
+        //rand = new Random(783);
 
         value = rand.nextDouble();
         // create empty array for holding toNodes

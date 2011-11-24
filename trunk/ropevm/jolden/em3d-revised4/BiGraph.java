@@ -30,7 +30,7 @@ final class BiGraph
      **/
     BiGraph(int numNodes, int numDegree, boolean verbose)
     {
-        //Node.initSeed(783);
+        Node.initSeed(783);
 
         // making nodes (we create a table)
         if (verbose) System.out.println("making nodes (tables in orig. version)");

@@ -1,7 +1,8 @@
+import java.lang.annotation.*;
 // note: default is implemented by ropevm rather than the compiler.
 
-@java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
-@java.lang.annotation.Target({ java.lang.annotation.ElementType.TYPE })
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ ElementType.TYPE })
 public @interface GroupingPolicies {
 	GroupingPolicy self() default GroupingPolicy.UNSPECIFIED;
 	GroupingPolicy others() default GroupingPolicy.UNSPECIFIED;

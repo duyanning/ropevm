@@ -29,7 +29,6 @@ SpmtThread::SpmtThread(int id)
     m_quit_causer(nullptr),
     m_certain_message(nullptr),
     m_current_spec_msg(nullptr),
-    //m_need_launch_new_spec_msg(true),
     m_spec_running_state(RunningState::halt_no_asyn_msg),
     m_excep_threw_to_me(nullptr),
     m_excep_frame(nullptr)

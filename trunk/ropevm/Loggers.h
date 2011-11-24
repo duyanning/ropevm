@@ -22,8 +22,6 @@ extern MiniLogger r_destroy_frame_logger;
 extern MiniLogger r_frame_logger;
 extern MiniLogger snapshot_detail_logger;
 extern MiniLogger task_load_logger;
-extern MiniLogger commit_logger;
-extern MiniLogger commit_detail_logger;
 extern MiniLogger verify_logger;
 extern MiniLogger verify_detail_logger;
 extern MiniLogger snapshot_logger;
@@ -37,6 +35,7 @@ extern MiniLogger s_exception_logger;
 extern MiniLogger r_exception_logger;
 extern MiniLogger free_frames_logger;
 extern MiniLogger invoke_return_logger;
+extern MiniLogger spec_barrier_logger;
 
 extern bool p;
 
