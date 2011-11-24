@@ -1,4 +1,8 @@
-@java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
-@java.lang.annotation.Target({ java.lang.annotation.ElementType.METHOD })
+import java.lang.annotation.*;
+
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ ElementType.METHOD, ElementType.CONSTRUCTOR })
 public @interface RopeConst {
 }
+
+// ElementType.FIELD

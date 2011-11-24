@@ -176,7 +176,6 @@ private:
     std::list<Message*> m_spec_msg_queue;
     std::list<Message*>::iterator m_iter_next_spec_msg;
     Message* m_current_spec_msg; // 正在处理的推测消息。只要有正在进行的推测执行，此变量就不为nullptr。
-    //bool m_need_launch_new_spec_msg; // 需要加载新的异步推测消息来推动推测执行。该变量只在推测模式下有意义。
     RunningState m_spec_running_state; // 推测执行的状态
     std::vector<RoundTripMsg*> m_revoked_msgs; // 发送方要求收回这些推测消息
 
