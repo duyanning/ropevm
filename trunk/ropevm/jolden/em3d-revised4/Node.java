@@ -170,6 +170,13 @@ final class Node {
         for (int i = 0; i < fromCount; i++) {
             value -= coeffs[i] * fromNodes[i].value;
         }
+
+        // for (int j = 0; j < 5000; j++) { // 这段代码是想增加get出错的代价，以证明推测路障的好处。但是却没能证明。
+        //     double x = 2.5;
+        //     double y = 1.5;
+        //     double z = 0.0;
+        //     z = x / y;
+        // }
     }
     // 快速结束，以便对下一个节点发起computeNewValue调用
     void __rvp__computeNewValue()
