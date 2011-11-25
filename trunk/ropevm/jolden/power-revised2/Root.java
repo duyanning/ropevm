@@ -122,17 +122,9 @@ final class Root
     {
         D.P = 0.0;
         D.Q = 0.0;
-        // for (int i=0; i<feeders.length; i++) {
-        //     D.increment(feeders[i].compute(theta_R, theta_I, theta_R, theta_I));
-        // } increment中会get feeder[i].D，推测地get，不太可能对，导致其后发出的compute被收回。
-
-        // 所以我们将其改为以下两个循环。
         for (int i=0; i<feeders.length; i++) {
-            feeders[i].compute(theta_R, theta_I, theta_R, theta_I);
+            D.increment(feeders[i].compute(theta_R, theta_I, theta_R, theta_I));
         }
-        // for (int i=0; i<feeders.length; i++) {
-        //     D.increment(feeders[i].D);
-        // }
     }
 
     /**

@@ -36,6 +36,7 @@ extern MiniLogger r_exception_logger;
 extern MiniLogger free_frames_logger;
 extern MiniLogger invoke_return_logger;
 extern MiniLogger spec_barrier_logger;
+extern MiniLogger rvp_logger;
 
 extern bool p;
 

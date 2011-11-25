@@ -49,24 +49,20 @@ public class Power
         Root r = new Root(2, 2, 2, 2);
         long end0 = System.currentTimeMillis();
 
-
-        // 上的构造部分，加速比有1.9181。本来要构造2组共4个lateral，因为循环，两组并行构造。每组中，因为递归，也可以并行构造。加速比应当接近4。
-
         long start1 = System.currentTimeMillis();
         r.compute();
-        //r.nextIter(false, 0.7, 0.14);
+        r.nextIter(false, 0.7, 0.14);
 
-        // 目前只迭代一次，看看加速比的变化。
-        // while (true) {
-        //     r.compute();
-        //     if (printResults)
-        //         System.out.println(r);
+        while (true) {
+            r.compute();
+            if (printResults)
+                System.out.println(r);
 
-        //     if (r.reachedLimit())
-        //         break;
+            if (r.reachedLimit())
+                break;
 
-        //     r.nextIter(printResults);
-        // } /* while */
+            r.nextIter(printResults);
+        } /* while */
 
         long end1 = System.currentTimeMillis();
 

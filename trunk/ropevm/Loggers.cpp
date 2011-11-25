@@ -60,6 +60,8 @@ MiniLogger spec_barrier_logger(cout, true); // 推测路障logger
 MiniLogger verify_logger(cout, true);
 MiniLogger verify_detail_logger(cout, false, &verify_logger);
 
+MiniLogger rvp_logger(cout, true);
+
 MiniLogger when_leave_rvp_logger(cout, false);
 
 MiniLogger c_exception_logger(cout, false);

@@ -399,7 +399,7 @@ get_rvp_method(MethodBlock* complete)
     if (rvpmb == 0) {
         MINILOG(r_logger, "WARNING: no rvpet for " << complete << ", use complete method");
         //assert(simplified);
-        //return complete;
+        return complete;
     }
     return rvpmb;
 }
