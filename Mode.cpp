@@ -142,11 +142,11 @@ Mode::send_msg(Message* msg)
 void
 Mode::process_msg(Message* msg)
 {
-    if (debug_scaffold::java_main_arrived &&
-        m_spmt_thread->is_certain_mode()) {
-        m_spmt_thread->m_count_certain_instr++;
-        Statistic::instance()->probe_instr_exec(0);
-    }
+    // if (debug_scaffold::java_main_arrived &&
+    //     m_spmt_thread->is_certain_mode()) {
+    //     m_spmt_thread->m_count_certain_instr++;
+    //     Statistic::instance()->probe_instr_exec(0);
+    // }
 
     MsgType type = msg->get_type();
 

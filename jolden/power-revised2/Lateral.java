@@ -7,7 +7,7 @@
  * <p>
  * Each lateral node is the head in a line of branch nodes.
  **/
-@GroupingPolicies(self=GroupingPolicy.NEW_GROUP)
+//@GroupingPolicies(self=GroupingPolicy.NEW_GROUP)
 final class Lateral
 {
     /**
@@ -16,16 +16,18 @@ final class Lateral
     Demand  D;
     double  alpha = 0.0;
     double  beta = 0.0;
-    double  R = 1/300000.0;
-    double  X = 0.000001;
+    final double  R = 1/300000.0;
+    final double  X = 0.000001;
     /**
      * The next lateral that shares the same parent (root) node.
      **/
-    Lateral next_lateral;
+    Lateral next_lateral; // 删除，指向弟弟的引用
     /**
      * The branch nodes that are supported by the lateral node.
      **/
-    Branch  branch;
+    Branch  branch; // 删除，指向老大的引用
+    
+    Branch[] branches; // 由原来只持有指向老大的引用，到现在持有指向每个儿子的引用
 
     /**
      * Create all the lateral nodes for a single root node.
@@ -67,7 +69,6 @@ final class Lateral
         double new_pi_R = pi_R + alpha*(theta_R+(theta_I*X)/R);
         double new_pi_I = pi_I + beta*(theta_I+(theta_R*R)/X);
 
-        // 本来a1的计算在a2之前，我颠倒了一下。
         Demand a1;
         if (next_lateral != null)
             a1 = next_lateral.compute(theta_R,theta_I,new_pi_R,new_pi_I);
@@ -104,4 +105,58 @@ final class Lateral
     {
         return D;
     }
+
+
+
+/*    Demand compute_new(double theta_R, double theta_I, double pi_R, double pi_I)
+    {
+        // generate the new prices and pass them down to the customers
+        double new_pi_R = pi_R + alpha*(theta_R+(theta_I*X)/R);
+        double new_pi_I = pi_I + beta*(theta_I+(theta_R*R)/X);
+
+        Demand a1;
+        if (next_lateral != null)
+            a1 = next_lateral.compute(theta_R,theta_I,new_pi_R,new_pi_I);
+        else
+            a1 = null;
+
+        Demand a2 = branch.compute(theta_R,theta_I,new_pi_R,new_pi_I);
+        
+        
+        
+        D.reset();
+        for (int i=0; i<branches.length; i++) {
+            D.increment(branches[i].compute_new(new_pi_R, new_pi_I));
+        }
+
+        
+        
+        
+        
+
+
+        if (next_lateral != null) {
+            D.add(a1, a2);
+        } else {
+            D.assign(a2);
+        }
+
+        // compute the new power demand values P,Q
+        double a = R*R + X*X;
+        double b = 2*R*X*D.Q - 2*X*X*D.P - R;
+        double c = R*D.Q - X*D.P;
+        c = c*c + R*D.P;
+        double root = (-b-Math.sqrt(b*b-4*a*c))/(2*a);
+        D.Q = D.Q + ((root-D.P)*X)/R;
+        D.P = root;
+
+        // compute alpha, beta
+        a = 2*R*D.P;
+        b = 2*X*D.Q;
+        alpha = a/(1-a-b);
+        beta = b/(1-a-b);
+
+        return D;
+    }
+*/
 }

@@ -1,10 +1,10 @@
-@Speculative
+@GroupingPolicies(self=GroupingPolicy.NEW_GROUP)
 class Tree {
     Tree(int levels)
     {
         root = new TreeNode(levels);
     }
-    void _p_slice_for_ctor(int levels)
+    void __rvp__ctor(int levels)
     {
     }
 
@@ -12,7 +12,7 @@ class Tree {
     {
         return root.addTree();
     }
-    int _p_slice_for_addTree()
+    int __rvp__addTree()
     {
         return 0;
     }
