@@ -66,10 +66,14 @@ epmacs的设置
 在调试过程中看着这些java代码的字节码是很有帮助的。
 这些java类位于
 /usr/local/classpath/share/classpath/java/lang
-可用show查看其字节码。
+
+这是安装classpath所产生的，可用show查看其字节码。
 最好在emacs的shell中查看，方便查找。为了在emacs的shell中使用show，需要先 . env-vars
-对应的classpath的源代码位于classpath-0,97.2/java/lang
+对应的classpath的源代码位于~/tarball/classpath-0,97.2/java/langq
+以及~/tarball/classpath-0.97.2/vm/reference/java/lang/VMMath.java
 由于这些代码的缩进，在emacs中看有些乱，用gedit看。
+
+jamvm自带的java代码位于~/tarball/jamvm-1.5.1/lib下
 * 一些工具
 class editor
 http://classeditor.sourceforge.net/

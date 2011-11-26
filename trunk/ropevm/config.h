@@ -1,8 +1,12 @@
-/* src/config.h.  Generated from config.h.in by configure.  */
-/* src/config.h.in.  Generated from configure.ac by autoheader.  */
-
-/* GNU Classpath installation directory (prefix) */
+// GNU Classpath installation directory (prefix)
 #define CLASSPATH_INSTALL_DIR "/usr/local/classpath"
+
+// RopeVM Installation directory (prefix)
+//#define INSTALL_DIR "/usr/local/jamvm"
+#define INSTALL_DIR "/home/duyanning/work/ropevm"
+
+
+
 
 /* Define to one of `_getb67', `GETB67', `getb67' for Cray-2 and Cray-YMP
    systems. This function is required for `alloca.c' support on those systems.
@@ -100,8 +104,6 @@
 /* interpreter inlining */
 /* #undef INLINING */
 
-/* Installation directory (prefix) */
-#define INSTALL_DIR "/usr/local/jamvm"
 
 /* Name of package */
 //#define PACKAGE "jamvm"
