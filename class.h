@@ -21,7 +21,8 @@
 #define JAMVM_CLASSES INSTALL_DIR"/share/jamvm/classes.zip"
 #define CLASSPATH_CLASSES CLASSPATH_INSTALL_DIR"/share/classpath/glibj.zip"
 #else
-#define JAMVM_CLASSES INSTALL_DIR"/share/jamvm/classes"
+//#define JAMVM_CLASSES INSTALL_DIR"/share/jamvm/classes"
+#define JAMVM_CLASSES INSTALL_DIR"/lib/classes"
 #define CLASSPATH_CLASSES CLASSPATH_INSTALL_DIR"/share/classpath"
 #endif
 

@@ -1874,8 +1874,11 @@ char *setBootClassPath(char *cmdlne_bcp, char bootpathopt) {
     }
 
     endorsed_dirs = getCommandLineProperty("java.endorsed.dirs");
-    if(endorsed_dirs == NULL)
-        endorsed_dirs = INSTALL_DIR"/share/jamvm/endorsed";
+    if(endorsed_dirs == NULL) {
+        //assert(false);          // 现在我还不知道这个endorsed目录是做什么用的。
+        //endorsed_dirs = INSTALL_DIR"/share/jamvm/endorsed";
+        endorsed_dirs = INSTALL_DIR"/endorsed";
+    }
 
     scanDirsForJars(endorsed_dirs);
 
