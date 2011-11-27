@@ -196,7 +196,7 @@ void process_rope_class_annotations(void* data, ClassBlock* classblock,
     int len = 0;                // no use
     u2 anno_count;
     READ_U2(anno_count, ptr, len);
-    for (; anno_count != 0; anno_count--) {
+    for (; anno_count != 0; anno_count--) { // 对类上附着的每个标注
         u2 anno_name_idx;
         char* anno_name;
         READ_TYPE_INDEX(anno_name_idx, constant_pool, CONSTANT_Utf8, ptr, len);
@@ -225,17 +225,26 @@ void process_rope_method_annotations(void* data, MethodBlock* mb,
     int len = 0;                // no use
     u2 anno_count;
     READ_U2(anno_count, ptr, len);
-    for (; anno_count != 0; anno_count--) {
+    for (; anno_count != 0; anno_count--) { // 对方法上附着的每个标注
         u2 anno_name_idx;
         char* anno_name;
-        READ_TYPE_INDEX(anno_name_idx, constant_pool, CONSTANT_Utf8, ptr, len);
+        //READ_TYPE_INDEX(anno_name_idx, constant_pool, CONSTANT_Utf8, ptr, len);
+        READ_U2(anno_name_idx, ptr, len);
         anno_name = CP_UTF8(constant_pool, anno_name_idx);
 
-        if (anno_name == SYMBOL(RopeConst)) {
-            mb->m_is_rope_const = true;
+        if (anno_name == SYMBOL(RopeInvokerExecute)) {
+            mb->m_is_rope_invoker_execute = true;
+            ptr += 2;
+            //std::cout <<  "haha: RopeInvokerExecute found" << std::endl;
         }
-
-        // 其他不认识的标注不用管
+        else if (anno_name == SYMBOL(RopeSpecSafe)) {
+            mb->m_is_rope_spec_safe = true;
+            ptr += 2;
+            //std::cout <<  "haha: RopeSpecSafe found" << std::endl;
+        }
+        else {
+            // 不认识的标注不管
+        }
 
     }
 }
@@ -540,7 +549,7 @@ Class *defineClass(const char* classname, char *data, int offset, int len, Objec
                             memcpy(annos.annotations->data, ptr, attr_length);
                             ptr += attr_length;
 
-                            // 在此检测RopeConst
+                            // 在此检测Rope特有的方法标注
                             process_rope_method_annotations(annos.annotations->data,
                                                             method,
                                                             constant_pool);

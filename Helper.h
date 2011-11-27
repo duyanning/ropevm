@@ -25,7 +25,6 @@ bool get_bool(const char* val, const char* defval = "1");
 int get_int(const char* val, const char* defval = "3");
 
 class MethodBlock;
-bool is_priviledged(MethodBlock* mb);
 
 GroupingPolicyEnum get_policy(Object* obj);
 GroupingPolicyEnum get_foreign_policy(Object* obj);

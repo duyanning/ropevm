@@ -44,19 +44,29 @@ SpeculativeMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
     MINILOG(s_logger, "#" << m_spmt_thread->id()
             << " (S) is to invoke method: " << new_mb);
 
-    if (is_priviledged(new_mb)) {
+    if (new_mb->is_synchronized()) {
         MINILOG(s_logger, "#" << m_spmt_thread->id()
-                << " (S) " << new_mb << "is native/sync method");
-        m_spmt_thread->halt(RunningState::halt_cannot_exec_priviledged_method);
+                << " (S) " << new_mb << "is sync method");
+        m_spmt_thread->halt(RunningState::halt_cannot_exec_sync_method);
 
         return;
     }
+
+
+    if (new_mb->is_native() and not new_mb->is_rope_spec_safe()) {
+        MINILOG(s_logger, "#" << m_spmt_thread->id()
+                << " (S) " << new_mb << "is native method");
+        m_spmt_thread->halt(RunningState::halt_cannot_exec_native_method);
+
+        return;
+    }
+
 
     frame->last_pc = pc;
 
     SpmtThread* target_spmt_thread = target_object->get_spmt_thread();
 
-    if (target_spmt_thread == m_spmt_thread or new_mb->is_rope_const()) {
+    if (target_spmt_thread == m_spmt_thread or new_mb->is_rope_invoker_execute()) {
 
         sp -= new_mb->args_count;
 
@@ -125,7 +135,8 @@ void
 SpeculativeMode::do_method_return(int len)
 {
     assert(len == 0 || len == 1 || len == 2);
-    assert(not is_priviledged(frame->mb));
+    assert(not frame->mb->is_native());
+    assert(not frame->mb->is_synchronized());
 
     Frame* current_frame = frame;
 

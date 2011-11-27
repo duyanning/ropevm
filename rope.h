@@ -377,9 +377,11 @@ public:
     LineNoTableEntry *line_no_table;
     int method_table_index;
     MethodAnnotationData *annotations;
-    bool m_is_rope_const;
+    bool m_is_rope_invoker_execute;
+    bool m_is_rope_spec_safe;
 public:
-    bool is_rope_const() const;
+    bool is_rope_invoker_execute() const;
+    bool is_rope_spec_safe() const;
     bool is_native() const {  return access_flags & ACC_NATIVE;  }
     bool is_synchronized() const {  return access_flags & ACC_SYNCHRONIZED;  }
     bool is_static() const {  return access_flags & ACC_STATIC;  }

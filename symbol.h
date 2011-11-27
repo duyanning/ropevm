@@ -59,7 +59,8 @@ extern const char* symbol_values[];
     action(ClassGroupingPolicies, "LClassGroupingPolicies;"),   \
     action(self, "self"),                                       \
     action(others, "others"),                                   \
-    action(RopeConst, "LRopeConst;"),                           \
+    action(RopeInvokerExecute, "LRopeInvokerExecute;"),         \
+    action(RopeSpecSafe, "LRopeSpecSafe;"),                     \
     action(RopeSpecBarrier, "RopeSpecBarrier"),                 \
     action(RopeVMBackdoor, "RopeVMBackdoor"),                   \
     action(turn_on_statistic, "turn_on_statistic"),             \
