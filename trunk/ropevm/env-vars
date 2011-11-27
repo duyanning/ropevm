@@ -2,10 +2,11 @@
 
 export ROPEVMROOT=$HOME/work/ropevm
 export ROPECLASSPATH=$ROPEVMROOT/ropeclasses
+export ROPEHACKCLASSPATH=$ROPEVMROOT/rope-hacked-classpath
 
 export FIXEDJAMROOT=$HOME/work/fixed-jamvm
 
-export CLASSPATH=.:$ROPECLASSPATH
+# export CLASSPATH=.:$ROPECLASSPATH 不要设置环境变量
 export PATH=$ROPEVMROOT/debug:$ROPEVMROOT/tools:$FIXEDJAMROOT/debug:$PATH
 
 export model=4

@@ -75,6 +75,7 @@ public:
     void idle();                // 仅为统计而存在
 
     // 模式相关
+    void switch_to_mode(Mode* mode);
     void switch_to_certain_mode();
     void switch_to_speculative_mode();
     void switch_to_rvp_mode();
@@ -126,7 +127,8 @@ public:
     void pin_frames();          // 钉住栈帧
 
     // 栈帧相关
-    void destroy_frame(Frame* frame);
+    void destroy_frame(Frame* frame); // 因return而销毁栈桢（应改名为pop_frame）
+    void unwind_frame(Frame* frame);  // 因unwind而销毁栈桢
 
     // drive loop相关
     void signal_quit_drive_loop();
@@ -153,7 +155,7 @@ public:
     void do_throw_exception(); // 自己检测到异常时调用
     void process_exception(Object* exception, Frame* excep_frame); // 查找异常处理器及后续
     Object* get_exception_threw_to_me();
-    void set_exception_threw_to_me(Object* exception, Frame* excep_frame);
+    void set_exception_threw_to_me(Object* exception, Frame* excep_frame, bool is_top);
 private:
     int m_id;
     Thread* m_thread;           // 所属的java线程
@@ -186,6 +188,7 @@ private:
 
     Object* m_excep_threw_to_me; // 其他线程扔给我的异常
     Frame* m_excep_frame;        // 异常发生的栈帧，跟m_excep_threw_to_me关联
+    bool m_is_unwind_top;        // 被unwind的栈桢是否top frame，被unwind的栈桢的其上级为m_excep_frame
 
 private:
     SpmtThread(int id);

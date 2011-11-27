@@ -6,4 +6,10 @@ if [ ! -d bin-javac ] ; then
 	mkdir bin-javac
 fi
 
-javac -g -d bin-javac $APP.java
+# CLASSPATH=.:/home/duyanning/work/ropevm/rope-hacked-classpath:/home/duyanning/work/ropevm/ropeclasses
+
+#javac -g -d bin-javac $APP.java
+#javac -g -cp . -d bin-javac $APP.java
+javac -g -cp .:$ROPECLASSPATH:$ROPEHACKCLASSPATH -d bin-javac $APP.java
+
+

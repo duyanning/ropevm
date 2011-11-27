@@ -10,11 +10,11 @@ bool p = true;           // 控制是否输出指针值，在对比日志的时�
 // 所有的invoke、return、get、put、aload、astore，无论是否跨线程，都被
 // 记录。
 MiniLogger order_logger(cout, false);
-MiniLogger top_method_logger(cout, false);
+MiniLogger top_method_logger(cout, true);
 MiniLogger inter_spmt_thread_logger(cout, false);
 
 // 确定消息相关
-MiniLogger certain_msg_logger(cout, false);
+MiniLogger certain_msg_logger(cout, true);
 
 // 推测消息相关
 MiniLogger spec_msg_logger(cout, true);
@@ -25,6 +25,10 @@ MiniLogger control_transfer_logger(cout, true);
 // 记录停机与唤醒
 MiniLogger wakeup_halt_logger(cout, false);
 
+MiniLogger switch_mode_logger(cout, true);
+
+// unwind栈桢
+MiniLogger unwind_frame_logger(cout, true);
 
 MiniLogger c_logger(cout, false);
 MiniLogger c_new_logger(cout, true, &c_logger);
@@ -64,7 +68,7 @@ MiniLogger rvp_logger(cout, true);
 
 MiniLogger when_leave_rvp_logger(cout, false);
 
-MiniLogger c_exception_logger(cout, false);
+MiniLogger c_exception_logger(cout, true);
 MiniLogger s_exception_logger(cout, false);
 MiniLogger r_exception_logger(cout, true);
 
