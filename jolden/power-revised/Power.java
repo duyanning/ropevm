@@ -57,16 +57,16 @@ public class Power
         r.nextIter(false, 0.7, 0.14);
 
         // 目前只迭代一次，看看加速比的变化。
-        // while (true) {
-        //     r.compute();
-        //     if (printResults)
-        //         System.out.println(r);
+        while (true) {
+            r.compute();
+            if (printResults)
+                System.out.println(r);
 
-        //     if (r.reachedLimit())
-        //         break;
+            if (r.reachedLimit())
+                break;
 
-        //     r.nextIter(printResults);
-        // } /* while */
+            r.nextIter(printResults);
+        } /* while */
 
         long end1 = System.currentTimeMillis();
 
