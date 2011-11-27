@@ -195,17 +195,27 @@ SpmtThread::get_certain_msg()
 
 
 void
+SpmtThread::switch_to_mode(Mode* mode)
+{
+    MINILOG(switch_mode_logger, "#" << m_id << " "
+            << m_mode->get_name()
+            << " -> "
+            << mode->get_name());
+
+    m_mode = mode;
+}
+
+
+void
 SpmtThread::switch_to_certain_mode()
 {
-    // MINILOG0("#" << id() << " CERT mode");
-    m_mode = &m_certain_mode;
+    switch_to_mode(&m_certain_mode);
 }
 
 void
 SpmtThread::switch_to_speculative_mode()
 {
-    // MINILOG0("#" << id() << " SPEC mode");
-    m_mode = &m_spec_mode;
+    switch_to_mode(&m_spec_mode);
 }
 
 void
@@ -214,9 +224,7 @@ SpmtThread::switch_to_rvp_mode()
     // stat
     m_count_rvp++;
 
-    // MINILOG0("#" << id() << " RVP mode");
-
-    m_mode = &m_rvp_mode;
+    switch_to_mode(&m_rvp_mode);
 }
 
 
@@ -224,7 +232,7 @@ void
 SpmtThread::switch_to_previous_mode()
 {
     assert(is_certain_mode());
-    m_mode = m_previous_mode;
+    switch_to_mode(m_previous_mode);
 
     MINILOG_IF(is_spec_mode(), certain_msg_logger, "#" << m_id
                << " resume SPEC mode"
@@ -272,6 +280,17 @@ SpmtThread::destroy_frame(Frame* frame)
 }
 
 
+void
+SpmtThread::unwind_frame(Frame* frame)
+{
+    MINILOG_IF(debug_scaffold::java_main_arrived && is_app_obj(frame->mb->classobj),
+               unwind_frame_logger, "#" << m_id
+               << " unwind frame " << frame);
+
+    g_destroy_frame(frame);
+}
+
+
 bool
 SpmtThread::check_quit_drive_loop()
 {
@@ -282,6 +301,8 @@ SpmtThread::check_quit_drive_loop()
     return quit;
 }
 
+
+// 只允许发起drive loop的spmt线程调用本函数
 void
 SpmtThread::signal_quit_drive_loop()
 {
@@ -1158,11 +1179,13 @@ SpmtThread::get_exception_threw_to_me()
 }
 
 
+// is_top表明是否top frame中发生异常
 void
-SpmtThread::set_exception_threw_to_me(Object* exception, Frame* excep_frame)
+SpmtThread::set_exception_threw_to_me(Object* exception, Frame* excep_frame, bool is_top)
 {
     m_excep_threw_to_me = exception;
     m_excep_frame = excep_frame;
+    m_is_unwind_top = is_top;
 
     wakeup();
 }
@@ -1171,9 +1194,26 @@ SpmtThread::set_exception_threw_to_me(Object* exception, Frame* excep_frame)
 void
 SpmtThread::on_event_exception_throw_to_me(Object* exception)
 {
-    // 废弃推测状态
+    /*
+      执行上级方法的线程得到通知后：
+
+      if 是顶级方法因异常unwind
+          结束drive loop
+      else
+          在发生异常的方法中查找
+     */
+
     abort_uncertain_execution();
-    process_exception(exception, m_excep_frame);
+
+    if (m_is_unwind_top) {
+        m_thread->exception = exception;
+        signal_quit_drive_loop();
+    }
+    else {
+        process_exception(exception, m_excep_frame);
+    }
+
+
 }
 
 
@@ -1204,13 +1244,26 @@ SpmtThread::process_exception(Object* excep, Frame* excep_frame)
 
 
     /*
-      在当前栈帧中查找异常处理器
-      如果找到，结束。
-      如果没找到
-          在去上级栈帧找之前，先看上级栈帧是不是属于其他线程，或者是dummy frame
-          如果上级栈帧属于其他线程，就通知该线程有异常。
-          如果是dummy，结束。
-          如果是自己的栈帧，又不是 dummy frame，则开始在其中查找。
+      unwind与return很类似：因异常而结束一个方法，然后到上级方法。非常类似普通的方法返回。
+      因而也要考虑到两个方面：1，目标栈桢线程是否本线程；2，本方法是否顶级方法
+
+      在当前方法中查找异常处理器
+      while 没找到（说明当前方法没法处理，要去上级方法中寻找异常处理器）
+	      if 上级方法所属线程就是本线程
+	          if 当前栈桢是top frame
+	              结束drive loop
+                  return
+	          else
+	              进入上级栈桢
+	              在上级栈桢中查找
+	      else
+	          通知调用方线程你的某某方法（该方法是当前方法的调用方）中发生异常
+              ...
+              调用方线程得到通知后：
+              if 是顶级方法因异常结束
+                  结束drive loop
+              else
+                  在发生异常的方法中查找
      */
 
     Frame* current_frame = excep_frame;
@@ -1218,29 +1271,46 @@ SpmtThread::process_exception(Object* excep, Frame* excep_frame)
                                                  excep->classobj,
                                                  current_frame->last_pc);
     while (handler_pc == NULL) {
-        if (current_frame->is_top_frame()) {
-            break;
-        }
-
-        if (current_frame->prev->owner != this) {
-            // 通知current_frame->prev->owner有异常。
-            switch_to_speculative_mode();
-            current_frame->prev->owner->set_exception_threw_to_me(excep,
-                                                                  current_frame->prev);
-            return;
-        }
 
         if (current_frame->mb->is_synchronized()) { // 解开栈帧之前要给同步方法解锁
             Object *sync_ob = current_frame->get_object();
             objectUnlock(sync_ob);
         }
 
-        Frame* old_current_frame = current_frame;
-        current_frame = current_frame->prev;
-        m_certain_mode.destroy_frame(old_current_frame);
-        handler_pc = findCatchBlockInMethod(current_frame->mb,
-                                            excep->classobj,
-                                            current_frame->last_pc);
+
+        SpmtThread* target_spmt_thread = current_frame->caller;
+        assert(target_spmt_thread->m_thread == this->m_thread);
+
+        if (target_spmt_thread == this) {
+            if (current_frame->is_top_frame()) {
+                signal_quit_drive_loop();
+                unwind_frame(current_frame);
+
+                break;
+            }
+            else {
+
+                Frame* old_current_frame = current_frame;
+                current_frame = current_frame->prev;
+                unwind_frame(old_current_frame);
+                handler_pc = findCatchBlockInMethod(current_frame->mb,
+                                                    excep->classobj,
+                                                    current_frame->last_pc);
+
+            }
+
+        }
+        else {
+            switch_to_speculative_mode();
+            target_spmt_thread->set_exception_threw_to_me(excep,
+                                                          current_frame->prev,
+                                                          current_frame->is_top_frame());
+            unwind_frame(current_frame);
+
+            m_spec_running_state = RunningState::ongoing_but_need_launch_new_msg;
+
+            return;
+        }
 
     }
     // MINILOG(c_exception_logger, "#" << threadSelf()->get_current_spmt_thread()->id() << " finding handler"
@@ -1263,7 +1333,6 @@ SpmtThread::process_exception(Object* excep, Frame* excep_frame)
     if (handler_pc == NULL) {
         m_thread->exception = excep;
 
-        signal_quit_drive_loop();
         return;
     }
 

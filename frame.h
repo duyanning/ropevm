@@ -9,13 +9,13 @@ public:
     uintptr_t* ostack_base;
     MethodBlock *mb;
 
-    Object* object;             // 这个主要是为了给没有this的静态方法使用
-    SpmtThread* owner;
+    Object* object;             // 本来这个变量是为了给没有this的静态方法使用，指向相应的类对象（静态方法属于类对象）。后来非静态方法也用这个，而不用参数中的this。
+    SpmtThread* owner;          // 执行方法的线程（又名executor）。因为invokerExecuting方法的存在，executor并不一定就是object所属的线程，它也可能等于invoker。
 
-    SpmtThread* caller;
-    CodePntr caller_pc;
-    Frame *prev;         // caller_frame
-    uintptr_t* caller_sp;
+    SpmtThread* caller;         // 调用方法的线程（又名invoker）。
+    CodePntr caller_pc;         // 发起该方法时，caller线程的pc。
+    Frame *prev;                // 发起该方法时，caller线程的frame。（叫caller_frame更好）
+    uintptr_t* caller_sp;       // 发起该方法时，caller线程的sp。
 
 
     bool pinned;

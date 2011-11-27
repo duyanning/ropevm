@@ -86,7 +86,7 @@ public class Power
             Class.forName("Branch");
             Class.forName("Leaf");
             Class.forName("Demand");
-            Class.forName("java.lang.Math");
+            //Class.forName("java.lang.Math");
         }
         catch (ClassNotFoundException e) {
         }

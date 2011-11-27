@@ -2,6 +2,13 @@
 
 . cmd
 
-# -ea选项开启java虚拟机的assert功能
-java -ea -cp bin-javac $APP $PARMS
+#export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:.
+#java -Djava.library.path=. -ea -cp .:bin-javac $APP $PARMS
+# 无论是设置LD_LIBRARY_PATH，还是用命令行选项-Djava.library.path，都不起作用。
+# 要为native方法加载动态库，只能用System.load，并指明动态库的绝对路径。
 
+#java -ea -cp bin-javac $APP $PARMS
+
+java -ea -cp $ROPECLASSPATH:$ROPEHACKCLASSPATH:bin-javac $APP $PARMS
+
+# -ea选项开启java虚拟机的assert功能
