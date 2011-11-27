@@ -280,7 +280,7 @@ CertainMode::do_method_return(int len)
             pc += (*pc == OPC_INVOKEINTERFACE_QUICK ? 5 : 3);
         }
 
-        destroy_frame(current_frame);
+        pop_frame(current_frame);
 
     }
     else {
@@ -323,7 +323,7 @@ CertainMode::do_method_return(int len)
                                               current_frame->caller_sp,
                                               current_frame->is_top_frame());
 
-        destroy_frame(current_frame);
+        pop_frame(current_frame);
 
         m_spmt_thread->send_msg(return_msg);
 
@@ -340,9 +340,9 @@ CertainMode::invoke_impl(Object* target_object, MethodBlock* new_mb, uintptr_t* 
 {
 
 
-    frame = create_frame(target_object, new_mb, args,
-                         caller, caller_pc, caller_frame, caller_sp,
-                         is_top);
+    frame = push_frame(target_object, new_mb, args,
+                       caller, caller_pc, caller_frame, caller_sp,
+                       is_top);
 
     // 给同步方法加锁
     if (frame->mb->is_synchronized()) {
@@ -354,7 +354,7 @@ CertainMode::invoke_impl(Object* target_object, MethodBlock* new_mb, uintptr_t* 
 
     // 如果是native方法，在此处立即执行其native code
     if (new_mb->is_native()) {
-        // 将参数复制到ostack。create_frame只把参数复制到了lvars。native方法比较特殊。
+        // 将参数复制到ostack。push_frame只把参数复制到了lvars。native方法比较特殊。
         if (args)
             std::copy(args, args + new_mb->args_count, frame->ostack_base);
 
@@ -445,7 +445,7 @@ CertainMode::before_signal_exception(Class *exception_class)
 
 
 Frame*
-CertainMode::create_frame(Object* object, MethodBlock* new_mb, uintptr_t* args,
+CertainMode::push_frame(Object* object, MethodBlock* new_mb, uintptr_t* args,
                           SpmtThread* caller, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp,
                           bool is_top)
 {
@@ -457,10 +457,10 @@ CertainMode::create_frame(Object* object, MethodBlock* new_mb, uintptr_t* args,
 }
 
 void
-CertainMode::destroy_frame(Frame* frame)
+CertainMode::pop_frame(Frame* frame)
 {
     MINILOG_IF(debug_scaffold::java_main_arrived && is_app_obj(frame->mb->classobj),
-               c_destroy_frame_logger, "#" << m_spmt_thread->id()
+               c_pop_frame_logger, "#" << m_spmt_thread->id()
                << " (C) destroy frame " << frame);
 
     g_destroy_frame(frame);

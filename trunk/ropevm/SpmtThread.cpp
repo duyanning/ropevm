@@ -274,9 +274,9 @@ SpmtThread::add_spec_msg(Message* msg)
 
 
 void
-SpmtThread::destroy_frame(Frame* frame)
+SpmtThread::pop_frame(Frame* frame)
 {
-    m_mode->destroy_frame(frame);
+    m_mode->pop_frame(frame);
 }
 
 

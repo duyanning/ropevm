@@ -45,11 +45,11 @@ public:
     void store_to_array_from_c(uintptr_t* sp, Object* array, int index, int type_size);
 
 
-    virtual Frame* create_frame(Object* object, MethodBlock* new_mb, uintptr_t* args,
-                                SpmtThread* caller, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp,
-                                bool is_top) = 0;
+    virtual Frame* push_frame(Object* object, MethodBlock* new_mb, uintptr_t* args,
+                              SpmtThread* caller, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp,
+                              bool is_top) = 0;
 
-    virtual void destroy_frame(Frame* frame) = 0;
+    virtual void pop_frame(Frame* frame) = 0;
 
 
     void set_spmt_thread(SpmtThread* spmt_thread);

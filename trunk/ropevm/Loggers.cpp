@@ -32,18 +32,18 @@ MiniLogger unwind_frame_logger(cout, true);
 
 MiniLogger c_logger(cout, false);
 MiniLogger c_new_logger(cout, true, &c_logger);
-MiniLogger c_destroy_frame_logger(cout, true, &c_logger);
+MiniLogger c_pop_frame_logger(cout, true, &c_logger);
 
 
 MiniLogger s_logger(cout, false);
 MiniLogger s_new_logger(cout, false, &s_logger);
-MiniLogger s_create_frame_logger(cout, true, &s_logger);
-MiniLogger s_destroy_frame_logger(cout, true, &s_logger);
+MiniLogger s_push_frame_logger(cout, true, &s_logger);
+MiniLogger s_pop_frame_logger(cout, true, &s_logger);
 
 MiniLogger r_logger(cout, false);
 MiniLogger r_new_logger(cout, true, &r_logger);
 MiniLogger r_frame_logger(cout, true, &r_logger);
-MiniLogger r_destroy_frame_logger(cout, true, &r_logger);
+MiniLogger r_pop_frame_logger(cout, true, &r_logger);
 
 MiniLogger step_loop_in_out_logger(cout, true);
 
