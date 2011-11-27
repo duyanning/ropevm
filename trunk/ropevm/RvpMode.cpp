@@ -68,12 +68,23 @@ RvpMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
 
     assert(target_spmt_thread != m_spmt_thread); // 目前暂不考虑对象重入
 
-    if (is_priviledged(new_mb)) {
-        MINILOG(r_logger, "#" << m_spmt_thread->id()
-                << " (R) is to invoke native/sync method: " << new_mb);
-        m_spmt_thread->halt(RunningState::halt_cannot_exec_priviledged_method);
+    if (new_mb->is_synchronized()) {
+        MINILOG(s_logger, "#" << m_spmt_thread->id()
+                << " (R) " << new_mb << "is sync method");
+        m_spmt_thread->halt(RunningState::halt_cannot_exec_sync_method);
+
         return;
     }
+
+
+    if (new_mb->is_native() and not new_mb->is_rope_spec_safe()) {
+        MINILOG(s_logger, "#" << m_spmt_thread->id()
+                << " (R) " << new_mb << "is native method");
+        m_spmt_thread->halt(RunningState::halt_cannot_exec_native_method);
+
+        return;
+    }
+
 
     sp -= new_mb->args_count;
 
@@ -109,7 +120,8 @@ void
 RvpMode::do_method_return(int len)
 {
     assert(len == 0 || len == 1 || len == 2);
-    assert(not is_priviledged(frame->mb));
+    assert(not frame->mb->is_native());
+    assert(not frame->mb->is_synchronized());
 
     // MINILOG_IF(debug_scaffold::java_main_arrived,
     //            r_frame_logger,

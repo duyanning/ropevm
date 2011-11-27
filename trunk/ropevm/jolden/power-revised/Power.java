@@ -54,7 +54,7 @@ public class Power
 
         long start1 = System.currentTimeMillis();
         r.compute();
-        //r.nextIter(false, 0.7, 0.14);
+        r.nextIter(false, 0.7, 0.14);
 
         // 目前只迭代一次，看看加速比的变化。
         // while (true) {
@@ -86,7 +86,7 @@ public class Power
             Class.forName("Branch");
             Class.forName("Leaf");
             Class.forName("Demand");
-            //Class.forName("java.lang.Math");
+            Class.forName("Math");
         }
         catch (ClassNotFoundException e) {
         }

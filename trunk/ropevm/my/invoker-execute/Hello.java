@@ -41,7 +41,7 @@ class Wolf extends Beast {
         //return 5;	// wrong pslice
     }
 
-    @RopeConst
+    @RopeInvokerExecute
     public int g()
     {
         int y = 0;
@@ -92,7 +92,7 @@ class Dog extends Beast {
         //return 5;	// wrong pslice
     }
 
-    @RopeConst
+    @RopeInvokerExecute
     public int g()
     {
         int y = 0;

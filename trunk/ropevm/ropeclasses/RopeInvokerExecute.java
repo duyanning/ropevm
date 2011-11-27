@@ -2,7 +2,7 @@ import java.lang.annotation.*;
 
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ ElementType.METHOD, ElementType.CONSTRUCTOR })
-public @interface RopeConst {
+public @interface RopeInvokerExecute {
 }
 
 // ElementType.FIELD

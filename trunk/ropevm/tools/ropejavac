@@ -12,3 +12,4 @@
 
 ropevm -cp $ROPECLASSPATH:$ROPEHACKCLASSPATH:bin-javac $APP $PARMS
 
+# CLASSPATH=/home/duyanning/work/ropevm/ropeclasses:/home/duyanning/work/ropevm/rope-hacked-classpath:bin-javac

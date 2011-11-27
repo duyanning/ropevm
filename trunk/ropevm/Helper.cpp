@@ -523,10 +523,16 @@ info(Object* o)
 
 
 bool
-MethodBlock::is_rope_const() const
+MethodBlock::is_rope_invoker_execute() const
 {
-    if (RopeVM::model < 4)      // 只有模型4才支持const方法
+    if (RopeVM::model < 4)      // 只有模型4才支持invoker execute方法
         return false;
-    return m_is_rope_const;
+    return m_is_rope_invoker_execute;
 }
 
+
+bool
+MethodBlock::is_rope_spec_safe() const
+{
+    return m_is_rope_spec_safe;
+}

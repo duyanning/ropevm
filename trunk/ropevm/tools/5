@@ -1,4 +1,5 @@
 #!/usr/bin/env sh
 
+# spec barrier
 model=5
 ropejavac

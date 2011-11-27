@@ -33,7 +33,8 @@ enum class RunningState {
     halt_no_syn_msg,                 // 无同步消息（即无返回值方法），无法继续推测执行
     halt_cannot_signal_exception,    // 非确定模式不能抛出异常
     halt_cannot_alloc_object,        // rvp模式不能产生新对象
-    halt_cannot_exec_priviledged_method, // 非确定模式不能执行特权方法
+    halt_cannot_exec_native_method,  // 非确定模式不能执行native方法
+    halt_cannot_exec_sync_method, // 非确定模式不能执行synchronized方法
     halt_spec_barrier,                   // 遇到推测执行路障
     halt_cannot_exec_method,             // 非确定模式不能execute_method
     halt_worthless_to_execute,       // 时间太短，不值得推测执行

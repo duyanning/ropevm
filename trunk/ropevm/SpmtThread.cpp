@@ -132,8 +132,10 @@ operator<<(ostream& os, RunningState reason)
         os << "halt_cannot_signal_exception";
     else if (reason == RunningState::halt_cannot_alloc_object)
         os << "halt_cannot_alloc_object";
-    else if (reason == RunningState::halt_cannot_exec_priviledged_method)
-        os << "halt_cannot_exec_priviledged_method";
+    else if (reason == RunningState::halt_cannot_exec_native_method)
+        os << "halt_cannot_exec_native_method";
+    else if (reason == RunningState::halt_cannot_exec_sync_method)
+        os << "halt_cannot_exec_sync_method";
     else if (reason == RunningState::halt_cannot_exec_method)
         os << "halt_cannot_exec_method";
     else if (reason == RunningState::halt_worthless_to_execute)
