@@ -135,7 +135,7 @@ void
 SpeculativeMode::do_method_return(int len)
 {
     assert(len == 0 || len == 1 || len == 2);
-    assert(not frame->mb->is_native());
+    //assert(not frame->mb->is_native());
     assert(not frame->mb->is_synchronized());
 
     Frame* current_frame = frame;
@@ -495,18 +495,44 @@ SpeculativeMode::invoke_impl(Object* target_object, MethodBlock* new_mb, uintptr
                              SpmtThread* caller, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp,
                              bool is_top)
 {
-    Frame* new_frame = push_frame(target_object,
-                                  new_mb,
-                                  args,
-                                  caller,
-                                  caller_pc,
-                                  caller_frame,
-                                  caller_sp,
-                                  is_top);
 
-    pc = (CodePntr)new_frame->mb->code;
-    frame = new_frame;
-    sp = (uintptr_t*)new_frame->ostack_base;
+    frame = push_frame(target_object, new_mb, args,
+                       caller, caller_pc, caller_frame, caller_sp,
+                       is_top);
+
+
+    assert(not new_mb->is_synchronized());
+
+
+    // 如果是native方法，在此处立即执行其native code
+    if (new_mb->is_native()) {
+        // 将参数复制到ostack。push_frame只把参数复制到了lvars。native方法比较特殊。
+        if (args)
+            std::copy(args, args + new_mb->args_count, frame->ostack_base);
+
+        // 写清楚之后应该是这样：
+        // typedef uintptr_t* EXAMPLE(Class*, MethodBlock*, uintptr_t*);
+        // sp = (*(EXAMPLE*)new_mb->native_invoker)();
+        sp = (*(uintptr_t *(*)(Class*, MethodBlock*, uintptr_t*))
+              new_mb->native_invoker)(new_mb->classobj, new_mb,
+                                      frame->ostack_base);
+
+        if (m_spmt_thread->get_thread()->exception) {
+            throw_exception;
+        }
+        else {
+            // native方法已经结束，返回值已经产生。该返回了。
+            do_method_return(sp - frame->ostack_base);
+
+        }
+
+        return;
+
+    }
+
+    sp = (uintptr_t*)frame->ostack_base;
+    pc = (CodePntr)frame->mb->code;
+
 }
 
 

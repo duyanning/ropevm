@@ -29,20 +29,40 @@ int nativeExtraArg(MethodBlock *mb) {
     return RET_DFLT;
 }
 
-u4 *callJNIMethod(void *env, Class *classobj, char *sig, int ret_type, u4 *ostack, unsigned char *f, int args) {
+// env		传递给native code编写的函数，作为参数
+// classobj	传递给native code编写的函数，作为参数
+// sig		方法签名（未用）
+// ret_type	返回值类型
+// ostack	传递给native code编写的函数的其他参数，此时就静静躺在native方法的ostack中。（是native方法的调用者复制到native方法的ostack中的）
+// f		指向native code的起始地址
+// args		native方法的参数数量
+// 当调用结束后，返回值就静静地躺在ostack的最底下。
+u4 *callJNIMethod(void* env, Class* classobj, char* sig, int ret_type, u4* ostack, unsigned char* f, int args)
+{
     u4 *opntr = ostack + args;
     int i;
 
+    // 为调用native code编写的函数做准备：将函数的参数压入native栈。嵌入汇编中的sp为native机器的sp
+
+    // 结合一个例子来看：native方法的C++原型：jdouble Java_Math_sqrt(JNIEnv* env, jclass cls, jdouble x);
+
+    // 例子：x入native栈
     for(i = 0; i < args; i++)
         asm volatile ("pushl %0" :: "m" (*--opntr) : "sp");
 
+    // 例子：cls入native栈
     if(classobj) {
         asm volatile ("pushl %0" :: "m" (classobj) : "sp");
-	args++;
+        args++;
     }
 
+    // 例子：env入native栈
     asm volatile ("pushl %0" :: "m" (env) : "sp");
 
+
+    // 下边真正调用native code编写的代码时，不传递任何参数。因为可能会
+    // 碰到的native有无穷多，不可能事先在C/C++中声明其原型。只能采用这
+    // 种方式。
     switch(ret_type) {
         case RET_VOID:
             (*(void (*)())f)();
@@ -68,7 +88,13 @@ u4 *callJNIMethod(void *env, Class *classobj, char *sig, int ret_type, u4 *ostac
             break;
     }
 
+
+    // 调用native code编写的函数结束，清理native栈
     asm volatile ("addl %0,%%esp" :: "r" ((args + 1) * sizeof(u4)) : "cc", "sp");
+
+
+
+    // 此时，返回值就静静地躺在ostack的最底下。
     return ostack;
 }
 #endif

@@ -381,7 +381,7 @@ public:
     bool m_is_rope_spec_safe;
 public:
     bool is_rope_invoker_execute() const;
-    bool is_rope_spec_safe() const;
+    bool is_rope_spec_safe() const; // 表明native方法是否推测安全
     bool is_native() const {  return access_flags & ACC_NATIVE;  }
     bool is_synchronized() const {  return access_flags & ACC_SYNCHRONIZED;  }
     bool is_static() const {  return access_flags & ACC_STATIC;  }
