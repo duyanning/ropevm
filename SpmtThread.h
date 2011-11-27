@@ -127,7 +127,7 @@ public:
     void pin_frames();          // 钉住栈帧
 
     // 栈帧相关
-    void destroy_frame(Frame* frame); // 因return而销毁栈桢（应改名为pop_frame）
+    void pop_frame(Frame* frame); // 因return而销毁栈桢（应改名为pop_frame）
     void unwind_frame(Frame* frame);  // 因unwind而销毁栈桢
 
     // drive loop相关

@@ -148,7 +148,7 @@ SpeculativeMode::do_method_return(int len)
         sp = caller_sp;
         pc = current_frame->caller_pc;
 
-        destroy_frame(current_frame);
+        pop_frame(current_frame);
         pc += (*pc == OPC_INVOKEINTERFACE_QUICK ? 5 : 3);
 
     }
@@ -168,7 +168,7 @@ SpeculativeMode::do_method_return(int len)
                                               current_frame->prev,
                                               current_frame->caller_sp);
 
-        destroy_frame(current_frame);
+        pop_frame(current_frame);
 
         m_spmt_thread->send_msg(return_msg);
 
@@ -189,15 +189,15 @@ SpeculativeMode::before_signal_exception(Class *exception_class)
 
 
 Frame*
-SpeculativeMode::create_frame(Object* object, MethodBlock* new_mb, uintptr_t* args,
+SpeculativeMode::push_frame(Object* object, MethodBlock* new_mb, uintptr_t* args,
                               SpmtThread* caller, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp,
                               bool is_top)
 
 {
     Frame* new_frame = g_create_frame(m_spmt_thread, object, new_mb, args, caller, caller_pc, caller_frame, caller_sp, is_top);
 
-    MINILOG(s_create_frame_logger, "#" << m_spmt_thread->id()
-            << " (S) create frame " << new_frame);
+    MINILOG(s_push_frame_logger, "#" << m_spmt_thread->id()
+            << " (S) push frame " << new_frame);
 
     // 把创建的栈桢记录下来
     Effect* current_effect = m_spmt_thread->m_current_spec_msg->get_effect();
@@ -210,9 +210,9 @@ SpeculativeMode::create_frame(Object* object, MethodBlock* new_mb, uintptr_t* ar
 
 
 void
-SpeculativeMode::destroy_frame(Frame* frame)
+SpeculativeMode::pop_frame(Frame* frame)
 {
-    MINILOG(s_destroy_frame_logger, "#" << m_spmt_thread->id()
+    MINILOG(s_pop_frame_logger, "#" << m_spmt_thread->id()
             << " (S) destroy " << (frame->pinned ? "(skipped) " : "") << "frame "
             << frame);
 
@@ -484,14 +484,14 @@ SpeculativeMode::invoke_impl(Object* target_object, MethodBlock* new_mb, uintptr
                              SpmtThread* caller, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp,
                              bool is_top)
 {
-    Frame* new_frame = create_frame(target_object,
-                                    new_mb,
-                                    args,
-                                    caller,
-                                    caller_pc,
-                                    caller_frame,
-                                    caller_sp,
-                                    is_top);
+    Frame* new_frame = push_frame(target_object,
+                                  new_mb,
+                                  args,
+                                  caller,
+                                  caller_pc,
+                                  caller_frame,
+                                  caller_sp,
+                                  is_top);
 
     pc = (CodePntr)new_frame->mb->code;
     frame = new_frame;

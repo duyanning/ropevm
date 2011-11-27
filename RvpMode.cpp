@@ -142,7 +142,7 @@ RvpMode::do_method_return(int len)
         sp = caller_sp;
         pc = current_frame->caller_pc;
 
-        destroy_frame(current_frame);
+        pop_frame(current_frame);
         pc += (*pc == OPC_INVOKEINTERFACE_QUICK ? 5 : 3);
     }
     else { // 从最外层的rvp栈帧返回
@@ -165,7 +165,7 @@ RvpMode::do_method_return(int len)
 
         m_spmt_thread->m_rvp_buffer.clear();
 
-        destroy_frame(current_frame);
+        pop_frame(current_frame);
 
         // MINILOG0("#" << m_spmt_thread->id() << " leave RVP mode");
 
@@ -187,7 +187,7 @@ RvpMode::before_signal_exception(Class *exception_class)
 
 
 Frame*
-RvpMode::create_frame(Object* object, MethodBlock* new_mb, uintptr_t* args,
+RvpMode::push_frame(Object* object, MethodBlock* new_mb, uintptr_t* args,
                       SpmtThread* caller, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp,
                       bool is_top)
 {
@@ -201,15 +201,15 @@ RvpMode::create_frame(Object* object, MethodBlock* new_mb, uintptr_t* args,
 
 
 void
-RvpMode::destroy_frame(Frame* frame)
+RvpMode::pop_frame(Frame* frame)
 {
     //assert(is_rvp_frame(frame));
-    //     MINILOG(p_destroy_frame_logger, "#" << m_spmt_thread->id()
+    //     MINILOG(p_pop_frame_logger, "#" << m_spmt_thread->id()
     //             << " (R) destroy frame for " << *frame->mb);
 
     m_spmt_thread->clear_frame_in_rvp_buffer(frame);
 
-    MINILOG(r_destroy_frame_logger, "#" << m_spmt_thread->id()
+    MINILOG(r_pop_frame_logger, "#" << m_spmt_thread->id()
             << " (R) destroy frame " << frame);
 
     g_destroy_frame(frame);
@@ -287,14 +287,14 @@ RvpMode::invoke_impl(Object* target_object, MethodBlock* new_mb, uintptr_t* args
                      SpmtThread* caller, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp,
                      bool is_top)
 {
-    Frame* new_frame = create_frame(target_object,
-                                    new_mb,
-                                    args,
-                                    caller,
-                                    caller_pc,
-                                    caller_frame,
-                                    caller_sp,
-                                    is_top);
+    Frame* new_frame = push_frame(target_object,
+                                  new_mb,
+                                  args,
+                                  caller,
+                                  caller_pc,
+                                  caller_frame,
+                                  caller_sp,
+                                  is_top);
 
     pc = (CodePntr)new_frame->mb->code;
     frame = new_frame;

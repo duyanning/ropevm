@@ -26,11 +26,11 @@ public:
 
     virtual void send_msg(Message* msg);
 
-    virtual Frame* create_frame(Object* object, MethodBlock* new_mb, uintptr_t* args,
-                                SpmtThread* caller, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp,
-                                bool is_top);
+    virtual Frame* push_frame(Object* object, MethodBlock* new_mb, uintptr_t* args,
+                              SpmtThread* caller, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp,
+                              bool is_top);
 
-    virtual void destroy_frame(Frame* frame);
+    virtual void pop_frame(Frame* frame);
 
     virtual void invoke_impl(Object* target_object, MethodBlock* new_mb, uintptr_t* args,
                              SpmtThread* caller, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp,
