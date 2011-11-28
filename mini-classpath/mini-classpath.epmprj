@@ -1,0 +1,8 @@
+(lp0
+.S'debug'
+p0
+.S'mini-classpath.so'
+p0
+.S'dll'
+p0
+.
