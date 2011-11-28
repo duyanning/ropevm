@@ -1,4 +1,5 @@
 #!/usr/bin/env sh
 
+# 反汇编.class文件
 javap -c -private `dirname $1`/`basename $1 .class`
 
