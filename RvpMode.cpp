@@ -102,15 +102,6 @@ RvpMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
     // }
 
 
-    // MINILOG_IF(debug_scaffold::java_main_arrived,
-    //            r_frame_logger,
-    //            "#" << m_spmt_thread->id()
-    //            << " (R) enter "
-    //            << new_frame->mb->full_name()
-    //            << "  <---  "
-    //            << frame->mb->full_name()
-    //            );
-
     // 除了最外层的rvp栈帧，里层的rvp栈帧的caller都为0。
     invoke_impl(target_object, rvp_mb, &args[0], 0, pc, frame, sp, false);
 }
@@ -122,15 +113,6 @@ RvpMode::do_method_return(int len)
     assert(len == 0 || len == 1 || len == 2);
     assert(not frame->mb->is_native());
     assert(not frame->mb->is_synchronized());
-
-    // MINILOG_IF(debug_scaffold::java_main_arrived,
-    //            r_frame_logger,
-    //            "#" << m_spmt_thread->id()
-    //            << " (R) leave "
-    //            << frame->mb->full_name()
-    //            << "  --->  "
-    //            << frame->prev->mb->full_name()
-    //            );
 
     Frame* current_frame = frame;
 
@@ -203,7 +185,6 @@ RvpMode::push_frame(Object* object, MethodBlock* new_mb, uintptr_t* args,
                       SpmtThread* caller, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp,
                       bool is_top)
 {
-    //Frame* new_frame = g_create_frame(m_spmt_thread, object, new_mb, args, caller, caller_pc, caller_frame, caller_sp);
     // rvp模式不会抛出异常，栈帧的owner没用，我们让它为0，表示这是个rvp栈帧。用于调试。
     Frame* new_frame = g_create_frame(0, object, new_mb, args, caller, caller_pc, caller_frame, caller_sp, is_top);
 
@@ -215,10 +196,6 @@ RvpMode::push_frame(Object* object, MethodBlock* new_mb, uintptr_t* args,
 void
 RvpMode::pop_frame(Frame* frame)
 {
-    //assert(is_rvp_frame(frame));
-    //     MINILOG(p_pop_frame_logger, "#" << m_spmt_thread->id()
-    //             << " (R) destroy frame for " << *frame->mb);
-
     m_spmt_thread->clear_frame_in_rvp_buffer(frame);
 
     MINILOG(r_pop_frame_logger, "#" << m_spmt_thread->id()
@@ -291,26 +268,6 @@ RvpMode::do_execute_method(Object* target_object, MethodBlock *mb, std::vector<u
     throw Break();
 
     return 0;
-}
-
-
-void
-RvpMode::invoke_impl(Object* target_object, MethodBlock* new_mb, uintptr_t* args,
-                     SpmtThread* caller, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp,
-                     bool is_top)
-{
-    Frame* new_frame = push_frame(target_object,
-                                  new_mb,
-                                  args,
-                                  caller,
-                                  caller_pc,
-                                  caller_frame,
-                                  caller_sp,
-                                  is_top);
-
-    pc = (CodePntr)new_frame->mb->code;
-    frame = new_frame;
-    sp = (uintptr_t*)new_frame->ostack_base;
 }
 
 

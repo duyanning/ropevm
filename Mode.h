@@ -34,9 +34,9 @@ public:
     virtual void send_msg(Message* msg);
 
     // 参数用无模式方式读取
-    virtual void invoke_impl(Object* target_object, MethodBlock* new_mb, uintptr_t* args,
-                             SpmtThread* caller, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp,
-                             bool is_top) = 0;
+    void invoke_impl(Object* target_object, MethodBlock* new_mb, uintptr_t* args,
+                     SpmtThread* caller, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp,
+                     bool is_top);
 
 
     void load_from_array(uintptr_t* sp, Object* array, int index, int type_size);

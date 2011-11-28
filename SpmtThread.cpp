@@ -166,14 +166,6 @@ SpmtThread::halt(RunningState reason)
 }
 
 
-// void
-// SpmtThread::halt()
-// {
-//     m_halt = true;
-//     MINILOG(wakeup_halt_logger, "#" << id() << " halt " << m_spec_running_state);
-// }
-
-
 void
 SpmtThread::set_certain_msg(Message* msg)
 {
@@ -624,9 +616,6 @@ SpmtThread::discard_revoked_msg(RoundTripMsg* revoked_msg)
 }
 
 
-
-
-
 /*
   只要丢弃effect，无论是全部丢弃，还是从某个之后丢弃。所有的rvp栈帧就都要释放。
   只有最新的推测执行才会处于rvp模式，才会生成rvp栈帧。
@@ -879,17 +868,6 @@ SpmtThread::send_msg(Message* msg)
 {
     m_mode->send_msg(msg);
 }
-
-
-/*
-  为了在模式已经改变的情况下，按照原来的模式发出消息，所以提供了这个函
-  数。
- */
-// void
-// SpmtThread::send_msg(Message* msg, Mode* mode)
-// {
-//     mode->send_msg(msg);
-// }
 
 
 void

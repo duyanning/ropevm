@@ -421,3 +421,54 @@ g_load_from_stable_array_to_c(uintptr_t* sp, Object* array, int index, int type_
     }
 
 }
+
+
+void
+Mode::invoke_impl(Object* target_object, MethodBlock* new_mb, uintptr_t* args,
+                  SpmtThread* caller, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp,
+                  bool is_top)
+{
+
+
+    frame = push_frame(target_object, new_mb, args,
+                       caller, caller_pc, caller_frame, caller_sp,
+                       is_top);
+
+    // 给同步方法加锁
+    if (frame->mb->is_synchronized()) {
+        Object *sync_ob = frame->mb->is_static() ?
+            frame->mb->classobj : (Object*)frame->lvars[0]; // lvars[0] is 'this' reference
+        objectLock(sync_ob);
+    }
+
+
+    // 如果是native方法，在此处立即执行其native code
+    if (new_mb->is_native()) {
+        // 将参数复制到ostack。push_frame只把参数复制到了lvars。native方法比较特殊。
+        if (args)
+            std::copy(args, args + new_mb->args_count, frame->ostack_base);
+
+        // 写清楚之后应该是这样：
+        // typedef uintptr_t* EXAMPLE(Class*, MethodBlock*, uintptr_t*);
+        // sp = (*(EXAMPLE*)new_mb->native_invoker)();
+        sp = (*(uintptr_t *(*)(Class*, MethodBlock*, uintptr_t*))
+              new_mb->native_invoker)(new_mb->classobj, new_mb,
+                                      frame->ostack_base);
+
+        if (m_spmt_thread->get_thread()->exception) {
+            throw_exception;
+        }
+        else {
+            // native方法已经结束，返回值已经产生。该返回了。
+            do_method_return(sp - frame->ostack_base);
+
+        }
+
+        return;
+
+    }
+
+    sp = frame->ostack_base;
+    pc = (CodePntr)frame->mb->code;
+
+}

@@ -37,13 +37,6 @@ CertainMode::mode_write(uint32_t* addr, uint32_t value)
 void
 CertainMode::step()
 {
-    //{{{ just for debug
-    if (m_spmt_thread->m_id == 0) {
-        int x = 0;
-        x++;
-    }
-    //}}} just for debug
-
     fetch_and_interpret_an_instruction();
 }
 
@@ -99,15 +92,6 @@ CertainMode::do_execute_method(Object* target_object,
                                               0, dummy, dummy->ostack_base,
                                               true);
 
-
-        // MINILOG0("#" << m_spmt_thread->id() << " e>>>transfers to #" << target_spmt_thread->id()
-        //          // << " " << info(current_object) << " => " << info(target_object)
-        //          // << " (" << current_object << "=>" << target_object << ")"
-        //          << " because: " << *invoke_msg
-        //          << " in: "  << info(frame)
-        //          // << "("  << frame << ")"
-        //          << " offset: " << pc-(CodePntr)frame->mb->code
-        //          );
 
         //frame->last_pc = pc;
 
@@ -173,15 +157,6 @@ CertainMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
                                               pc, frame, sp);
 
 
-        // MINILOG0("#" << m_spmt_thread->m_id << " i>>>transfers to #" << target_spmt_thread->id()
-        //          // << " " << info(current_object) << " => " << info(target_object)
-        //          // << " (" << current_object << "=>" << target_object << ")"
-        //          << " because: " << *msg
-        //          << " in: "  << info(frame)
-        //          // << "("  << frame << ")"
-        //          );
-
-
         m_spmt_thread->send_msg(invoke_msg);
 
         if (RopeVM::model < 3) // 模型3以上才支持推测执行。
@@ -215,10 +190,6 @@ CertainMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
 void
 CertainMode::do_method_return(int len)
 {
-//     if (is_application_class(frame->mb->classobj)) {
-//         MINILOG0("#" << m_spmt_thread->id() << " (C)return from " << *frame->mb);
-//     }
-
     assert(len == 0 || len == 1 || len == 2);
 
     Frame* current_frame = frame; // 因为后边的处理可能会改变frame，所以我们先保存一下
@@ -264,11 +235,6 @@ CertainMode::do_method_return(int len)
 
         if (current_frame->is_top_frame()) {
 
-            // MINILOG0("#" << m_spmt_thread->id() << " t<<<transfers to #" << target_core->id()
-            //          << " in: "  << info(frame)
-            //          << "because top frame return"
-            //          );
-
             m_spmt_thread->signal_quit_drive_loop();
 
         }
@@ -288,30 +254,9 @@ CertainMode::do_method_return(int len)
         MINILOG(inter_spmt_thread_logger, "#" << m_spmt_thread->m_id
                 << " inter-return" << (current_frame->is_top_frame()? "(top) " : " ") << "#" << target_spmt_thread->m_id << " " << current_frame->mb);
 
-        // MINILOG0("#" << m_spmt_thread->id() << " r<<<transfers to #" << target_spmt_thread->id()
-        //          // << " " << info(current_object) << " => " << info(target_object)
-        //          // << " (" << current_object << "=>" << target_object << ")"
-        //          << " because: " << *msg
-        //          << " in: "  << info(current_frame)
-        //          // << "("  << current_frame << ")"
-        //          );
-
 
         uintptr_t* rv = sp - len;
         sp -= len;
-
-        // if (strcmp(current_frame->mb->name, "loadClass") == 0) {
-        //     // and strcmp(current_frame->mb->classobj->name(), "java/lang/ClassLoader") == 0) {
-        //     int x = 0;
-        //     x++;
-        // }
-
-        //if (target_spmt_thread->m_id == 5 and m_spmt_thread->m_id == 0 and current_frame->is_top_frame()) {
-        if (target_spmt_thread->m_id == 0 and m_spmt_thread->m_id == 5) {
-
-            int x = 0;
-            x++;
-        }
 
         assert(not current_frame->is_top_frame() or current_frame->caller_pc == 0);
 
@@ -334,117 +279,12 @@ CertainMode::do_method_return(int len)
 
 
 void
-CertainMode::invoke_impl(Object* target_object, MethodBlock* new_mb, uintptr_t* args,
-                         SpmtThread* caller, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp,
-                         bool is_top)
-{
-
-
-    frame = push_frame(target_object, new_mb, args,
-                       caller, caller_pc, caller_frame, caller_sp,
-                       is_top);
-
-    // 给同步方法加锁
-    if (frame->mb->is_synchronized()) {
-        Object *sync_ob = frame->mb->is_static() ?
-            frame->mb->classobj : (Object*)frame->lvars[0]; // lvars[0] is 'this' reference
-        objectLock(sync_ob);
-    }
-
-
-    // 如果是native方法，在此处立即执行其native code
-    if (new_mb->is_native()) {
-        // 将参数复制到ostack。push_frame只把参数复制到了lvars。native方法比较特殊。
-        if (args)
-            std::copy(args, args + new_mb->args_count, frame->ostack_base);
-
-        // 写清楚之后应该是这样：
-        // typedef uintptr_t* EXAMPLE(Class*, MethodBlock*, uintptr_t*);
-        // sp = (*(EXAMPLE*)new_mb->native_invoker)();
-        sp = (*(uintptr_t *(*)(Class*, MethodBlock*, uintptr_t*))
-              new_mb->native_invoker)(new_mb->classobj, new_mb,
-                                      frame->ostack_base);
-
-        if (m_spmt_thread->get_thread()->exception) {
-            throw_exception;
-        }
-        else {
-            // native方法已经结束，返回值已经产生。该返回了。
-            do_method_return(sp - frame->ostack_base);
-
-        }
-
-        return;
-
-    }
-
-    sp = frame->ostack_base;
-    pc = (CodePntr)frame->mb->code;
-
-}
-
-
-void
 CertainMode::before_signal_exception(Class *exception_class)
 {
     MINILOG(c_exception_logger, "#" << m_spmt_thread->id() << " (C) before signal exception "
             << exception_class->name() << " in: " << info(frame));
     // do nothing
 }
-
-// void
-// CertainMode::do_throw_exception()
-// {
-//     MINILOG(c_exception_logger, "#" << m_spmt_thread->id() << " (C) throw exception"
-//             << " in: " << info(frame)
-//             << " on: #" << frame->get_object()->get_spmt_thread()->id()
-//             );
-//     //{{{ just for debug
-//     if (debug_scaffold::java_main_arrived && m_spmt_thread->id() == 7) {
-//         int x = 0;
-//         x++;
-//     }
-//     //}}} just for debug
-
-//     //ExecEnv *ee = getExecEnv();
-//     Object *excep = exception;
-//     exception = NULL;
-
-//     CodePntr old_pc = pc;      // for debug
-//     pc = findCatchBlock(excep->classobj);
-//     MINILOG(c_exception_logger, "#" << m_spmt_thread->id() << " (C) handler found"
-//             << " in: " << info(frame)
-//             << " on: #" << frame->get_object()->get_spmt_thread()->id()
-//             );
-
-//     /* If we didn't find a handler, restore exception and
-//        return to previous invocation */
-//     if (pc == NULL) {
-//         //assert(false);          // when uncaughed exception ocurr, we get here
-//         exception = excep;
-//         //{{{ just for debug
-//         if (m_spmt_thread->id() == 7) {
-//             int x = 0;
-//             x++;
-//         }
-//         //}}} just for debug
-//         m_spmt_thread->signal_quit_drive_loop();
-//         return;
-//     }
-
-//     // /* If we're handling a stack overflow, reduce the stack
-//     //    back past the red zone to enable handling of further
-//     //    overflows */
-//     // if (ee->overflow) {
-//     //     ee->overflow = FALSE;
-//     //     ee->stack_end -= STACK_RED_ZONE_SIZE;
-//     // }
-
-//     /* Setup intepreter to run the found catch block */
-//     //frame = ee->last_frame;
-//     sp = frame->ostack_base;
-//     *sp++ = (uintptr_t)excep;
-// }
 
 
 Frame*
