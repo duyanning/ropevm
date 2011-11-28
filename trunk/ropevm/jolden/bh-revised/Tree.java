@@ -5,7 +5,6 @@ import java.util.Enumeration;
  * A class that represents the root of the data structure used
  * to represent the N-bodies in the Barnes-Hut algorithm.
  **/
-@Speculative
 class Tree
 {
     MathVector rmin;
@@ -157,7 +156,7 @@ class Tree
 
         makeTree(nstep);
 
-        // compute the gravity for all the particles
+        // compute the gravity for all the particles // 看此处可否有潜力可挖
         for (Enumeration e = bodyTabRev.elementsRev(); e.hasMoreElements(); ) {
             Body b = (Body)e.nextElement();
             b.hackGravity(rsize, root);

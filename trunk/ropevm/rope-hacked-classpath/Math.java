@@ -11,6 +11,9 @@ public final class Math
     }
 
 
+    public static final double PI = 3.141592653589793;
+
+
     @RopeInvokerExecute
     public static int abs(int i)
     {
@@ -37,6 +40,17 @@ public final class Math
     {
         return (d <= 0) ? 0 - d : d;
     }
+
+
+
+    @RopeInvokerExecute
+    @RopeSpecSafe
+    public static native double pow(double a, double b);
+
+
+    @RopeInvokerExecute
+    @RopeSpecSafe
+    public static native double floor(double a);
 
 
     @RopeInvokerExecute

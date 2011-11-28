@@ -1,4 +1,0 @@
-#!/usr/bin/env sh
-
-#java -cp bin BH -b 4096 -m
-java -cp bin BH -b 2 -m

@@ -5,7 +5,6 @@ import java.util.Enumeration;
 /**
  * A class used to representing particles in the N-body simulation.
  **/
-@Speculative
 final class Body extends Node
 {
     MathVector vel;

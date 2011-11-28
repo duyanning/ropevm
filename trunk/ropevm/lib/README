@@ -1,0 +1,8 @@
+This directory contains JamVM's Jar launcher wrapper
+(jamvm.java.lang.JarLauncher) and the JamVM versions
+of the VM-specific classes required to work with GNU
+Classpath.  Most of these are derived from the
+reference classes from GNU Classpath.
+
+更改.java文件。
+运行make后，产生的.class文件都位于目录classes之下。

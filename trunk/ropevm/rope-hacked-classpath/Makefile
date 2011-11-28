@@ -2,8 +2,10 @@ all: rope-hacked-classpath.so Math.class
 
 
 rope-hacked-classpath.so : debug/rope-hacked-classpath.so
-	rm -f rope-hacked-classpath.so
-	cp debug/rope-hacked-classpath.so .
+	ln -fs debug/rope-hacked-classpath.so
+
+	# rm -f rope-hacked-classpath.so
+	# cp debug/rope-hacked-classpath.so .
 
 debug/rope-hacked-classpath.so : Math.cpp Math.h
 	epm b
