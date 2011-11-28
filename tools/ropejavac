@@ -1,15 +1,5 @@
 #!/usr/bin/env sh
 
-
 . cmd
 
-
-# 无效
-# ropevm -Djava.library.path=. -cp bin-javac $APP $PARMS
-
-# 有效。System.loadLibrary，不要写路径，不要写扩展名.so
-#export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/duyanning/work/ropevm/rope-hacked-classpath
-
-ropevm -cp $ROPECLASSPATH:$ROPEHACKCLASSPATH:bin-javac $APP $PARMS
-
-# CLASSPATH=/home/duyanning/work/ropevm/ropeclasses:/home/duyanning/work/ropevm/rope-hacked-classpath:bin-javac
+ropevm -cp $ROPE_CLASSES:$MINI_CLASSPATH:bin-javac $APP $PARMS

@@ -1,14 +1,25 @@
 #!/usr/bin/env bash
 
-export ROPEVMROOT=$HOME/work/ropevm
-export ROPECLASSPATH=$ROPEVMROOT/ropeclasses
-export ROPEHACKCLASSPATH=$ROPEVMROOT/rope-hacked-classpath
+# ropevm源码所在目录
+export ROPEVM_ROOT=$HOME/work/ropevm
 
-export FIXEDJAMROOT=$HOME/work/fixed-jamvm
 
-# export CLASSPATH=.:$ROPECLASSPATH 不要设置环境变量
-export PATH=$ROPEVMROOT/debug:$ROPEVMROOT/tools:$FIXEDJAMROOT/debug:$PATH
+# 我修正后的jamvm 1.5.1源码所在目录
+export FIXED_JAMVM_ROOT=$HOME/work/fixed-jamvm
 
+
+# rope特有的java类所在目录
+export ROPE_CLASSES=$ROPEVM_ROOT/classes
+
+
+# 从GNU Classpath 0.97.2中摘出来的一部分，以方便修改
+export MINI_CLASSPATH=$ROPEVM_ROOT/mini-classpath
+
+
+export PATH=$ROPEVM_ROOT/debug:$ROPEVM_ROOT/tools:$FIXED_JAMVM_ROOT/debug:$PATH
+
+
+# 影响ropevm运行的一些环境变量
 export model=4
 export log=0
 

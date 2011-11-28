@@ -4,10 +4,12 @@
 // 以及classpath-0.97.2/native/jni/java-lang/java_lang_VMMath.c
 public final class Math
 {
+    // # 无论是设置LD_LIBRARY_PATH，还是用命令行选项-Djava.library.path，都不起作用。
+    // # 要为native方法加载动态库，只能用System.load，并指明动态库的绝对路径。
     static
     {
         //System.loadLibrary("rope-hacked-classpath");
-        System.load("/home/duyanning/work/ropevm/rope-hacked-classpath/rope-hacked-classpath.so");
+        System.load("/home/duyanning/work/ropevm/mini-classpath/mini-classpath.so");
     }
 
 

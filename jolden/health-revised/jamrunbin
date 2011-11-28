@@ -1,6 +1,0 @@
-#!/usr/bin/env sh
-
-#jamvm -cp bin Health -l 5 -t 500 -s 1 -m
-jamvm -cp bin Health -l 1 -t 16 -s 1 -m
-#jamvm -cp bin Health -l 2 -t 16 -s 1 -m
-
