@@ -7,6 +7,24 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+#undef Math_PI
+#define Math_PI 3.141592653589793
+/*
+ * Class:     Math
+ * Method:    pow
+ * Signature: (DD)D
+ */
+JNIEXPORT jdouble JNICALL Java_Math_pow
+  (JNIEnv *, jclass, jdouble, jdouble);
+
+/*
+ * Class:     Math
+ * Method:    floor
+ * Signature: (D)D
+ */
+JNIEXPORT jdouble JNICALL Java_Math_floor
+  (JNIEnv *, jclass, jdouble);
+
 /*
  * Class:     Math
  * Method:    sqrt
