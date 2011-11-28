@@ -32,9 +32,9 @@ public:
 
     virtual void pop_frame(Frame* frame);
 
-    virtual void invoke_impl(Object* target_object, MethodBlock* new_mb, uintptr_t* args,
-                             SpmtThread* caller, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp,
-                             bool is_top);
+    // virtual void invoke_impl(Object* target_object, MethodBlock* new_mb, uintptr_t* args,
+    //                          SpmtThread* caller, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp,
+    //                          bool is_top);
 
     virtual uint32_t mode_read(uint32_t* addr);
     virtual void mode_write(uint32_t* addr, uint32_t value);
