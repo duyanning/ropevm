@@ -42,7 +42,7 @@ RopeVM::RopeVM()
 // }
 
 SpmtThread*
-RopeVM::new_st()
+RopeVM::new_spmt_thread()
 {
     SpmtThread* st = 0;
     pthread_mutex_lock(&m_lock);
@@ -60,9 +60,9 @@ RopeVM::new_st()
 
 
 SpmtThread*
-RopeVM::create_st()
+RopeVM::create_spmt_thread()
 {
-    SpmtThread* st = new_st();
+    SpmtThread* st = new_spmt_thread();
 
     // 为st对象配上os线程(S_threadStart中调用st->drive_loop)
     // 但目前是单os线程实现方式，让一个spmt线程运行drive_loop的时候带动其他spmt线程。
@@ -73,10 +73,22 @@ RopeVM::create_st()
 
 
 int RopeVM::model;
+bool RopeVM::support_invoker_execute;
+bool RopeVM::support_spec_safe_native;
+bool RopeVM::support_spec_barrier;
+bool RopeVM::support_self_read;
+
 
 void initialiseJvm(InitArgs *args)
 {
     RopeVM::model = args->model;
+    if (RopeVM::model < 3)      // 模型3以下，不支持这些特征。其值皆为false。
+        return;
+
+    RopeVM::support_invoker_execute = args->support_invoker_execute;
+    RopeVM::support_spec_safe_native = args->support_spec_safe_native;
+    RopeVM::support_spec_barrier = args->support_spec_barrier;
+    RopeVM::support_self_read = args->support_self_read;
 }
 
 void

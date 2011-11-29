@@ -485,9 +485,12 @@ typedef struct prop {
 } Property;
 
 typedef struct InitArgs {
-    //int do_spec;
     int model;
     int do_log;
+    bool support_invoker_execute;
+    bool support_spec_safe_native;
+    bool support_spec_barrier;
+    bool support_self_read;
 
     int noasyncgc;
     int verbosegc;

@@ -2,6 +2,7 @@
 #include "rope.h"
 #include "Message.h"
 #include "Loggers.h"
+#include "RopeVM.h"
 
 using namespace std;
 
@@ -78,6 +79,10 @@ bool
 g_is_async_msg(Message* msg)
 {
     MsgType type = msg->get_type();
+
+    if (RopeVM::support_self_read and (type == MsgType::GET || type == MsgType::ALOAD)) // 若支持自行get，get和aload都不算是异步消息。
+        return false;
+
     if (type == MsgType::INVOKE
         or type == MsgType::PUT
         or type == MsgType::GET

@@ -333,6 +333,18 @@ CertainMode::do_get_field(Object* target_object, FieldBlock* fb,
 
     MINILOG_IF((m_st->m_id == 0 or m_st->m_id >= 5), order_logger, "get " << fb);
 
+
+    if (RopeVM::support_self_read) { // 若支持自行read，就无所谓目标对象是否由本线程负责了。
+        sp -= is_static ? 0 : 1;
+        for (int i = 0; i < size; ++i) {
+            write(sp, read(addr + i));
+            sp++;
+        }
+        pc += 3;
+
+        return;
+    }
+
     SpmtThread* target_st = target_object->get_st();
     assert(target_st->m_thread == m_st->m_thread);
 
@@ -424,6 +436,15 @@ CertainMode::do_array_load(Object* array, int index, int type_size)
     assert(target_st->m_thread == m_st->m_thread);
 
     int nslots = type_size > 4 ? 2 : 1; // number of slots for value
+
+    if (RopeVM::support_self_read) { // 若支持自行read，就无所谓目标对象是否由本线程负责了。
+        sp -= 2; // pop up arrayref and index
+        load_from_array(sp, array, index, type_size);
+        sp += nslots;
+        pc += 1;
+
+        return;
+    }
 
     if (target_st == m_st) {
         sp -= 2; // pop up arrayref and index

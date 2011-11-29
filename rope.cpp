@@ -60,7 +60,7 @@ void showUsage(char *name) {
 void showVersionAndCopyright() {
     printf("java version \"%s\"\n", JAVA_COMPAT_VERSION);
     printf("RopeVM version %s\n", VERSION);
-    printf("Copyright (C) 2003-2008 Robert Lougher <rob@lougher.org.uk>\n\n");
+    printf("Copyright (C) 2003-2008 Du Yanning <duyanning@gmail.com>\n\n");
     printf("This program is free software; you can redistribute it and/or\n");
     printf("modify it under the terms of the GNU General Public License\n");
     printf("as published by the Free Software Foundation; either version 2,\n");
@@ -257,7 +257,6 @@ int main(int argc, char *argv[])
 
     setDefaultInitArgs(&args);
     class_arg = parseCommandLine(argc, argv, &args);
-    std::cout << "model: " << args.model << ", log: " << args.do_log << "\n";
 
     args.main_stack_base = &array_class;
 
@@ -319,6 +318,14 @@ int main(int argc, char *argv[])
 
     /* Wait for all but daemon threads to die */
     mainThreadWaitToExitVM();
+
+
+    std::cout << "\n=================================\n"
+              << "model: " << RopeVM::model << ", log: " << args.do_log << "\n"
+              << "support_invoker_execute: " << RopeVM::support_invoker_execute << "\n"
+              << "support_spec_safe_native: " << RopeVM::support_spec_safe_native << "\n"
+              << "support_spec_barrier: " << RopeVM::support_spec_barrier << "\n"
+              << "support_self_read: " << RopeVM::support_self_read << "\n";
 
 
     //{{{ statistic

@@ -485,6 +485,7 @@ SpecMode::send_msg(Message* msg)
             << " " << msg);
 
     // 同步消息是只记录，但不真正发送出去
+    //  and msg->get_type() != MsgType::GET
     if (g_is_async_msg(msg)) {
         msg->get_target_st()->add_spec_msg(msg);
     }
@@ -494,7 +495,7 @@ SpecMode::send_msg(Message* msg)
 void
 SpecMode::do_spec_barrier()
 {
-    if (RopeVM::model < 5) {    // 5以下的模型不支持推测路障
+    if (not RopeVM::support_spec_barrier) {    // 如不支持推测路障，推测线程也能通过推测路障
         pc +=  3;
         return;
     }

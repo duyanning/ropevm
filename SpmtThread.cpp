@@ -457,6 +457,68 @@ SpmtThread::affirm_spec_msg(Message* msg)
 
     resume_suspended_spec_execution();
 
+    if (RopeVM::support_self_read and msg->get_type() == MsgType::GET) {
+        // 根据get消息，读取，构造get_ret消息，验证
+
+
+        GetMsg* get_msg = static_cast<GetMsg*>(msg);
+
+        // 从get_msg指定的字段读出一个值
+        uintptr_t* field_addr = get_msg->get_field_addr();
+        int field_size = get_msg->get_field_size();
+        std::vector<uintptr_t> value;
+        for (int i = 0; i < field_size; ++i) {
+            value.push_back(m_certain_mode.read(field_addr + i));
+        }
+
+        // 构造get_ret_msg作为回复
+        GetRetMsg* get_ret_msg = new GetRetMsg(get_msg->get_source_st(),
+                                               &value[0], value.size());
+
+        MINILOG(certain_msg_logger, "#" << m_id
+                << " self-affirm spec msg to "
+                <<"#" << get_ret_msg->get_target_st()->id()
+                << " " << get_ret_msg << " " << get_msg);
+
+        // 自己给自己一个确定消息
+        set_certain_msg(get_ret_msg);
+
+        return;
+
+    }
+
+    if (RopeVM::support_self_read and msg->get_type() == MsgType::ALOAD) {
+        // 根据aload消息，读取，构造aload_ret消息，验证
+
+
+        ALoadMsg* aload_msg = static_cast<ALoadMsg*>(msg);
+
+        // 从aload_msg指定的数组的指定位置处读出一个值
+        Object* array = aload_msg->get_target_object();
+        int index = aload_msg->index;
+        int type_size = aload_msg->type_size;
+
+        std::vector<uintptr_t> value(2); // at most 2 slots
+        m_certain_mode.load_from_array_to_c(&value[0],
+                             array, index, type_size);
+
+        // 构造aload_ret_msg作为回复
+        ALoadRetMsg* aload_ret_msg = new ALoadRetMsg(aload_msg->get_source_st(),
+                                                     &value[0], size2nslots(type_size));
+
+        MINILOG(certain_msg_logger, "#" << m_id
+                << " self-affirm spec msg to "
+                <<"#" << aload_ret_msg->get_target_st()->id()
+                << " " << aload_ret_msg << " " << aload_msg);
+
+        // 自己给自己一个确定消息
+        set_certain_msg(aload_ret_msg);
+
+        return;
+
+    }
+
+
     MINILOG(certain_msg_logger, "#" << m_id
             << " affirm spec msg to "
             <<"#" << msg->get_target_st()->id()

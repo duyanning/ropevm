@@ -1,5 +1,5 @@
 
-import java.lang.Math;
+//import java.lang.Math;
 import java.util.Enumeration;
 
 /**
@@ -12,8 +12,9 @@ final class Body extends Node
     MathVector newAcc;
     double     phi;
 
-    private Body next;
-    private Body procNext;
+    // 双向链表
+    private Body next;          // 正向
+    private Body procNext;      // 逆向
 
     /**
      * Create an empty body.
@@ -72,7 +73,7 @@ final class Body extends Node
      * @param tree the root of the tree.
      * @param nsteps the current time step
      **/
-    final void expandBox(Tree tree, int nsteps)
+    final void expandBox(Tree tree, int nsteps) // 会通过tree发生回调
     {
         MathVector rmid = new MathVector();
 
@@ -98,9 +99,6 @@ final class Body extends Node
                 inbox = icTest(tree);
             }
         }
-    }
-    final void _p_slice_for_expandBox(Tree tree, int nsteps)
-    {
     }
 
 

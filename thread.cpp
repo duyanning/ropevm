@@ -1174,7 +1174,7 @@ Thread::Thread()
     wait_id(0),
     notify_id(0)
 {
-    m_initial_st = RopeVM::instance()->new_st();
+    m_initial_st = RopeVM::instance()->new_spmt_thread();
     m_initial_st->set_thread(this);
     m_current_st = m_initial_st;
 
@@ -1317,7 +1317,7 @@ Thread::assign_spmt_thread_for(Object* object)
     SpmtThread* st = 0;
 
     if (policy == GP_NEW_GROUP) {
-        st = RopeVM::instance()->create_st();
+        st = RopeVM::instance()->create_spmt_thread();
         st->set_thread(this);
         st->set_leader(object);
     }

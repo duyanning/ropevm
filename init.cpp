@@ -11,12 +11,20 @@ use_env_args(InitArgs *args)
 {
     args->do_log = get_bool(getenv("log"), "1");
     args->model = get_int(getenv("model"), "3");
+    args->support_invoker_execute = get_bool(getenv("support_invoker_execute"), "1");
+    args->support_spec_safe_native = get_bool(getenv("support_spec_safe_native"), "1");
+    args->support_spec_barrier = get_bool(getenv("support_spec_barrier"), "1");
+    args->support_self_read = get_bool(getenv("support_self_read"), "1");
 }
 
 /* Setup default values for command line args */
 void setDefaultInitArgs(InitArgs *args) {
     args->do_log = FALSE;
-    args->model = 4;
+    args->model = 3;
+    args->support_invoker_execute = true;
+    args->support_spec_safe_native = true;
+    args->support_spec_barrier = true;
+    args->support_self_read = true;
 
     args->noasyncgc = FALSE;
 

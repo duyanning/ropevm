@@ -20,6 +20,10 @@ export PATH=$ROPEVM_ROOT/debug:$ROPEVM_ROOT/tools:$FIXED_JAMVM_ROOT/debug:$PATH
 
 
 # 影响ropevm运行的一些环境变量
-export model=4
+export model=3
 export log=0
+export support_invoker_execute=1
+export support_spec_safe_native=1
+export support_spec_barrier=0
+export support_self_read=0
 
