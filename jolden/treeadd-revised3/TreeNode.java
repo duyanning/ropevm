@@ -58,7 +58,7 @@ class TreeNode
         }
     }
 
-    // public void _p_slice_for_ctor(int levels)
+    // public void __rvp__ctor(int levels)
     // {
     // }
 
@@ -101,6 +101,10 @@ class TreeNode
         if (left != null) total += left.addTree();
         if (right != null) total += right.addTree();
         return total;
+    }
+    int __rvp__addTree()
+    {
+        return 15;              // 因为我知道对于一个5级的数，第二级的两个子树会返回15。
     }
 
 }

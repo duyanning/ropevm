@@ -74,6 +74,7 @@ RopeVM::create_spmt_thread()
 
 int RopeVM::model;
 bool RopeVM::support_invoker_execute;
+bool RopeVM::support_irrevocable;
 bool RopeVM::support_spec_safe_native;
 bool RopeVM::support_spec_barrier;
 bool RopeVM::support_self_read;
@@ -86,6 +87,7 @@ void initialiseJvm(InitArgs *args)
         return;
 
     RopeVM::support_invoker_execute = args->support_invoker_execute;
+    RopeVM::support_irrevocable = args->support_irrevocable;
     RopeVM::support_spec_safe_native = args->support_spec_safe_native;
     RopeVM::support_spec_barrier = args->support_spec_barrier;
     RopeVM::support_self_read = args->support_self_read;

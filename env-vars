@@ -23,6 +23,7 @@ export PATH=$ROPEVM_ROOT/debug:$ROPEVM_ROOT/tools:$FIXED_JAMVM_ROOT/debug:$PATH
 export model=3
 export log=0
 export support_invoker_execute=1
+export support_irrevocable=1
 export support_spec_safe_native=1
 export support_spec_barrier=0
 export support_self_read=0
