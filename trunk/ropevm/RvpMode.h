@@ -27,9 +27,6 @@ public:
     virtual void do_array_load(Object* array, int index, int type_size);
     virtual void do_array_store(Object* array, int index, int type_size);
 
-    // virtual void invoke_impl(Object* target_object, MethodBlock* new_mb, uintptr_t* args,
-    //                          SpmtThread* caller, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp,
-    //                          bool is_top);
 
     virtual Frame* push_frame(Object* object, MethodBlock* new_mb, uintptr_t* args,
                               SpmtThread* caller, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp,

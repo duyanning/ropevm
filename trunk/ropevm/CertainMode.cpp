@@ -176,11 +176,11 @@ CertainMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
         //          << " (C)invokes rvp-method: " << *rvp_method);
 
         m_st->m_rvp_mode.invoke_impl(target_object,
-                                              rvp_method,
-                                              sp,
-                                              m_st,
-                                              pc, frame, sp,
-                                              false);
+                                     rvp_method,
+                                     sp,
+                                     m_st,
+                                     pc, frame, sp,
+                                     false);
 
         m_st->switch_to_rvp_mode();
     }
@@ -310,7 +310,7 @@ CertainMode::pop_frame(Frame* frame)
 }
 
 /*
-pre and post do_get_field
+before and after do_get_field
 
 getfield
  _____             _____
@@ -358,7 +358,7 @@ CertainMode::do_get_field(Object* target_object, FieldBlock* fb,
 }
 
 /*
-pre and post do_put_field
+before and after do_put_field
 
 putfield
  _____             _____

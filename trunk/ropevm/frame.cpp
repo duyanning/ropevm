@@ -41,7 +41,7 @@ Class *getCallerCallerClass()
 {
     //Frame *last = getExecEnv()->last_frame->prev;
 	//assert(getExecEnv()->last_frame->prev == threadSelf()->current_core()->get_current_mode()->frame->prev);
-    Frame* last = threadSelf()->get_current_st()->get_current_mode()->frame->prev;
+    Frame* last = threadSelf()->get_current_spmt_thread()->get_current_mode()->frame->prev;
 
     if((last->mb == NULL && (last = last->prev)->prev == NULL) ||
              (last = getCallerFrame(last)) == NULL)

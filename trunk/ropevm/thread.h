@@ -83,21 +83,21 @@ public:
     // 射表。
     typedef std::map<Object*, SpmtThread*> Object2SpmtThreadMap;
     Object2SpmtThreadMap m_object_to_st;
-    void register_object_st(Object* object, SpmtThread* st);
-    SpmtThread* st_of(Object* obj);
+    void register_object_spmt_thread(Object* object, SpmtThread* st);
+    SpmtThread* spmt_thread_of(Object* obj);
 
-    SpmtThread* assign_st_for(Object* obj); // 为对象分配spmt线程
+    SpmtThread* assign_spmt_thread_for(Object* obj); // 为对象分配spmt线程
     Thread();
     ~Thread();
     bool create();
 
 
-    SpmtThread* get_initial_st();
-    SpmtThread* get_current_st();
+    SpmtThread* get_initial_spmt_thread();
+    SpmtThread* get_current_spmt_thread();
 
     // 垃圾回收（尚未实现）
     void scan();
-    void scan_sts();
+    void scan_spmt_threads();
 
 private:
     SpmtThread* m_current_st;

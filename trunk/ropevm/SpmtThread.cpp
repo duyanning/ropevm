@@ -308,10 +308,10 @@ SpmtThread::signal_quit_drive_loop()
 
 // 在多os线程实现方式下，应该是调用os_api_current_os_thread()获得当前的
 // os线程，然后再从thread local strage中获得SpmtThread*
-SpmtThread* g_get_current_st()
+SpmtThread* g_get_current_spmt_thread()
 {
     Thread* thread = threadSelf();
-    SpmtThread* current_st = thread->get_current_st();
+    SpmtThread* current_st = thread->get_current_spmt_thread();
     return current_st;
 }
 
@@ -1082,7 +1082,7 @@ SpmtThread::drive_loop()
 {
     using namespace std;
 
-    SpmtThread* current_st_of_outer_loop = m_thread->m_current_st;
+    SpmtThread* current_spmt_thread_of_outer_loop = m_thread->m_current_st;
 
     for (;;) {
 
@@ -1109,7 +1109,7 @@ SpmtThread::drive_loop()
             if (quit) {
                 m_quit_causer = st;
 
-                m_thread->m_current_st = current_st_of_outer_loop;
+                m_thread->m_current_st = current_spmt_thread_of_outer_loop;
                 return;
             }
 
@@ -1293,7 +1293,7 @@ SpmtThread::process_exception(Object* excep, Frame* excep_frame)
         }
 
     }
-    // MINILOG(c_exception_logger, "#" << threadSelf()->get_current_st()->id() << " finding handler"
+    // MINILOG(c_exception_logger, "#" << threadSelf()->get_current_spmt_thread()->id() << " finding handler"
     //         << " in: " << info(frame)
     //         << " on: #" << frame->get_object()->get_st()->id()
     //         );
