@@ -532,6 +532,15 @@ MethodBlock::is_rope_invoker_execute() const
 
 
 bool
+MethodBlock::is_rope_irrevocable() const
+{
+    if (not RopeVM::support_irrevocable)
+        return false;
+    return m_is_rope_irrevocable;
+}
+
+
+bool
 MethodBlock::is_rope_spec_safe() const
 {
     return m_is_rope_spec_safe;

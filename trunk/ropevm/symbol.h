@@ -60,6 +60,7 @@ extern const char* symbol_values[];
     action(self, "self"),                                       \
     action(others, "others"),                                   \
     action(RopeInvokerExecute, "LRopeInvokerExecute;"),         \
+    action(RopeIrrevocable, "LRopeIrrevocable;"),               \
     action(RopeSpecSafe, "LRopeSpecSafe;"),                     \
     action(RopeSpecBarrier, "RopeSpecBarrier"),                 \
     action(RopeVMBackdoor, "RopeVMBackdoor"),                   \

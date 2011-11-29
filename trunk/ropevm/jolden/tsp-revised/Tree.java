@@ -415,6 +415,8 @@ final class Tree
      * @param max_y the maximum y coordinate
      * @return a reference to the root of the subtree
      **/
+    // 这个方法如果能像TreeAdd那样就好了。传递参数给左右孩子的构造函数，让左右孩子自己去做。构造函数的返回值为void。
+    // treeadd中有个叫createTree的方法，类似这个，不过没用到。
     public static Tree buildTree(int n, boolean dir, double min_x,
                                  double max_x, double min_y, double max_y)
     {
@@ -425,7 +427,7 @@ final class Tree
         if (dir) {
             dir = !dir;
             double med = median(min_x,max_x,n);
-            left = buildTree(n/2, dir, min_x, med, min_y, max_y);
+            left = buildTree(n/2, dir, min_x, med, min_y, max_y); // left = new Tree(,,,,);
             right = buildTree(n/2, dir, med, max_x, min_y, max_y);
             x = med;
             y = uniform(min_y, max_y);

@@ -378,9 +378,11 @@ public:
     int method_table_index;
     MethodAnnotationData *annotations;
     bool m_is_rope_invoker_execute;
+    bool m_is_rope_irrevocable;
     bool m_is_rope_spec_safe;
 public:
     bool is_rope_invoker_execute() const;
+    bool is_rope_irrevocable() const;
     bool is_rope_spec_safe() const; // 表明native方法是否推测安全
     bool is_native() const {  return access_flags & ACC_NATIVE;  }
     bool is_synchronized() const {  return access_flags & ACC_SYNCHRONIZED;  }
@@ -488,6 +490,7 @@ typedef struct InitArgs {
     int model;
     int do_log;
     bool support_invoker_execute;
+    bool support_irrevocable;
     bool support_spec_safe_native;
     bool support_spec_barrier;
     bool support_self_read;

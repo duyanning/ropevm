@@ -235,12 +235,14 @@ void process_rope_method_annotations(void* data, MethodBlock* mb,
         if (anno_name == SYMBOL(RopeInvokerExecute)) {
             mb->m_is_rope_invoker_execute = true;
             ptr += 2;
-            //std::cout <<  "haha: RopeInvokerExecute found" << std::endl;
+        }
+        else if (anno_name == SYMBOL(RopeIrrevocable)) {
+            mb->m_is_rope_irrevocable = true;
+            ptr += 2;
         }
         else if (anno_name == SYMBOL(RopeSpecSafe)) {
             mb->m_is_rope_spec_safe = true;
             ptr += 2;
-            //std::cout <<  "haha: RopeSpecSafe found" << std::endl;
         }
         else {
             // 不认识的标注不管

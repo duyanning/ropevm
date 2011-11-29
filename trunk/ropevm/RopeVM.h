@@ -23,6 +23,7 @@ public:
 
     // 以下这些features仅在模型3下有效。其他模型下皆取false。
     static bool support_invoker_execute; // 是否支持invoker execute方法
+    static bool support_irrevocable;     // 是否支持不可召回方法
     static bool support_spec_safe_native; // 是否支持推测安全的native方法
     static bool support_spec_barrier;     // 是否支持推测路障
     static bool support_self_read;        // 是否支持自行读取其他线程负责的对象
