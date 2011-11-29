@@ -68,7 +68,7 @@ void *executeMethodArgs(DummyFrame* dummy, Object *ob, Class *classobj, MethodBl
 void *executeMethodVaList(DummyFrame* dummy, Object *ob, Class *classobj, MethodBlock *mb, va_list jargs) {
     void *ret;
 
-    SpmtThread* current_st = g_get_current_st();
+    SpmtThread* current_st = g_get_current_spmt_thread();
 
 //     int args_count = ob ? mb->args_count - 1 : mb->args_count;
 //     std::vector<uintptr_t> args(args_count);
@@ -90,7 +90,7 @@ void *executeMethodVaList(DummyFrame* dummy, Object *ob, Class *classobj, Method
 void *executeMethodList(DummyFrame* dummy, Object *ob, Class *classobj, MethodBlock *mb, u8 *jargs) {
     void *ret;
 
-    SpmtThread* current_st = g_get_current_st();
+    SpmtThread* current_st = g_get_current_spmt_thread();
 
 //     int args_count = ob ? mb->args_count - 1 : mb->args_count;
 //     std::vector<uintptr_t> args(args_count);

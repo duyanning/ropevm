@@ -31,15 +31,15 @@ Object::get_st()
       如果向对象get_st的java线程并不是创建对象的java线程，询问此java线程，对象由哪个spmt线程负责
      */
     Thread* thread = g_get_current_thread();
-    SpmtThread* st = thread->st_of(this);
+    SpmtThread* st = thread->spmt_thread_of(this);
     if (st)
         return st;
 
     // 如果没有对应的spmt线程，说明这是本java线程第一次访问这个对象，为其安排spmt线程
-    //st = thread->assign_st_for(this);
-    st = thread->assign_st_for(this);
-    // assign_st_for后要么跟set_st，要么跟join_st_in_other_threads
-    // 现在的问题，哪些设置在assign_st_for中进行？哪些在之后进行？
+    //st = thread->assign_spmt_thread_for(this);
+    st = thread->assign_spmt_thread_for(this);
+    // assign_spmt_thread_for后要么跟set_st，要么跟join_st_in_other_threads
+    // 现在的问题，哪些设置在assign_spmt_thread_for中进行？哪些在之后进行？
     // 设置 st 的java线程，设置与对象的关联，设置leader。
     join_st_in_other_threads(st);
 
@@ -64,5 +64,5 @@ Object::join_st_in_other_threads(SpmtThread* st)
     assert(m_st);
 
     Thread* thread = threadSelf();
-    thread->register_object_st(this, st);
+    thread->register_object_spmt_thread(this, st);
 }

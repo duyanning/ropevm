@@ -386,7 +386,7 @@ Thread::scan()
     //     frame = frame->prev;
     // }
 
-    scan_sts();
+    scan_spmt_threads();
 }
 
 void scanThread(Thread *thread) {
@@ -1861,7 +1861,7 @@ got_it:
 }
 
 Object *allocObject(Class *classobj) {
-    SpmtThread* current_st = g_get_current_st();
+    SpmtThread* current_st = g_get_current_spmt_thread();
     current_st->before_alloc_object();
 
     ClassBlock *cb = CLASS_CB(classobj);
@@ -1893,7 +1893,7 @@ Object *allocObject(Class *classobj) {
 }
 
 Object *allocArray(Class *classobj, int size, int el_size) {
-    SpmtThread* current_st = g_get_current_st();
+    SpmtThread* current_st = g_get_current_spmt_thread();
     current_st->before_alloc_object();
 
     Object *ob;
@@ -2064,7 +2064,7 @@ Object *allocMultiArray(Class *array_class, int dim, intptr_t *count) {
 
 Class *allocClass()
 {
-    SpmtThread* current_st = g_get_current_st();
+    SpmtThread* current_st = g_get_current_spmt_thread();
     current_st->before_alloc_object();
 
     Class *classobj = (Class*)gcMalloc(sizeof(ClassBlock)+sizeof(Class));
@@ -2081,7 +2081,7 @@ Class *allocClass()
 
 Object *cloneObject(Object *ob)
 {
-    SpmtThread* current_st = g_get_current_st();
+    SpmtThread* current_st = g_get_current_spmt_thread();
     current_st->before_alloc_object();
 
     uintptr_t hdr = *HDR_ADDRESS(ob);
