@@ -4,7 +4,7 @@
 
 using namespace std;
 
-ArrayLoadMsg::ArrayLoadMsg(SpmtThread* source_spmt_thread, SpmtThread* target_spmt_thread,
+ALoadMsg::ALoadMsg(SpmtThread* source_spmt_thread, SpmtThread* target_spmt_thread,
                            Object* array, int type_size, int index)
 :
     RoundTripMsg(MsgType::ALOAD, source_spmt_thread, target_spmt_thread, array)
@@ -15,14 +15,14 @@ ArrayLoadMsg::ArrayLoadMsg(SpmtThread* source_spmt_thread, SpmtThread* target_sp
 
 
 void
-ArrayLoadMsg::show(ostream& os) const
+ALoadMsg::show(ostream& os) const
 {
     os << "ALOAD";
 }
 
 
 void
-ArrayLoadMsg::show_detail(std::ostream& os, int id) const
+ALoadMsg::show_detail(std::ostream& os, int id) const
 {
     //os << "#" << id << "\n";
 }

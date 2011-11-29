@@ -4,7 +4,7 @@
 
 using namespace std;
 
-GetReturnMsg::GetReturnMsg(SpmtThread* target_spmt_thread, uintptr_t* val, int size)
+GetRetMsg::GetRetMsg(SpmtThread* target_spmt_thread, uintptr_t* val, int size)
 :
     Message(MsgType::GET_RET, target_spmt_thread)
 {
@@ -16,12 +16,12 @@ GetReturnMsg::GetReturnMsg(SpmtThread* target_spmt_thread, uintptr_t* val, int s
 
 
 bool
-GetReturnMsg::equal(Message* msg)
+GetRetMsg::equal(Message* msg)
 {
     if (m_type != msg->get_type())
         return false;
 
-    GetReturnMsg* m = static_cast<GetReturnMsg*>(msg);
+    GetRetMsg* m = static_cast<GetRetMsg*>(msg);
     if (val != m->val)
         return false;
 
@@ -30,13 +30,13 @@ GetReturnMsg::equal(Message* msg)
 
 
 void
-GetReturnMsg::show(std::ostream& os) const
+GetRetMsg::show(std::ostream& os) const
 {
     os << "GET_RET";
 }
 
 
 void
-GetReturnMsg::show_detail(std::ostream& os, int id) const
+GetRetMsg::show_detail(std::ostream& os, int id) const
 {
 }

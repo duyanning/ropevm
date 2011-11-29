@@ -434,13 +434,13 @@ CertainMode::do_array_load(Object* array, int index, int type_size)
     else {
         sp -= 2; // pop up arrayref and index
 
-        // 构造确定性的arrayload_msg发送给目标线程
-        ArrayLoadMsg* arrayload_msg = new ArrayLoadMsg(m_spmt_thread, target_spmt_thread,
+        // 构造确定性的aload_msg发送给目标线程
+        ALoadMsg* aload_msg = new ALoadMsg(m_spmt_thread, target_spmt_thread,
                                                        array, type_size, index);
 
         m_spmt_thread->halt(RunningState::halt_worthless_to_execute);
 
-        m_spmt_thread->send_msg(arrayload_msg);
+        m_spmt_thread->send_msg(aload_msg);
 
     }
 
@@ -479,15 +479,15 @@ CertainMode::do_array_store(Object* array, int index, int type_size)
     else {
         sp -= nslots;
 
-        // 构造确定性的arraystore_msg发送给目标线程
-        ArrayStoreMsg* arraystore_msg = new ArrayStoreMsg(m_spmt_thread, target_spmt_thread,
+        // 构造确定性的astore_msg发送给目标线程
+        AStoreMsg* astore_msg = new AStoreMsg(m_spmt_thread, target_spmt_thread,
                                                           array,
                                                           type_size, index, sp);
         sp -= 2;                    // pop up arrayref and index
 
         m_spmt_thread->halt(RunningState::halt_worthless_to_execute);
 
-        m_spmt_thread->send_msg(arraystore_msg);
+        m_spmt_thread->send_msg(astore_msg);
 
     }
 
