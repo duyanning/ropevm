@@ -9,7 +9,7 @@ debug/mini-classpath.so : Math.cpp Math.h
 
 Math.h : Math.java
 	javac -g -cp .:$(ROPE_CLASSES) Math.java
-	rm Math.h
+	-rm Math.h
 	javah -jni Math
 
 
