@@ -97,7 +97,7 @@ set env log=0
 
 ** epmacs的设置
 M-x epm-set-gdb-dir    包含.java文件的目录
-M-x epm-set-gdb-args   Health -l 3 -t 16 -s 1 -m（因ropevm的命令行较长，推荐在gdb中通过环境变量控制，而不是用命令行）
+M-x epm-set-gdb-args   ropevm Health -l 3 -t 16 -s 1 -m（因ropevm的命令行较长，推荐在gdb中通过环境变量控制，而不是用命令行）
 
 * 一些工具
 class editor

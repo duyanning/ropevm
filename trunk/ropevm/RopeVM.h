@@ -9,8 +9,8 @@ class RopeVM
 {
 public:
     //    ~RopeVM();
-    SpmtThread* new_st();
-    SpmtThread* create_st();
+    SpmtThread* new_spmt_thread();
+    SpmtThread* create_spmt_thread();
 
     static RopeVM* instance();
 
@@ -21,10 +21,18 @@ public:
 
     static int model;           // 1-sequential; 2-degraded rope; 3-rope
 
+    // 以下这些features仅在模型3下有效。其他模型下皆取false。
+    static bool support_invoker_execute; // 是否支持invoker execute方法
+    static bool support_spec_safe_native; // 是否支持推测安全的native方法
+    static bool support_spec_barrier;     // 是否支持推测路障
+    static bool support_self_read;        // 是否支持自行读取其他线程负责的对象
 
+
+
+    // 要开启日志功能，以下两者必须都为true
     bool m_logger_enabled;      // 虚拟机是否开启日志功能
     bool m_logger_enabled_backdoor; // java程序通过后门控制虚拟机是否开启日志功能
-    // 要开启日志功能，以上两者必须都为true
+
 
 protected:
     RopeVM();

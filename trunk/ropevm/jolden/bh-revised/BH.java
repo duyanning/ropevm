@@ -1,6 +1,6 @@
 
 import java.util.Enumeration;
-import java.lang.Math;
+//import java.lang.Math;
 
 /**
  * A Java implementation of the <tt>bh</tt> Olden benchmark.
@@ -48,7 +48,7 @@ public class BH
 
         long start0 = System.currentTimeMillis();
         Tree root = new Tree();
-        root.createTestData(nbody);
+        root.createTestData(nbody); // 关键
         long end0 = System.currentTimeMillis();
         if (printMsgs)
             System.out.println("Bodies created");
@@ -57,7 +57,7 @@ public class BH
         double tnow = 0.0;
         int i = 0;
         while ((tnow < TSTOP + 0.1*DTIME) && (i < nsteps)) {
-            root.stepSystem(i++);
+            root.stepSystem(i++); // 关键
             tnow += DTIME;
         }
         long end1 = System.currentTimeMillis();

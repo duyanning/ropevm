@@ -122,7 +122,7 @@ class Tree
 
         // mark end of list
         prev.setNext(null);
-        // toss the dummy node at the beginning and set a reference to the first element
+        // toss the dummy node at the beginning and set a reference to the first element （head所指节点只是为了方便构造链表，表链构造完之后丢掉即可）
         bodyTab = head.getNext();
 
         cmr.divScalar((double)nbody);
@@ -130,7 +130,7 @@ class Tree
 
         prev = null;
 
-        for (Enumeration e = bodyTab.elements(); e.hasMoreElements(); ) {
+        for (Enumeration e = bodyTab.elements(); e.hasMoreElements(); ) { // 构造逆向链表
             Body b = (Body)e.nextElement();
             b.pos.subtraction(cmr);
             b.vel.subtraction(cmv);
@@ -154,7 +154,7 @@ class Tree
         // free the tree
         root = null;
 
-        makeTree(nstep);
+        makeTree(nstep);        // 其中会给root赋值
 
         // compute the gravity for all the particles // 看此处可否有潜力可挖
         for (Enumeration e = bodyTabRev.elementsRev(); e.hasMoreElements(); ) {
@@ -174,12 +174,12 @@ class Tree
      * Initialize the tree structure for hack force calculation.
      * @param nsteps the current time step
      **/
-    private void makeTree(int nstep)
+    private void makeTree(int nstep) // 由自己的方法stepSystem调用
     {
         for (Enumeration e = bodiesRev(); e.hasMoreElements(); ) {
             Body q = (Body)e.nextElement();
             if (q.mass != 0.0) {
-                q.expandBox(this, nstep);
+                q.expandBox(this, nstep); // expandBox中会发生回调
                 MathVector xqic = intcoord(q.pos);
                 if (root == null) {
                     root = q;
@@ -190,9 +190,7 @@ class Tree
         }
         root.hackcofm();
     }
-    void _p_slice_for_makeTree(int nstep)
-    {
-    }
+
 
     /**
      * Compute integerized coordinates.

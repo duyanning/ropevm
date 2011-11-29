@@ -525,7 +525,7 @@ info(Object* o)
 bool
 MethodBlock::is_rope_invoker_execute() const
 {
-    if (RopeVM::model < 4)      // 只有模型4才支持invoker execute方法
+    if (not RopeVM::support_invoker_execute)
         return false;
     return m_is_rope_invoker_execute;
 }
