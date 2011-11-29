@@ -9,8 +9,8 @@ class RopeVM
 {
 public:
     //    ~RopeVM();
-    SpmtThread* new_spmt_thread();
-    SpmtThread* create_spmt_thread();
+    SpmtThread* new_st();
+    SpmtThread* create_st();
 
     static RopeVM* instance();
 
@@ -33,7 +33,7 @@ protected:
 private:
     void adjust_log_state();
 
-	std::vector<SpmtThread*> m_spmt_threads;
+	std::vector<SpmtThread*> m_sts;
     pthread_mutex_t m_lock;
 
     static RopeVM* m_instance;

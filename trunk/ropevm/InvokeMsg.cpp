@@ -4,12 +4,12 @@
 
 using namespace std;
 
-InvokeMsg::InvokeMsg(SpmtThread* source_spmt_thread, SpmtThread* target_spmt_thread,
+InvokeMsg::InvokeMsg(SpmtThread* source_st, SpmtThread* target_st,
                      Object* target_object, MethodBlock* mb, uintptr_t* args,
                      CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp,
                      bool is_top)
 :
-    RoundTripMsg(MsgType::INVOKE, source_spmt_thread, target_spmt_thread, target_object)
+    RoundTripMsg(MsgType::INVOKE, source_st, target_st, target_object)
 {
     this->mb = mb;
 

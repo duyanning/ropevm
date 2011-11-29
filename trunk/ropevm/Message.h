@@ -30,11 +30,11 @@ enum class MsgType {
 
 class Message {
 public:
-    Message(MsgType type, SpmtThread* target_spmt_thread);
+    Message(MsgType type, SpmtThread* target_st);
     virtual ~Message();
 
     MsgType get_type();
-    SpmtThread* get_target_spmt_thread();
+    SpmtThread* get_target_st();
     Effect* get_effect();
     void set_effect(Effect* effect);
 
@@ -44,7 +44,7 @@ public:
 
 protected:
     MsgType m_type;
-    SpmtThread* m_target_spmt_thread; // 该消息去往哪个spmt线程
+    SpmtThread* m_target_st; // 该消息去往哪个spmt线程
 	Effect* m_effect;  // 处理该消息所形成的effect
 };
 
@@ -52,16 +52,16 @@ protected:
 class RoundTripMsg : public Message {
 public:
     RoundTripMsg(MsgType type,
-                 SpmtThread* source_spmt_thread, SpmtThread* target_spmt_thread,
+                 SpmtThread* source_st, SpmtThread* target_st,
                  Object* target_object);
     //virtual bool equal(Message* msg);
     virtual void show(std::ostream& os) const = 0;
     virtual void show_detail(std::ostream& os, int id) const = 0;
 
-    SpmtThread* get_source_spmt_thread() { return m_source_spmt_thread; }
+    SpmtThread* get_source_st() { return m_source_st; }
     Object* get_target_object() { return m_object; }
 protected:
-    SpmtThread* m_source_spmt_thread; // 该消息来自哪个spmt线程（因为要返程嘛）
+    SpmtThread* m_source_st; // 该消息来自哪个spmt线程（因为要返程嘛）
     Object* m_object;                 // 消息作用在哪个对象身上
 };
 
@@ -72,7 +72,7 @@ protected:
 
 class InvokeMsg : public RoundTripMsg {
 public:
-    InvokeMsg(SpmtThread* source_spmt_thread, SpmtThread* target_spmt_thread,
+    InvokeMsg(SpmtThread* source_st, SpmtThread* target_st,
               Object* target_object, MethodBlock* mb, uintptr_t* args,
               CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp,
               bool is_top = false);
@@ -95,7 +95,7 @@ public:
 
 class GetMsg : public RoundTripMsg {
 public:
-    GetMsg(SpmtThread* source_spmt_thread, SpmtThread* target_spmt_thread,
+    GetMsg(SpmtThread* source_st, SpmtThread* target_st,
            Object* target_object, FieldBlock* fb);
     uintptr_t* get_field_addr();
     int get_field_size();
@@ -109,7 +109,7 @@ public:
 
 class PutMsg : public RoundTripMsg {
 public:
-    PutMsg(SpmtThread* source_spmt_thread, SpmtThread* target_spmt_thread,
+    PutMsg(SpmtThread* source_st, SpmtThread* target_st,
            Object* target_object, FieldBlock* fb,
            uintptr_t* val);
     uintptr_t* get_field_addr();
@@ -124,7 +124,7 @@ public:
 
 class ALoadMsg : public RoundTripMsg {
 public:
-    ALoadMsg(SpmtThread* source_spmt_thread, SpmtThread* target_spmt_thread,
+    ALoadMsg(SpmtThread* source_st, SpmtThread* target_st,
                  Object* array, int type_size, int index);
     //virtual bool equal(Message* msg);
     void show(std::ostream& os) const;
@@ -137,7 +137,7 @@ public:
 
 class AStoreMsg : public RoundTripMsg {
 public:
-    AStoreMsg(SpmtThread* source_spmt_thread, SpmtThread* target_spmt_thread,
+    AStoreMsg(SpmtThread* source_st, SpmtThread* target_st,
                   Object* array, int type_size, int index, uintptr_t* slots);
     //virtual bool equal(Message* msg);
     void show(std::ostream& os) const;
@@ -154,7 +154,7 @@ public:
 class ReturnMsg : public Message {
 public:
 
-    ReturnMsg(SpmtThread* target_spmt_thread,
+    ReturnMsg(SpmtThread* target_st,
               uintptr_t* rv, int len,
               CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp,
               bool is_top = false);
@@ -176,7 +176,7 @@ public:
 
 class GetRetMsg : public Message {
 public:
-    GetRetMsg(SpmtThread* target_spmt_thread, uintptr_t* val, int size);
+    GetRetMsg(SpmtThread* target_st, uintptr_t* val, int size);
     virtual bool equal(Message* msg);
     void show(std::ostream& os) const;
     virtual void show_detail(std::ostream& os, int id) const;
@@ -187,7 +187,7 @@ public:
 
 class PutRetMsg : public Message {
 public:
-    PutRetMsg(SpmtThread* target_spmt_thread);
+    PutRetMsg(SpmtThread* target_st);
     virtual bool equal(Message* msg);
     void show(std::ostream& os) const;
     virtual void show_detail(std::ostream& os, int id) const;
@@ -196,7 +196,7 @@ public:
 
 class ALoadRetMsg : public Message {
 public:
-    ALoadRetMsg(SpmtThread* target_spmt_thread, uintptr_t* val, int size);
+    ALoadRetMsg(SpmtThread* target_st, uintptr_t* val, int size);
     virtual bool equal(Message* msg);
     void show(std::ostream& os) const;
     virtual void show_detail(std::ostream& os, int id) const;
@@ -207,7 +207,7 @@ public:
 
 class AStoreRetMsg : public Message {
 public:
-    AStoreRetMsg(SpmtThread* target_spmt_thread);
+    AStoreRetMsg(SpmtThread* target_st);
     virtual bool equal(Message* msg);
     void show(std::ostream& os) const;
     virtual void show_detail(std::ostream& os, int id) const;

@@ -4,10 +4,10 @@
 
 using namespace std;
 
-ALoadMsg::ALoadMsg(SpmtThread* source_spmt_thread, SpmtThread* target_spmt_thread,
+ALoadMsg::ALoadMsg(SpmtThread* source_st, SpmtThread* target_st,
                            Object* array, int type_size, int index)
 :
-    RoundTripMsg(MsgType::ALOAD, source_spmt_thread, target_spmt_thread, array)
+    RoundTripMsg(MsgType::ALOAD, source_st, target_st, array)
 {
     this->type_size = type_size;
     this->index = index;

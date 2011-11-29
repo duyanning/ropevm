@@ -62,12 +62,12 @@ Object *exceptionOccurred() {
 
 void setException(Object *exp) {
     //getExecEnv()->exception = exp;
-    assert(g_get_current_spmt_thread()->is_certain_mode());
+    assert(g_get_current_st()->is_certain_mode());
     g_get_current_thread()->exception = exp;
 }
 
 void clearException() {
-    assert(g_get_current_spmt_thread()->is_certain_mode());
+    assert(g_get_current_st()->is_certain_mode());
     //ExecEnv *ee = getExecEnv();
 
 //     if(ee->overflow) {
@@ -79,8 +79,8 @@ void clearException() {
 }
 
 void signalChainedExceptionClass(Class *exception, const char* message, Object *cause) {
-    SpmtThread* current_spmt_thread = g_get_current_spmt_thread();
-    current_spmt_thread->before_signal_exception(exception);
+    SpmtThread* current_st = g_get_current_st();
+    current_st->before_signal_exception(exception);
 
     Object *exp = allocObject(exception);
     Object *str = message == NULL ? NULL : Cstr2String(message);
@@ -199,12 +199,12 @@ CodePntr
 findCatchBlock(Class *exception)
 {
     //Frame *frame = getExecEnv()->last_frame;
-    Frame* frame = g_get_current_spmt_thread()->get_current_mode()->frame;
+    Frame* frame = g_get_current_st()->get_current_mode()->frame;
     CodePntr handler_pc = NULL;
 
-    MINILOG(c_exception_logger, "#" << threadSelf()->get_current_spmt_thread()->id() << " finding handler"
+    MINILOG(c_exception_logger, "#" << threadSelf()->get_current_st()->id() << " finding handler"
             << " in: " << info(frame)
-            << " on: #" << frame->get_object()->get_spmt_thread()->id()
+            << " on: #" << frame->get_object()->get_st()->id()
             );
 
     while (((handler_pc = findCatchBlockInMethod(frame->mb, exception, frame->last_pc)) == NULL)
@@ -217,15 +217,15 @@ findCatchBlock(Class *exception)
         }
         frame = frame->prev;
 
-        MINILOG(c_exception_logger, "#" << threadSelf()->get_current_spmt_thread()->id() << " finding handler"
+        MINILOG(c_exception_logger, "#" << threadSelf()->get_current_st()->id() << " finding handler"
                 << " in: " << info(frame)
-                << " on: #" << frame->get_object()->get_spmt_thread()->id()
+                << " on: #" << frame->get_object()->get_st()->id()
                 );
 
     }
 
     //getExecEnv()->last_frame = frame;
-    threadSelf()->get_current_spmt_thread()->get_current_mode()->frame = frame;
+    threadSelf()->get_current_st()->get_current_mode()->frame = frame;
 
     return handler_pc;
 }
@@ -248,8 +248,8 @@ Object *setStackTrace0(int max_depth)
     //assert(false);
     Frame* bottom;
     //Frame* last = ee->last_frame;
-    SpmtThread* current_spmt_thread = threadSelf()->get_current_spmt_thread();
-    Frame* last = current_spmt_thread->get_current_mode()->frame;
+    SpmtThread* current_st = threadSelf()->get_current_st();
+    Frame* last = current_st->get_current_mode()->frame;
     Object *array, *vmthrwble;
     uintptr_t *data;
     int depth = 0;

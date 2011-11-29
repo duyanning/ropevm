@@ -4,11 +4,11 @@
 
 using namespace std;
 
-PutMsg::PutMsg(SpmtThread* source_spmt_thread, SpmtThread* target_spmt_thread,
+PutMsg::PutMsg(SpmtThread* source_st, SpmtThread* target_st,
                Object* target_object, FieldBlock* fb,
                uintptr_t* val)
 :
-    RoundTripMsg(MsgType::PUT, source_spmt_thread, target_spmt_thread, target_object)
+    RoundTripMsg(MsgType::PUT, source_st, target_st, target_object)
 {
 
     for (int i = 0; i < fb->field_size(); ++i) {

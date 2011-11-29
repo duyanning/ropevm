@@ -4,9 +4,9 @@
 
 using namespace std;
 
-AStoreRetMsg::AStoreRetMsg(SpmtThread* target_spmt_thread)
+AStoreRetMsg::AStoreRetMsg(SpmtThread* target_st)
 :
-    Message(MsgType::ASTORE_RET, target_spmt_thread)
+    Message(MsgType::ASTORE_RET, target_st)
 {
 }
 

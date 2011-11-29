@@ -7,7 +7,7 @@
 #include "excep.h"
 #include "SpmtThread.h"
 #include "CertainMode.h"
-#include "SpeculativeMode.h"
+#include "SpecMode.h"
 #include "RvpMode.h"
 #include "RopeVM.h"
 #include "Message.h"
@@ -68,7 +68,7 @@ void *executeMethodArgs(DummyFrame* dummy, Object *ob, Class *classobj, MethodBl
 void *executeMethodVaList(DummyFrame* dummy, Object *ob, Class *classobj, MethodBlock *mb, va_list jargs) {
     void *ret;
 
-    SpmtThread* current_spmt_thread = g_get_current_spmt_thread();
+    SpmtThread* current_st = g_get_current_st();
 
 //     int args_count = ob ? mb->args_count - 1 : mb->args_count;
 //     std::vector<uintptr_t> args(args_count);
@@ -82,7 +82,7 @@ void *executeMethodVaList(DummyFrame* dummy, Object *ob, Class *classobj, Method
 
     char *sig = mb->type;
     SCAN_SIG(sig, VA_DOUBLE(jargs, arg), VA_SINGLE(jargs, arg));
-    ret = current_spmt_thread->get_current_mode()->do_execute_method((ob ? ob : classobj), mb, arguments, dummy);
+    ret = current_st->get_current_mode()->do_execute_method((ob ? ob : classobj), mb, arguments, dummy);
 
     return ret;
 }
@@ -90,7 +90,7 @@ void *executeMethodVaList(DummyFrame* dummy, Object *ob, Class *classobj, Method
 void *executeMethodList(DummyFrame* dummy, Object *ob, Class *classobj, MethodBlock *mb, u8 *jargs) {
     void *ret;
 
-    SpmtThread* current_spmt_thread = g_get_current_spmt_thread();
+    SpmtThread* current_st = g_get_current_st();
 
 //     int args_count = ob ? mb->args_count - 1 : mb->args_count;
 //     std::vector<uintptr_t> args(args_count);
@@ -104,7 +104,7 @@ void *executeMethodList(DummyFrame* dummy, Object *ob, Class *classobj, MethodBl
 
     char *sig = mb->type;
     SCAN_SIG(sig, JA_DOUBLE(jargs, arg), JA_SINGLE(jargs, arg));
-    ret = current_spmt_thread->get_current_mode()->do_execute_method((ob ? ob : classobj), mb, arguments, dummy);
+    ret = current_st->get_current_mode()->do_execute_method((ob ? ob : classobj), mb, arguments, dummy);
 
     return ret;
 }

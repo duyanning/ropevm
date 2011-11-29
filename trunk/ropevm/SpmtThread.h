@@ -3,7 +3,7 @@
 
 #include "rope.h"
 #include "CertainMode.h"
-#include "SpeculativeMode.h"
+#include "SpecMode.h"
 #include "RvpMode.h"
 #include "StateBuffer.h"
 #include "RvpBuffer.h"
@@ -47,7 +47,7 @@ class SpmtThread {
     friend class Mode;
     friend class CertainMode;
     friend class UncertainMode;
-    friend class SpeculativeMode;
+    friend class SpecMode;
     friend class RvpMode;
     friend class RopeVM;
 
@@ -135,7 +135,7 @@ public:
     void signal_quit_drive_loop();
     bool check_quit_drive_loop();
     void drive_loop();
-    static void S_threadStart(SpmtThread* spmt_thread); // 多os实现下，os线程运行S_threadStart，该函数再调用spmt_thread->drive_loop()
+    static void S_threadStart(SpmtThread* st); // 多os实现下，os线程运行S_threadStart，该函数再调用st->drive_loop()
 
     // 根据模式不同
     void before_signal_exception(Class *exception_class);
@@ -166,7 +166,7 @@ private:
     SpmtThread* m_quit_causer;
 
     // 模式相关
-    SpeculativeMode m_spec_mode;
+    SpecMode m_spec_mode;
     CertainMode m_certain_mode;
     RvpMode m_rvp_mode;
     Mode* m_mode;               // 当前模式
@@ -231,6 +231,6 @@ inline
 bool SpmtThread::is_rvp_mode() { return m_mode == &m_rvp_mode; }
 
 
-SpmtThread* g_get_current_spmt_thread();
+SpmtThread* g_get_current_st();
 
 #endif

@@ -11,7 +11,7 @@ bool p = true;           // 控制是否输出指针值，在对比日志的时�
 // 记录。
 MiniLogger order_logger(cout, false);
 MiniLogger top_method_logger(cout, false);
-MiniLogger inter_spmt_thread_logger(cout, false);
+MiniLogger inter_st_logger(cout, false);
 
 // 确定消息相关
 MiniLogger certain_msg_logger(cout, true);

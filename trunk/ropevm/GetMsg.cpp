@@ -4,10 +4,10 @@
 
 using namespace std;
 
-GetMsg::GetMsg(SpmtThread* source_spmt_thread, SpmtThread* target_spmt_thread,
+GetMsg::GetMsg(SpmtThread* source_st, SpmtThread* target_st,
                Object* target_object, FieldBlock* fb)
 :
-    RoundTripMsg(MsgType::GET, source_spmt_thread, target_spmt_thread, target_object)
+    RoundTripMsg(MsgType::GET, source_st, target_st, target_object)
 {
     this->fb = fb;
 }

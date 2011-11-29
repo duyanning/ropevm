@@ -42,33 +42,33 @@ RopeVM::RopeVM()
 // }
 
 SpmtThread*
-RopeVM::new_spmt_thread()
+RopeVM::new_st()
 {
-    SpmtThread* spmt_thread = 0;
+    SpmtThread* st = 0;
     pthread_mutex_lock(&m_lock);
-    if (m_spmt_threads.size() < 1000) {
-        spmt_thread = new SpmtThread(get_next_id());
-        m_spmt_threads.push_back(spmt_thread);
+    if (m_sts.size() < 1000) {
+        st = new SpmtThread(get_next_id());
+        m_sts.push_back(st);
     }
     else {
         cout << "ROPEVM: too many spmt threads" << endl;
         assert(false);
     }
     pthread_mutex_unlock(&m_lock);
-    return spmt_thread;
+    return st;
 }
 
 
 SpmtThread*
-RopeVM::create_spmt_thread()
+RopeVM::create_st()
 {
-    SpmtThread* spmt_thread = new_spmt_thread();
+    SpmtThread* st = new_st();
 
-    // 为spmt_thread对象配上os线程(S_threadStart中调用spmt_thread->drive_loop)
+    // 为st对象配上os线程(S_threadStart中调用st->drive_loop)
     // 但目前是单os线程实现方式，让一个spmt线程运行drive_loop的时候带动其他spmt线程。
-    //os_api_create_thread(SpmtThread::S_threadStart, spmt_thread);
+    //os_api_create_thread(SpmtThread::S_threadStart, st);
 
-    return spmt_thread;
+    return st;
 }
 
 
@@ -84,10 +84,10 @@ RopeVM::report_stat(std::ostream& os)
 {
     Statistic::instance()->report_stat(os);
 
-    os << "JVM" << '\t' << "spmt thread count" << '\t' << m_spmt_threads.size()-4 << '\n';
+    os << "JVM" << '\t' << "spmt thread count" << '\t' << m_sts.size()-4 << '\n';
     os << "JVM" << '\t' << "control transfer" << '\t' << m_count_control_transfer << '\n';
 
-    for (vector<SpmtThread*>::iterator i = m_spmt_threads.begin(); i != m_spmt_threads.end(); ++i) {
+    for (vector<SpmtThread*>::iterator i = m_sts.begin(); i != m_sts.end(); ++i) {
         SpmtThread* st = *i;
         if (1 <= st->id() && st->id() <= 4)
             continue;

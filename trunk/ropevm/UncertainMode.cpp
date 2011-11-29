@@ -22,25 +22,25 @@ UncertainMode::step()
 {
 
     // 阶段I：检测并处理确定性外部事件（在失去确定控制后是否推测执行那是你自己的事情，不是必须的，但确定性事件是必须响应的。）
-    Object* excep = m_spmt_thread->get_exception_threw_to_me();
+    Object* excep = m_st->get_exception_threw_to_me();
     if (excep) {
-        m_spmt_thread->switch_to_certain_mode();
-        m_spmt_thread->on_event_exception_throw_to_me(excep);
+        m_st->switch_to_certain_mode();
+        m_st->on_event_exception_throw_to_me(excep);
         return;
     }
 
 
-    Message* msg = m_spmt_thread->get_certain_msg();
+    Message* msg = m_st->get_certain_msg();
     if (msg) {
 
         // 进入确定模式
-        m_spmt_thread->m_previous_mode = this;
-        m_spmt_thread->switch_to_certain_mode();
+        m_st->m_previous_mode = this;
+        m_st->switch_to_certain_mode();
 
         if (msg->get_type() == MsgType::INVOKE) {
             InvokeMsg* invoke_msg = static_cast<InvokeMsg*>(msg);
             if (invoke_msg->is_top()) {
-                m_spmt_thread->on_event_top_invoke(invoke_msg);
+                m_st->on_event_top_invoke(invoke_msg);
                 return;
             }
         }
@@ -48,13 +48,13 @@ UncertainMode::step()
         if (msg->get_type() == MsgType::RETURN) {
             ReturnMsg* return_msg = static_cast<ReturnMsg*>(msg);
             if (return_msg->is_top()) {
-                m_spmt_thread->on_event_top_return(return_msg);
+                m_st->on_event_top_return(return_msg);
                 return;
             }
         }
 
 
-        m_spmt_thread->verify_speculation(msg);
+        m_st->verify_speculation(msg);
         return;
     }
 
@@ -62,17 +62,17 @@ UncertainMode::step()
     // 阶段II：解释指令
 
     // 1，移除被收回的消息，更新消息队列(这步一定要在推测执行之前，免得人家都收回了，你还瞎忙)
-    m_spmt_thread->discard_all_revoked_msgs();
+    m_st->discard_all_revoked_msgs();
 
 
     // 2，加载新的待处理消息
-    //if (m_spmt_thread->is_spec_mode() and m_spmt_thread->m_spec_running_state == RunningState::halt_no_asyn_msg) {
-    if (m_spmt_thread->is_spec_mode() and m_spmt_thread->m_spec_running_state == RunningState::ongoing_but_need_launch_new_msg) {
+    //if (m_st->is_spec_mode() and m_st->m_spec_running_state == RunningState::halt_no_asyn_msg) {
+    if (m_st->is_spec_mode() and m_st->m_spec_running_state == RunningState::ongoing_but_need_launch_new_msg) {
 
-        // MINILOG(task_load_logger, "#" << m_spmt_thread->id()
+        // MINILOG(task_load_logger, "#" << m_st->id()
         //         << " is waiting for msg");
 
-        m_spmt_thread->launch_next_spec_msg();
+        m_st->launch_next_spec_msg();
 
         return;                 // 有可能没有异步消息，这样的话就不能执行下边的fetch_and_interpret_an_instruction
 

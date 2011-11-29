@@ -4,12 +4,12 @@
 
 using namespace std;
 
-ReturnMsg::ReturnMsg(SpmtThread* target_spmt_thread,
+ReturnMsg::ReturnMsg(SpmtThread* target_st,
                      uintptr_t* rv, int len,
                      CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp,
                      bool is_top)
 :
-    Message(MsgType::RETURN, target_spmt_thread)
+    Message(MsgType::RETURN, target_st)
 {
     for (int i = 0; i < len; ++i) {
         retval.push_back(rv[i]);

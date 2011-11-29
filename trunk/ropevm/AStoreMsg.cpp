@@ -4,11 +4,11 @@
 
 using namespace std;
 
-AStoreMsg::AStoreMsg(SpmtThread* source_spmt_thread, SpmtThread* target_spmt_thread,
+AStoreMsg::AStoreMsg(SpmtThread* source_st, SpmtThread* target_st,
                              Object* array, int type_size, int index, uintptr_t* slots)
 
 :
-    RoundTripMsg(MsgType::ASTORE, source_spmt_thread, target_spmt_thread, array)
+    RoundTripMsg(MsgType::ASTORE, source_st, target_st, array)
 {
 
     this->type_size = type_size;
