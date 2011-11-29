@@ -5,12 +5,12 @@
 using namespace std;
 
 RoundTripMsg::RoundTripMsg(MsgType type,
-                           SpmtThread* source_spmt_thread,
-                           SpmtThread* target_spmt_thread,
+                           SpmtThread* source_st,
+                           SpmtThread* target_st,
                            Object* target_object)
     :
-    Message(type, target_spmt_thread),
-    m_source_spmt_thread(source_spmt_thread),
+    Message(type, target_st),
+    m_source_st(source_st),
     m_object(target_object)
 {
 }

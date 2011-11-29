@@ -881,7 +881,7 @@ invoke(DummyFrame* dummy, Object* ob, MethodBlock* mb, Object* arg_array, Object
     void* ret;
 
     Thread* this_thread = threadSelf();
-    SpmtThread* this_spmt_thread = this_thread->get_current_spmt_thread();
+    SpmtThread* this_st = this_thread->get_current_st();
 
     std::vector<uintptr_t> arguments(mb->args_count);
     uintptr_t* arg = &arguments[0];
@@ -901,7 +901,7 @@ invoke(DummyFrame* dummy, Object* ob, MethodBlock* mb, Object* arg_array, Object
         }
 
     assert(ob);
-    ret = this_spmt_thread->get_current_mode()->do_execute_method(ob, mb, arguments, dummy);
+    ret = this_st->get_current_mode()->do_execute_method(ob, mb, arguments, dummy);
 
 
     if((excep = exceptionOccurred())) {

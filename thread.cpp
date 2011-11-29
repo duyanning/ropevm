@@ -269,8 +269,8 @@ void initialiseJavaStack(Thread* thread) {
     top->mb = mb;
 
     //thread->ee->last_frame = top;
-    //assert(g_get_current_spmt_thread()->is_certain_mode());
-    thread->get_current_spmt_thread()->get_current_mode()->frame = top;
+    //assert(g_get_current_st()->is_certain_mode());
+    thread->get_current_st()->get_current_mode()->frame = top;
 }
 
 long long javaThreadId(Thread *thread) {
@@ -878,7 +878,7 @@ void dumpThreadsLoop(Thread *self) {
             int daemon = thr_data[daemon_offset];
             assert(false);
             //Frame *last = thread->ee->last_frame;
-            Frame* last = threadSelf()->get_current_spmt_thread()->get_current_mode()->frame;
+            Frame* last = threadSelf()->get_current_st()->get_current_mode()->frame;
 
             /* Get thread name; we don't use String2Cstr(), as this mallocs memory
                and may deadlock with a thread suspended in malloc/realloc/free */
@@ -1174,13 +1174,13 @@ Thread::Thread()
     wait_id(0),
     notify_id(0)
 {
-    m_initial_spmt_thread = RopeVM::instance()->new_spmt_thread();
-    m_initial_spmt_thread->set_thread(this);
-    m_current_spmt_thread = m_initial_spmt_thread;
+    m_initial_st = RopeVM::instance()->new_st();
+    m_initial_st->set_thread(this);
+    m_current_st = m_initial_st;
 
     // 初始线程处于确定模式、运行状态、推测模式不需要任务。
-    m_initial_spmt_thread->switch_to_certain_mode();
-    m_initial_spmt_thread->wakeup();
+    m_initial_st->switch_to_certain_mode();
+    m_initial_st->wakeup();
 }
 
 Thread::~Thread()
@@ -1188,17 +1188,17 @@ Thread::~Thread()
 }
 
 // void
-// Thread::add_spmt_thread(SpmtThread* spmt_thread)
+// Thread::add_st(SpmtThread* st)
 // {
-//     assert(spmt_thread);
+//     assert(st);
 
-//     m_spmt_threads.push_back(spmt_thread);
-//     spmt_thread->set_thread(this);
+//     m_sts.push_back(st);
+//     st->set_thread(this);
 // }
 
 
 // bool
-// Thread::unique_certain_spmt_thread()
+// Thread::unique_certain_st()
 // {
 //        //int n = cores.size();   // for debug
 
@@ -1224,43 +1224,43 @@ Thread::~Thread()
 // }
 
 SpmtThread*
-Thread::get_initial_spmt_thread()
+Thread::get_initial_st()
 {
-    return m_initial_spmt_thread;
+    return m_initial_st;
 }
 
 
 // 在多os线程实现方式下，应该是调用os_api_current_os_thread()获得当前的
 // os线程，然后再从thread local strage中获得SpmtThread*
 SpmtThread*
-Thread::get_current_spmt_thread()
+Thread::get_current_st()
 {
-    return m_current_spmt_thread;
+    return m_current_st;
 }
 
 
 void
-Thread::scan_spmt_threads()
+Thread::scan_sts()
 {
 
 }
 
 
 SpmtThread*
-Thread::spmt_thread_of(Object* obj)
+Thread::st_of(Object* obj)
 {
-    SpmtThread* spmt_thread = 0;
-    Object2SpmtThreadMap::iterator i = m_object_to_spmt_thread.find(obj);
-    if (i != m_object_to_spmt_thread.end())
-        spmt_thread = i->second;
-    return spmt_thread;
+    SpmtThread* st = 0;
+    Object2SpmtThreadMap::iterator i = m_object_to_st.find(obj);
+    if (i != m_object_to_st.end())
+        st = i->second;
+    return st;
 }
 
 
 void
-Thread::register_object_spmt_thread(Object* object, SpmtThread* spmt_thread)
+Thread::register_object_st(Object* object, SpmtThread* st)
 {
-    m_object_to_spmt_thread[object] = spmt_thread;
+    m_object_to_st[object] = st;
 }
 
 
@@ -1286,8 +1286,8 @@ query_grouping_policy_for_object(Object* object)
         return policy;
 
     // 再问当前对象
-    SpmtThread* current_spmt_thread = g_get_current_spmt_thread();
-    Object* current_object = current_spmt_thread->get_current_object();
+    SpmtThread* current_st = g_get_current_st();
+    Object* current_object = current_st->get_current_object();
     if (current_object) {
         policy = get_foreign_policy(current_object);
         if (policy != GP_UNSPECIFIED)
@@ -1295,7 +1295,7 @@ query_grouping_policy_for_object(Object* object)
     }
 
     // 再问当前spmt线程
-    policy = current_spmt_thread->get_policy();
+    policy = current_st->get_policy();
     if (policy != GP_UNSPECIFIED)
         return policy;
 
@@ -1306,35 +1306,35 @@ query_grouping_policy_for_object(Object* object)
 
 
 SpmtThread*
-Thread::assign_spmt_thread_for(Object* object)
+Thread::assign_st_for(Object* object)
 {
     if (RopeVM::model < 2) {    // 模型2以上才分组
-        return get_initial_spmt_thread();
+        return get_initial_st();
     }
 
     GroupingPolicyEnum policy = ::query_grouping_policy_for_object(object);
 
-    SpmtThread* spmt_thread = 0;
+    SpmtThread* st = 0;
 
     if (policy == GP_NEW_GROUP) {
-        spmt_thread = RopeVM::instance()->create_spmt_thread();
-        spmt_thread->set_thread(this);
-        spmt_thread->set_leader(object);
+        st = RopeVM::instance()->create_st();
+        st->set_thread(this);
+        st->set_leader(object);
     }
     else if (policy == GP_CURRENT_GROUP)
-        spmt_thread = g_get_current_spmt_thread();
+        st = g_get_current_st();
     else if (policy == GP_NO_GROUP)
-        spmt_thread = get_initial_spmt_thread();
+        st = get_initial_st();
 
-    assert(spmt_thread);
+    assert(st);
 
-    return spmt_thread;
+    return st;
 }
 
 
 Thread*
 g_get_current_thread()
 {
-    SpmtThread* current_spmt_thread = g_get_current_spmt_thread();
-    return current_spmt_thread->get_thread();
+    SpmtThread* current_st = g_get_current_st();
+    return current_st->get_thread();
 }

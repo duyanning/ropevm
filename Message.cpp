@@ -8,10 +8,10 @@ using namespace std;
 
 int msg_count = 0;              // just for debug
 
-Message::Message(MsgType type, SpmtThread* target_spmt_thread)
+Message::Message(MsgType type, SpmtThread* target_st)
    :
     m_type(type),
-    m_target_spmt_thread(target_spmt_thread),
+    m_target_st(target_st),
     m_effect(nullptr)
 {
 }
@@ -29,9 +29,9 @@ Message::get_type()
 
 
 SpmtThread*
-Message::get_target_spmt_thread()
+Message::get_target_st()
 {
-    return m_target_spmt_thread;
+    return m_target_st;
 }
 
 

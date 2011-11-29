@@ -34,9 +34,9 @@ SpmtThread::SpmtThread(int id)
     m_excep_frame(nullptr)
 {
 
-    m_certain_mode.set_spmt_thread(this);
-    m_spec_mode.set_spmt_thread(this);
-    m_rvp_mode.set_spmt_thread(this);
+    m_certain_mode.set_st(this);
+    m_spec_mode.set_st(this);
+    m_rvp_mode.set_st(this);
 
     m_mode = &m_spec_mode;
 
@@ -76,7 +76,7 @@ SpmtThread::set_thread(Thread* thread)
     assert(m_thread == 0);
 
     m_thread = thread;
-    thread->m_spmt_threads.push_back(this);
+    thread->m_sts.push_back(this);
 }
 
 
@@ -90,7 +90,7 @@ SpmtThread::set_leader(Object* leader)
 // void
 // SpmtThread::add_object(Object* obj)
 // {
-//     obj->set_spmt_thread(this);
+//     obj->set_st(this);
 // }
 
 
@@ -308,11 +308,11 @@ SpmtThread::signal_quit_drive_loop()
 
 // 在多os线程实现方式下，应该是调用os_api_current_os_thread()获得当前的
 // os线程，然后再从thread local strage中获得SpmtThread*
-SpmtThread* g_get_current_spmt_thread()
+SpmtThread* g_get_current_st()
 {
     Thread* thread = threadSelf();
-    SpmtThread* current_spmt_thread = thread->get_current_spmt_thread();
-    return current_spmt_thread;
+    SpmtThread* current_st = thread->get_current_st();
+    return current_st;
 }
 
 
@@ -431,7 +431,7 @@ SpmtThread::resume_suspended_spec_execution()
 
     //assert(m_current_spec_msg); 这个断言有误，因为恢复之前的推测模式，而之前的推测模式可能没有异步消息正在处理。
 
-    // 原因见SpeculativeMode::do_execute_method。
+    // 原因见SpecMode::do_execute_method。
     if (m_spec_running_state == RunningState::halt_cannot_exec_method) {
         m_spec_running_state = RunningState::ongoing;
     }
@@ -459,14 +459,14 @@ SpmtThread::affirm_spec_msg(Message* msg)
 
     MINILOG(certain_msg_logger, "#" << m_id
             << " affirm spec msg to "
-            <<"#" << msg->get_target_spmt_thread()->id()
+            <<"#" << msg->get_target_st()->id()
             << " " << msg);
 
     MINILOG(control_transfer_logger, "#" << m_id
             << " transfer control to "
-            << "#" << msg->get_target_spmt_thread()->id());
+            << "#" << msg->get_target_st()->id());
 
-    msg->get_target_spmt_thread()->set_certain_msg(msg);
+    msg->get_target_st()->set_certain_msg(msg);
 }
 
 void
@@ -474,10 +474,10 @@ SpmtThread::revoke_spec_msg(RoundTripMsg* msg)
 {
     MINILOG(spec_msg_logger, "#" << m_id
             << " revoke spec msg to "
-            << "#" << msg->get_target_spmt_thread()->id()
+            << "#" << msg->get_target_st()->id()
             << " " << msg);
 
-    msg->get_target_spmt_thread()->add_revoked_spec_msg(msg);
+    msg->get_target_st()->add_revoked_spec_msg(msg);
 }
 
 
@@ -508,7 +508,7 @@ SpmtThread::discard_revoked_msg(RoundTripMsg* revoked_msg)
 {
     MINILOG(spec_msg_logger, "#" << m_id
             << " discard spec msg from "
-            << "#" << revoked_msg->get_source_spmt_thread()->id()
+            << "#" << revoked_msg->get_source_st()->id()
             << " " << revoked_msg);
 
 
@@ -1043,7 +1043,7 @@ SpmtThread::on_event_top_invoke(InvokeMsg* msg)
     // 按正常处理invoke消息那样处理
     m_certain_mode.invoke_impl(msg->get_target_object(),
                                msg->mb, &msg->parameters[0],
-                               msg->get_source_spmt_thread(),
+                               msg->get_source_st(),
                                msg->caller_pc,
                                msg->caller_frame,
                                msg->caller_sp,
@@ -1082,17 +1082,17 @@ SpmtThread::drive_loop()
 {
     using namespace std;
 
-    SpmtThread* current_spmt_thread_of_outer_loop = m_thread->m_current_spmt_thread;
+    SpmtThread* current_st_of_outer_loop = m_thread->m_current_st;
 
     for (;;) {
 
-        // 执行会往m_spmt_threads中添加新spmt线程，会导致迭代器失效。
+        // 执行会往m_sts中添加新spmt线程，会导致迭代器失效。
         // 所以先复制一份，在复制品中遍历
-        vector<SpmtThread*> spmt_threads(m_thread->m_spmt_threads);
+        vector<SpmtThread*> sts(m_thread->m_sts);
 
         int non_idle_total = 0;
-        for (auto st : spmt_threads) {
-            m_thread->m_current_spmt_thread = st;
+        for (auto st : sts) {
+            m_thread->m_current_st = st;
 
             if (st->is_halt()) {
                 st->idle(); // only serve for statistics
@@ -1109,7 +1109,7 @@ SpmtThread::drive_loop()
             if (quit) {
                 m_quit_causer = st;
 
-                m_thread->m_current_spmt_thread = current_spmt_thread_of_outer_loop;
+                m_thread->m_current_st = current_st_of_outer_loop;
                 return;
             }
 
@@ -1219,7 +1219,7 @@ SpmtThread::process_exception(Object* excep, Frame* excep_frame)
 
     // MINILOG(c_exception_logger, "#" << m_id << " (C) throw exception"
     //         << " in: " << info(frame)
-    //         << " on: #" << frame->get_object()->get_spmt_thread()->id()
+    //         << " on: #" << frame->get_object()->get_st()->id()
     //         );
 
 
@@ -1258,10 +1258,10 @@ SpmtThread::process_exception(Object* excep, Frame* excep_frame)
         }
 
 
-        SpmtThread* target_spmt_thread = current_frame->caller;
-        assert(target_spmt_thread->m_thread == this->m_thread);
+        SpmtThread* target_st = current_frame->caller;
+        assert(target_st->m_thread == this->m_thread);
 
-        if (target_spmt_thread == this) {
+        if (target_st == this) {
             if (current_frame->is_top_frame()) {
                 signal_quit_drive_loop();
                 unwind_frame(current_frame);
@@ -1282,7 +1282,7 @@ SpmtThread::process_exception(Object* excep, Frame* excep_frame)
         }
         else {
             switch_to_speculative_mode();
-            target_spmt_thread->set_exception_threw_to_me(excep,
+            target_st->set_exception_threw_to_me(excep,
                                                           current_frame->prev,
                                                           current_frame->is_top_frame());
             unwind_frame(current_frame);
@@ -1293,14 +1293,14 @@ SpmtThread::process_exception(Object* excep, Frame* excep_frame)
         }
 
     }
-    // MINILOG(c_exception_logger, "#" << threadSelf()->get_current_spmt_thread()->id() << " finding handler"
+    // MINILOG(c_exception_logger, "#" << threadSelf()->get_current_st()->id() << " finding handler"
     //         << " in: " << info(frame)
-    //         << " on: #" << frame->get_object()->get_spmt_thread()->id()
+    //         << " on: #" << frame->get_object()->get_st()->id()
     //         );
 
-    // MINILOG(c_exception_logger, "#" << m_spmt_thread->id() << " (C) handler found"
+    // MINILOG(c_exception_logger, "#" << m_st->id() << " (C) handler found"
     //         << " in: " << info(current_frame)
-    //         << " on: #" << frame->get_object()->get_spmt_thread()->id()
+    //         << " on: #" << frame->get_object()->get_st()->id()
     //         );
 
 

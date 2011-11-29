@@ -10,12 +10,12 @@ public:
     //Object() // because using gcMalloc to alloc Object, ctor for Object has no chance to run, so we MUST call initialize
     void initialize();
 
-    SpmtThread* get_spmt_thread(); // 根据不同的java线程调用它而返回不同的spmt线程。
-    void set_spmt_thread(SpmtThread* spmt_thread); // 创建对象的java线程为其分配的spmt线程
-    void join_spmt_thread_in_other_threads(SpmtThread* spmt_thread); // 其他java线程为其分配的spmt线程。
+    SpmtThread* get_st(); // 根据不同的java线程调用它而返回不同的spmt线程。
+    void set_st(SpmtThread* st); // 创建对象的java线程为其分配的spmt线程
+    void join_st_in_other_threads(SpmtThread* st); // 其他java线程为其分配的spmt线程。
     uintptr_t lock;
 private:
-    SpmtThread* m_spmt_thread;             // set by the thread that created it
+    SpmtThread* m_st;             // set by the thread that created it
 public:
     Class* classobj;
 };
@@ -24,7 +24,7 @@ inline
 void
 Object::initialize()
 {
-    m_spmt_thread = 0;
+    m_st = 0;
 }
 
 

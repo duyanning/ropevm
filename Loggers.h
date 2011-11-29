@@ -4,7 +4,7 @@
 extern MiniLogger wakeup_halt_logger;
 extern MiniLogger order_logger;
 extern MiniLogger top_method_logger;
-extern MiniLogger inter_spmt_thread_logger;
+extern MiniLogger inter_st_logger;
 extern MiniLogger certain_msg_logger;
 extern MiniLogger spec_msg_logger;
 extern MiniLogger control_transfer_logger;

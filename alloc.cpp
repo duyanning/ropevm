@@ -386,7 +386,7 @@ Thread::scan()
     //     frame = frame->prev;
     // }
 
-    scan_spmt_threads();
+    scan_sts();
 }
 
 void scanThread(Thread *thread) {
@@ -1861,8 +1861,8 @@ got_it:
 }
 
 Object *allocObject(Class *classobj) {
-    SpmtThread* current_spmt_thread = g_get_current_spmt_thread();
-    current_spmt_thread->before_alloc_object();
+    SpmtThread* current_st = g_get_current_st();
+    current_st->before_alloc_object();
 
     ClassBlock *cb = CLASS_CB(classobj);
     int size = cb->object_size * sizeof(uintptr_t);
@@ -1886,15 +1886,15 @@ Object *allocObject(Class *classobj) {
 
         TRACE_ALLOC("<ALLOC: allocated %s object @%p>\n", cb->name, ob);
 
-        current_spmt_thread->after_alloc_object(ob);
+        current_st->after_alloc_object(ob);
     }
 
     return ob;
 }
 
 Object *allocArray(Class *classobj, int size, int el_size) {
-    SpmtThread* current_spmt_thread = g_get_current_spmt_thread();
-    current_spmt_thread->before_alloc_object();
+    SpmtThread* current_st = g_get_current_st();
+    current_st->before_alloc_object();
 
     Object *ob;
 
@@ -1911,7 +1911,7 @@ Object *allocArray(Class *classobj, int size, int el_size) {
         ob->initialize();
         ARRAY_LEN(ob) = size;
         TRACE_ALLOC("<ALLOC: allocated %s array object @%p>\n", CLASS_CB(classobj)->name, ob);
-        current_spmt_thread->after_alloc_object(ob);
+        current_st->after_alloc_object(ob);
     }
 
     return ob;
@@ -2064,8 +2064,8 @@ Object *allocMultiArray(Class *array_class, int dim, intptr_t *count) {
 
 Class *allocClass()
 {
-    SpmtThread* current_spmt_thread = g_get_current_spmt_thread();
-    current_spmt_thread->before_alloc_object();
+    SpmtThread* current_st = g_get_current_st();
+    current_st->before_alloc_object();
 
     Class *classobj = (Class*)gcMalloc(sizeof(ClassBlock)+sizeof(Class));
 
@@ -2081,8 +2081,8 @@ Class *allocClass()
 
 Object *cloneObject(Object *ob)
 {
-    SpmtThread* current_spmt_thread = g_get_current_spmt_thread();
-    current_spmt_thread->before_alloc_object();
+    SpmtThread* current_st = g_get_current_st();
+    current_st->before_alloc_object();
 
     uintptr_t hdr = *HDR_ADDRESS(ob);
     int size = HDR_SIZE(hdr)-HEADER_SIZE;
@@ -2116,7 +2116,7 @@ Object *cloneObject(Object *ob)
 
         TRACE_ALLOC("<ALLOC: cloned object @%p clone @%p>\n", ob, clone);
 
-        current_spmt_thread->after_alloc_object(clone);
+        current_st->after_alloc_object(clone);
     }
 
     return clone;

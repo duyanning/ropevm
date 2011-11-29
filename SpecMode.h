@@ -3,10 +3,10 @@
 
 #include "UncertainMode.h"
 
-class SpeculativeMode : public UncertainMode {
+class SpecMode : public UncertainMode {
     typedef UncertainMode Base;
 public:
-    SpeculativeMode();
+    SpecMode();
     virtual const char* tag() { return "(S)"; }
 
     virtual void do_spec_barrier();

@@ -4,9 +4,9 @@
 
 using namespace std;
 
-GetRetMsg::GetRetMsg(SpmtThread* target_spmt_thread, uintptr_t* val, int size)
+GetRetMsg::GetRetMsg(SpmtThread* target_st, uintptr_t* val, int size)
 :
-    Message(MsgType::GET_RET, target_spmt_thread)
+    Message(MsgType::GET_RET, target_st)
 {
     for (int i = 0; i < size; ++i) {
         this->val.push_back(val[i]);

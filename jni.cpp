@@ -107,7 +107,7 @@ JNIFrame *ensureJNILrefCapacity(int cap)
     //ExecEnv *ee = getExecEnv();
     //JNIFrame *frame = (JNIFrame*)ee->last_frame;
     //assert(ee->last_frame == threadSelf()->current_core()->get_current_mode()->frame);
-    JNIFrame *frame = (JNIFrame*)threadSelf()->get_current_spmt_thread()->get_current_mode()->frame;
+    JNIFrame *frame = (JNIFrame*)threadSelf()->get_current_st()->get_current_mode()->frame;
 //     int size = (Object**)frame - frame->lrefs - frame->mb->args_count;
 
 //     if(size < cap) {
@@ -127,8 +127,8 @@ Object *addJNILref(Object *ref)
     //assert(false);
     //ExecEnv *ee = getExecEnv();
     //JNIFrame *frame = (JNIFrame*)ee->last_frame;
-    //assert(ee->last_frame == threadSelf()->get_current_spmt_thread()->get_current_mode()->frame);
-    JNIFrame *frame = (JNIFrame*)threadSelf()->get_current_spmt_thread()->get_current_mode()->frame;
+    //assert(ee->last_frame == threadSelf()->get_current_st()->get_current_mode()->frame);
+    JNIFrame *frame = (JNIFrame*)threadSelf()->get_current_st()->get_current_mode()->frame;
 
     if(ref == NULL)
         return NULL;
@@ -150,8 +150,8 @@ void delJNILref(Object *ref)
     //assert(false);
     //ExecEnv *ee = getExecEnv();
     //JNIFrame *frame = (JNIFrame*)ee->last_frame;
-    //assert(ee->last_frame == threadSelf()->get_current_spmt_thread()->get_current_mode()->frame);
-    JNIFrame *frame = (JNIFrame*)threadSelf()->get_current_spmt_thread()->get_current_mode()->frame;
+    //assert(ee->last_frame == threadSelf()->get_current_st()->get_current_mode()->frame);
+    JNIFrame *frame = (JNIFrame*)threadSelf()->get_current_st()->get_current_mode()->frame;
 //     Object **opntr = frame->lrefs;
 
 //     for(; opntr < frame->next_ref; opntr++)
@@ -169,7 +169,7 @@ JNIFrame *pushJNILrefFrame(int cap) {
     assert(false);
     //ExecEnv *ee = getExecEnv();
     //JNIFrame *frame = (JNIFrame*)ee->last_frame;
-    JNIFrame* frame = threadSelf()->get_current_spmt_thread()->get_current_mode()->frame;
+    JNIFrame* frame = threadSelf()->get_current_st()->get_current_mode()->frame;
     //JNIFrame *new_frame = (JNIFrame*)((Object**)(frame + 1) + cap);
     JNIFrame* new_frame = new JNIFrame(1, 1);
 
@@ -187,7 +187,7 @@ JNIFrame *pushJNILrefFrame(int cap) {
 
     //memset(frame + 1, 0, cap * sizeof(Object*));
     //ee->last_frame = (Frame*)new_frame;
-    threadSelf()->get_current_spmt_thread()->get_current_mode()->frame = (Frame*)new_frame;
+    threadSelf()->get_current_st()->get_current_mode()->frame = (Frame*)new_frame;
     return new_frame;
 }
 
@@ -195,12 +195,12 @@ void popJNILrefFrame() {
     assert(false);
     //ExecEnv *ee = getExecEnv();
     //JNIFrame *frame = (JNIFrame*)ee->last_frame;
-    JNIFrame *frame = (JNIFrame*)threadSelf()->get_current_spmt_thread()->get_current_mode()->frame;
+    JNIFrame *frame = (JNIFrame*)threadSelf()->get_current_st()->get_current_mode()->frame;
     //JNIFrame *prev = (JNIFrame*)frame->lrefs - 1;
     JNIFrame* prev = (JNIFrame*)frame->lvars[0];
 
     //ee->last_frame = (Frame*)prev;
-    threadSelf()->get_current_spmt_thread()->get_current_mode()->frame = (Frame*)prev;
+    threadSelf()->get_current_st()->get_current_mode()->frame = (Frame*)prev;
 }
 
 static VMLock global_ref_lock;
@@ -435,8 +435,8 @@ jclass Jam_FindClass(JNIEnv *env, const char *name)
        However, if this has been called from an attached thread there may
        be no native Java frame.  In this case use the system class loader */
     //Frame *last = getExecEnv()->last_frame;
-    //assert(getExecEnv()->last_frame == threadSelf()->get_current_spmt_thread()->get_current_mode()->frame);
-    Frame *last = threadSelf()->get_current_spmt_thread()->get_current_mode()->frame;
+    //assert(getExecEnv()->last_frame == threadSelf()->get_current_st()->get_current_mode()->frame);
+    Frame *last = threadSelf()->get_current_st()->get_current_mode()->frame;
     Object *loader;
 
     if(last->prev) {

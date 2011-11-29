@@ -32,9 +32,9 @@ Mode::get_name()
 
 
 void
-Mode::set_spmt_thread(SpmtThread* spmt_thread)
+Mode::set_st(SpmtThread* st)
 {
-    m_spmt_thread = spmt_thread;
+    m_st = st;
 }
 
 void
@@ -46,9 +46,9 @@ Mode::before_alloc_object()
 void
 Mode::after_alloc_object(Object* new_object)
 {
-    SpmtThread* spmt_thread = m_spmt_thread->get_thread()->assign_spmt_thread_for(new_object);
-    // assign_spmt_thread_for后要么跟set_spmt_thread，要么跟join_spmt_thread_in_other_threads
-    new_object->set_spmt_thread(spmt_thread);
+    SpmtThread* st = m_st->get_thread()->assign_st_for(new_object);
+    // assign_st_for后要么跟set_st，要么跟join_st_in_other_threads
+    new_object->set_st(st);
 }
 
 // void vmlog(String msg)
@@ -61,7 +61,7 @@ Mode::vmlog(MethodBlock* mb)
 
     jstring javastr = (jstring*)read(sp-1);
     char* str = String2Utf8((Object*)javastr);
-    cout << "vmlog: " << "#" << m_spmt_thread->m_id << " " << tag() << " "
+    cout << "vmlog: " << "#" << m_st->m_id << " " << tag() << " "
          << str
          << endl;
     sysFree(str);
@@ -143,8 +143,8 @@ void
 Mode::process_msg(Message* msg)
 {
     // if (debug_scaffold::java_main_arrived &&
-    //     m_spmt_thread->is_certain_mode()) {
-    //     m_spmt_thread->m_count_certain_instr++;
+    //     m_st->is_certain_mode()) {
+    //     m_st->m_count_certain_instr++;
     //     Statistic::instance()->probe_instr_exec(0);
     // }
 
@@ -158,7 +158,7 @@ Mode::process_msg(Message* msg)
         // 为invoke_msg指定的方法及参数创建栈帧并设置
         invoke_impl(invoke_msg->get_target_object(),
                     invoke_msg->mb, &invoke_msg->parameters[0],
-                    invoke_msg->get_source_spmt_thread(),
+                    invoke_msg->get_source_st(),
                     invoke_msg->caller_pc,
                     invoke_msg->caller_frame,
                     invoke_msg->caller_sp, false);
@@ -173,12 +173,12 @@ Mode::process_msg(Message* msg)
         }
 
         // 构造put_ret_msg作为回复
-        PutRetMsg* put_ret_msg = new PutRetMsg(put_msg->get_source_spmt_thread());
+        PutRetMsg* put_ret_msg = new PutRetMsg(put_msg->get_source_st());
 
         send_msg(put_ret_msg);
 
         // 需要加载下一条待处理消息
-        m_spmt_thread->m_spec_running_state = RunningState::ongoing_but_need_launch_new_msg;
+        m_st->m_spec_running_state = RunningState::ongoing_but_need_launch_new_msg;
     }
     else if (type == MsgType::GET) {
         GetMsg* get_msg = static_cast<GetMsg*>(msg);
@@ -192,13 +192,13 @@ Mode::process_msg(Message* msg)
         }
 
         // 构造get_ret_msg作为回复
-        GetRetMsg* get_ret_msg = new GetRetMsg(get_msg->get_source_spmt_thread(),
+        GetRetMsg* get_ret_msg = new GetRetMsg(get_msg->get_source_st(),
                                                &value[0], value.size());
 
         send_msg(get_ret_msg);
 
         // 需要加载下一条待处理消息
-        m_spmt_thread->m_spec_running_state = RunningState::ongoing_but_need_launch_new_msg;
+        m_st->m_spec_running_state = RunningState::ongoing_but_need_launch_new_msg;
     }
     else if (type == MsgType::ASTORE) {
         AStoreMsg* astore_msg = static_cast<AStoreMsg*>(msg);
@@ -212,12 +212,12 @@ Mode::process_msg(Message* msg)
                               array, index, type_size);
 
         // 构造astore_ret_msg作为回复
-        AStoreRetMsg* astore_ret_msg = new AStoreRetMsg(astore_msg->get_source_spmt_thread());
+        AStoreRetMsg* astore_ret_msg = new AStoreRetMsg(astore_msg->get_source_st());
 
         send_msg(astore_ret_msg);
 
         // 需要加载下一条待处理消息
-        m_spmt_thread->m_spec_running_state = RunningState::ongoing_but_need_launch_new_msg;
+        m_st->m_spec_running_state = RunningState::ongoing_but_need_launch_new_msg;
     }
     else if (type == MsgType::ALOAD) {
         ALoadMsg* aload_msg = static_cast<ALoadMsg*>(msg);
@@ -232,13 +232,13 @@ Mode::process_msg(Message* msg)
                              array, index, type_size);
 
         // 构造aload_ret_msg作为回复
-        ALoadRetMsg* aload_ret_msg = new ALoadRetMsg(aload_msg->get_source_spmt_thread(),
+        ALoadRetMsg* aload_ret_msg = new ALoadRetMsg(aload_msg->get_source_st(),
                                                      &value[0], size2nslots(type_size));
 
         send_msg(aload_ret_msg);
 
         // 需要加载下一条待处理消息
-        m_spmt_thread->m_spec_running_state = RunningState::ongoing_but_need_launch_new_msg;
+        m_st->m_spec_running_state = RunningState::ongoing_but_need_launch_new_msg;
     }
     else if (type == MsgType::RETURN) {
         ReturnMsg* return_msg = static_cast<ReturnMsg*>(msg);
@@ -455,7 +455,7 @@ Mode::invoke_impl(Object* target_object, MethodBlock* new_mb, uintptr_t* args,
               new_mb->native_invoker)(new_mb->classobj, new_mb,
                                       frame->ostack_base);
 
-        if (m_spmt_thread->get_thread()->exception) {
+        if (m_st->get_thread()->exception) {
             throw_exception;
         }
         else {

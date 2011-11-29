@@ -36,20 +36,20 @@ bool addr_is_in_frame(void* addr, Frame* frame)
 uint32_t
 RvpMode::mode_read(uint32_t* addr)
 {
-    return m_spmt_thread->m_rvp_buffer.read(addr);
+    return m_st->m_rvp_buffer.read(addr);
 }
 
 void
 RvpMode::mode_write(uint32_t* addr, uint32_t value)
 {
-    m_spmt_thread->m_rvp_buffer.write(addr, value);
+    m_st->m_rvp_buffer.write(addr, value);
 }
 
 void
 RvpMode::before_alloc_object()
 {
-    MINILOG(r_new_logger, "#" << m_spmt_thread->id() << " (R) hits NEW ");
-    m_spmt_thread->halt(RunningState::halt_cannot_alloc_object);
+    MINILOG(r_new_logger, "#" << m_st->id() << " (R) hits NEW ");
+    m_st->halt(RunningState::halt_cannot_alloc_object);
 
     throw Break();
 }
@@ -63,24 +63,24 @@ RvpMode::after_alloc_object(Object* obj)
 void
 RvpMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
 {
-    SpmtThread* target_spmt_thread = target_object->get_spmt_thread();
-    assert(target_spmt_thread->m_thread == m_spmt_thread->m_thread);
+    SpmtThread* target_st = target_object->get_st();
+    assert(target_st->m_thread == m_st->m_thread);
 
-    assert(target_spmt_thread != m_spmt_thread); // 目前暂不考虑对象重入
+    assert(target_st != m_st); // 目前暂不考虑对象重入
 
     if (new_mb->is_synchronized()) {
-        MINILOG(s_logger, "#" << m_spmt_thread->id()
+        MINILOG(s_logger, "#" << m_st->id()
                 << " (R) " << new_mb << "is sync method");
-        m_spmt_thread->halt(RunningState::halt_cannot_exec_sync_method);
+        m_st->halt(RunningState::halt_cannot_exec_sync_method);
 
         return;
     }
 
 
     if (new_mb->is_native() and not new_mb->is_rope_spec_safe()) {
-        MINILOG(s_logger, "#" << m_spmt_thread->id()
+        MINILOG(s_logger, "#" << m_st->id()
                 << " (R) " << new_mb << "is native method");
-        m_spmt_thread->halt(RunningState::halt_cannot_exec_native_method);
+        m_st->halt(RunningState::halt_cannot_exec_native_method);
 
         return;
     }
@@ -97,7 +97,7 @@ RvpMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
     assert(rvp_mb);
 
     // if (rvp_method == nullptr) { // 若无rvp方法就不推测执行了，停机。
-    //     m_spmt_thread->halt();
+    //     m_st->halt();
     //     return;
     // }
 
@@ -157,14 +157,14 @@ RvpMode::do_method_return(int len)
                                               current_frame->prev,
                                               current_frame->caller_sp);
 
-        m_spmt_thread->m_rvp_buffer.clear();
+        m_st->m_rvp_buffer.clear();
 
         pop_frame(current_frame);
 
-        // MINILOG0("#" << m_spmt_thread->id() << " leave RVP mode");
+        // MINILOG0("#" << m_st->id() << " leave RVP mode");
 
-        m_spmt_thread->switch_to_speculative_mode();
-        m_spmt_thread->launch_spec_msg(return_msg);
+        m_st->switch_to_speculative_mode();
+        m_st->launch_spec_msg(return_msg);
 
     }
 }
@@ -173,9 +173,9 @@ RvpMode::do_method_return(int len)
 void
 RvpMode::before_signal_exception(Class *exception_class)
 {
-    MINILOG(r_exception_logger, "#" << m_spmt_thread->id()
+    MINILOG(r_exception_logger, "#" << m_st->id()
             << " (R) exception detected!!! " << exception_class->name());
-    m_spmt_thread->halt(RunningState::halt_cannot_signal_exception);
+    m_st->halt(RunningState::halt_cannot_signal_exception);
     throw Break();
 }
 
@@ -196,9 +196,9 @@ RvpMode::push_frame(Object* object, MethodBlock* new_mb, uintptr_t* args,
 void
 RvpMode::pop_frame(Frame* frame)
 {
-    m_spmt_thread->clear_frame_in_rvp_buffer(frame);
+    m_st->clear_frame_in_rvp_buffer(frame);
 
-    MINILOG(r_pop_frame_logger, "#" << m_spmt_thread->id()
+    MINILOG(r_pop_frame_logger, "#" << m_st->id()
             << " (R) destroy frame " << frame);
 
     g_destroy_frame(frame);
@@ -259,11 +259,11 @@ RvpMode::do_array_store(Object* array, int index, int type_size)
 void*
 RvpMode::do_execute_method(Object* target_object, MethodBlock *mb, std::vector<uintptr_t>& jargs, DummyFrame* dummy)
 {
-    MINILOG(step_loop_in_out_logger, "#" << m_spmt_thread->id()
+    MINILOG(step_loop_in_out_logger, "#" << m_st->id()
             << " (R) to be execute java method: " << mb);
 
     assert(false);              // 产生的rvp方法中不应该遇到这种情况
-    //m_spmt_thread->halt(RunningState::halt_cannot_exec_method);
+    //m_st->halt(RunningState::halt_cannot_exec_method);
 
     throw Break();
 
@@ -275,5 +275,5 @@ void
 RvpMode::do_spec_barrier()
 {
     assert(false);              // rvp方法中不该有推测路障
-    m_spmt_thread->halt(RunningState::halt_spec_barrier);
+    m_st->halt(RunningState::halt_spec_barrier);
 }

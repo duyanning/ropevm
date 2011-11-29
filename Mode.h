@@ -52,7 +52,7 @@ public:
     virtual void pop_frame(Frame* frame) = 0;
 
 
-    void set_spmt_thread(SpmtThread* spmt_thread);
+    void set_st(SpmtThread* st);
 
     virtual uint32_t mode_read(uint32_t* addr) = 0;
     virtual void mode_write(uint32_t* addr, uint32_t value) = 0;
@@ -74,7 +74,7 @@ protected:
     void vmlog(MethodBlock* mb);
     void preload(MethodBlock* mb);
     bool vm_math(MethodBlock* mb);
-    SpmtThread* m_spmt_thread;
+    SpmtThread* m_st;
 private:
     const char* m_name;
 };
@@ -205,7 +205,7 @@ g_load_from_stable_array_to_c(uintptr_t* sp, Object* array, int index, int type_
 
 
 #define throw_exception                         \
-    return m_spmt_thread->do_throw_exception();
+    return m_st->do_throw_exception();
 
 
 void show_triple(std::ostream& os, int id,

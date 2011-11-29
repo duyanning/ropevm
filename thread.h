@@ -72,9 +72,9 @@ public:
     // 一个java线程的背后是若干spmt线程。
     // java线程仅仅是一个概念上的东西，每个spmt线程对应一个os线程。
     // 但目前，简单起见，java线程对应一个os线程，众spmt线程由该os线程驱动。
-    std::vector<SpmtThread*> m_spmt_threads;
+    std::vector<SpmtThread*> m_sts;
 
-    SpmtThread* m_initial_spmt_thread; // 每个java线程一产生，就有一个spmt线程。
+    SpmtThread* m_initial_st; // 每个java线程一产生，就有一个spmt线程。
 
     // 因为多个java线程可能都会访问同一个对象，所以一个对象不再属于一个
     // spmt线程，而是属于几个spmt线程，而这些spmt线程分属于不同的java线
@@ -82,25 +82,25 @@ public:
     // spmt线程，记录在各自的java线程中。此处即为此从对象到spmt线程的映
     // 射表。
     typedef std::map<Object*, SpmtThread*> Object2SpmtThreadMap;
-    Object2SpmtThreadMap m_object_to_spmt_thread;
-    void register_object_spmt_thread(Object* object, SpmtThread* spmt_thread);
-    SpmtThread* spmt_thread_of(Object* obj);
+    Object2SpmtThreadMap m_object_to_st;
+    void register_object_st(Object* object, SpmtThread* st);
+    SpmtThread* st_of(Object* obj);
 
-    SpmtThread* assign_spmt_thread_for(Object* obj); // 为对象分配spmt线程
+    SpmtThread* assign_st_for(Object* obj); // 为对象分配spmt线程
     Thread();
     ~Thread();
     bool create();
 
 
-    SpmtThread* get_initial_spmt_thread();
-    SpmtThread* get_current_spmt_thread();
+    SpmtThread* get_initial_st();
+    SpmtThread* get_current_st();
 
     // 垃圾回收（尚未实现）
     void scan();
-    void scan_spmt_threads();
+    void scan_sts();
 
 private:
-    SpmtThread* m_current_spmt_thread;
+    SpmtThread* m_current_st;
 };
 
 Thread* g_get_current_thread();

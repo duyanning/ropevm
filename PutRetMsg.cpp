@@ -4,9 +4,9 @@
 
 using namespace std;
 
-PutRetMsg::PutRetMsg(SpmtThread* target_spmt_thread)
+PutRetMsg::PutRetMsg(SpmtThread* target_st)
 :
-    Message(MsgType::PUT_RET, target_spmt_thread)
+    Message(MsgType::PUT_RET, target_st)
 {
 }
 
