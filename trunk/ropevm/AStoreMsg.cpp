@@ -4,7 +4,7 @@
 
 using namespace std;
 
-ArrayStoreMsg::ArrayStoreMsg(SpmtThread* source_spmt_thread, SpmtThread* target_spmt_thread,
+AStoreMsg::AStoreMsg(SpmtThread* source_spmt_thread, SpmtThread* target_spmt_thread,
                              Object* array, int type_size, int index, uintptr_t* slots)
 
 :
@@ -22,7 +22,7 @@ ArrayStoreMsg::ArrayStoreMsg(SpmtThread* source_spmt_thread, SpmtThread* target_
 
 
 void
-ArrayStoreMsg::show(ostream& os) const
+AStoreMsg::show(ostream& os) const
 {
     os << "ASTORE";
 
@@ -42,7 +42,7 @@ ArrayStoreMsg::show(ostream& os) const
 }
 
 void
-ArrayStoreMsg::show_detail(std::ostream& os, int id) const
+AStoreMsg::show_detail(std::ostream& os, int id) const
 {
     //os << "#" << id << "\n";
 }

@@ -4,7 +4,7 @@
 
 using namespace std;
 
-PutReturnMsg::PutReturnMsg(SpmtThread* target_spmt_thread)
+PutRetMsg::PutRetMsg(SpmtThread* target_spmt_thread)
 :
     Message(MsgType::PUT_RET, target_spmt_thread)
 {
@@ -12,7 +12,7 @@ PutReturnMsg::PutReturnMsg(SpmtThread* target_spmt_thread)
 
 
 bool
-PutReturnMsg::equal(Message* msg)
+PutRetMsg::equal(Message* msg)
 {
     if (m_type != msg->get_type())
         return false;
@@ -22,13 +22,13 @@ PutReturnMsg::equal(Message* msg)
 
 
 void
-PutReturnMsg::show(std::ostream& os) const
+PutRetMsg::show(std::ostream& os) const
 {
     os << "PUT_RET";
 }
 
 
 void
-PutReturnMsg::show_detail(std::ostream& os, int id) const
+PutRetMsg::show_detail(std::ostream& os, int id) const
 {
 }

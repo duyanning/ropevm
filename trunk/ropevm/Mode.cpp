@@ -173,7 +173,7 @@ Mode::process_msg(Message* msg)
         }
 
         // 构造put_ret_msg作为回复
-        PutReturnMsg* put_ret_msg = new PutReturnMsg(put_msg->get_source_spmt_thread());
+        PutRetMsg* put_ret_msg = new PutRetMsg(put_msg->get_source_spmt_thread());
 
         send_msg(put_ret_msg);
 
@@ -192,8 +192,8 @@ Mode::process_msg(Message* msg)
         }
 
         // 构造get_ret_msg作为回复
-        GetReturnMsg* get_ret_msg = new GetReturnMsg(get_msg->get_source_spmt_thread(),
-                                                     &value[0], value.size());
+        GetRetMsg* get_ret_msg = new GetRetMsg(get_msg->get_source_spmt_thread(),
+                                               &value[0], value.size());
 
         send_msg(get_ret_msg);
 
@@ -201,7 +201,7 @@ Mode::process_msg(Message* msg)
         m_spmt_thread->m_spec_running_state = RunningState::ongoing_but_need_launch_new_msg;
     }
     else if (type == MsgType::ASTORE) {
-        ArrayStoreMsg* astore_msg = static_cast<ArrayStoreMsg*>(msg);
+        AStoreMsg* astore_msg = static_cast<AStoreMsg*>(msg);
 
         // 向astore_msg指定的数组的指定位置处写入一个值
         Object* array = astore_msg->get_target_object();
@@ -212,7 +212,7 @@ Mode::process_msg(Message* msg)
                               array, index, type_size);
 
         // 构造astore_ret_msg作为回复
-        ArrayStoreReturnMsg* astore_ret_msg = new ArrayStoreReturnMsg(astore_msg->get_source_spmt_thread());
+        AStoreRetMsg* astore_ret_msg = new AStoreRetMsg(astore_msg->get_source_spmt_thread());
 
         send_msg(astore_ret_msg);
 
@@ -220,7 +220,7 @@ Mode::process_msg(Message* msg)
         m_spmt_thread->m_spec_running_state = RunningState::ongoing_but_need_launch_new_msg;
     }
     else if (type == MsgType::ALOAD) {
-        ArrayLoadMsg* aload_msg = static_cast<ArrayLoadMsg*>(msg);
+        ALoadMsg* aload_msg = static_cast<ALoadMsg*>(msg);
 
         // 从aload_msg指定的数组的指定位置处读出一个值
         Object* array = aload_msg->get_target_object();
@@ -232,8 +232,8 @@ Mode::process_msg(Message* msg)
                              array, index, type_size);
 
         // 构造aload_ret_msg作为回复
-        ArrayLoadReturnMsg* aload_ret_msg = new ArrayLoadReturnMsg(aload_msg->get_source_spmt_thread(),
-                                                                   &value[0], size2nslots(type_size));
+        ALoadRetMsg* aload_ret_msg = new ALoadRetMsg(aload_msg->get_source_spmt_thread(),
+                                                     &value[0], size2nslots(type_size));
 
         send_msg(aload_ret_msg);
 
@@ -256,12 +256,12 @@ Mode::process_msg(Message* msg)
         pc += (*pc == OPC_INVOKEINTERFACE_QUICK ? 5 : 3);
     }
     else if (type == MsgType::PUT_RET) {
-        //PutReturnMsg* put_ret_msg = static_cast<PutReturnMsg*>(msg);
+        //PutRetMsg* put_ret_msg = static_cast<PutRetMsg*>(msg);
 
         pc += 3;
     }
     else if (type == MsgType::GET_RET) {
-        GetReturnMsg* get_ret_msg = static_cast<GetReturnMsg*>(msg);
+        GetRetMsg* get_ret_msg = static_cast<GetRetMsg*>(msg);
 
         // 将get_ret_msg携带的值写入ostack
         for (auto i : get_ret_msg->val) {
@@ -271,12 +271,12 @@ Mode::process_msg(Message* msg)
         pc += 3;
     }
     else if (type == MsgType::ASTORE_RET) {
-        //ArrayStoreReturnMsg* astore_ret_msg = static_cast<ArrayStoreReturnMsg*>(msg);
+        //AStoreRetMsg* astore_ret_msg = static_cast<AStoreRetMsg*>(msg);
 
         pc += 1;
     }
     else if (type == MsgType::ALOAD_RET) {
-        ArrayLoadReturnMsg* aload_ret_msg = static_cast<ArrayLoadReturnMsg*>(msg);
+        ALoadRetMsg* aload_ret_msg = static_cast<ALoadRetMsg*>(msg);
 
         // 将aload_ret_msg携带的值写入ostack
         for (auto i : aload_ret_msg->val) {

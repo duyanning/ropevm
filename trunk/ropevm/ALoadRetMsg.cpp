@@ -4,7 +4,7 @@
 
 using namespace std;
 
-ArrayLoadReturnMsg::ArrayLoadReturnMsg(SpmtThread* target_spmt_thread, uintptr_t* val, int size)
+ALoadRetMsg::ALoadRetMsg(SpmtThread* target_spmt_thread, uintptr_t* val, int size)
 :
     Message(MsgType::ALOAD_RET, target_spmt_thread)
 {
@@ -15,12 +15,12 @@ ArrayLoadReturnMsg::ArrayLoadReturnMsg(SpmtThread* target_spmt_thread, uintptr_t
 
 
 bool
-ArrayLoadReturnMsg::equal(Message* msg)
+ALoadRetMsg::equal(Message* msg)
 {
     if (m_type != msg->get_type())
         return false;
 
-    ArrayLoadReturnMsg* m = static_cast<ArrayLoadReturnMsg*>(msg);
+    ALoadRetMsg* m = static_cast<ALoadRetMsg*>(msg);
     if (val != m->val)
         return false;
 
@@ -29,13 +29,13 @@ ArrayLoadReturnMsg::equal(Message* msg)
 
 
 void
-ArrayLoadReturnMsg::show(std::ostream& os) const
+ALoadRetMsg::show(std::ostream& os) const
 {
     os << "ALOAD_RET";
 }
 
 
 void
-ArrayLoadReturnMsg::show_detail(std::ostream& os, int id) const
+ALoadRetMsg::show_detail(std::ostream& os, int id) const
 {
 }

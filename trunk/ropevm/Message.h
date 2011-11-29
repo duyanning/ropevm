@@ -122,9 +122,9 @@ public:
 };
 
 
-class ArrayLoadMsg : public RoundTripMsg {
+class ALoadMsg : public RoundTripMsg {
 public:
-    ArrayLoadMsg(SpmtThread* source_spmt_thread, SpmtThread* target_spmt_thread,
+    ALoadMsg(SpmtThread* source_spmt_thread, SpmtThread* target_spmt_thread,
                  Object* array, int type_size, int index);
     //virtual bool equal(Message* msg);
     void show(std::ostream& os) const;
@@ -135,9 +135,9 @@ public:
 };
 
 
-class ArrayStoreMsg : public RoundTripMsg {
+class AStoreMsg : public RoundTripMsg {
 public:
-    ArrayStoreMsg(SpmtThread* source_spmt_thread, SpmtThread* target_spmt_thread,
+    AStoreMsg(SpmtThread* source_spmt_thread, SpmtThread* target_spmt_thread,
                   Object* array, int type_size, int index, uintptr_t* slots);
     //virtual bool equal(Message* msg);
     void show(std::ostream& os) const;
@@ -174,9 +174,9 @@ public:
 };
 
 
-class GetReturnMsg : public Message {
+class GetRetMsg : public Message {
 public:
-    GetReturnMsg(SpmtThread* target_spmt_thread, uintptr_t* val, int size);
+    GetRetMsg(SpmtThread* target_spmt_thread, uintptr_t* val, int size);
     virtual bool equal(Message* msg);
     void show(std::ostream& os) const;
     virtual void show_detail(std::ostream& os, int id) const;
@@ -185,18 +185,18 @@ public:
 };
 
 
-class PutReturnMsg : public Message {
+class PutRetMsg : public Message {
 public:
-    PutReturnMsg(SpmtThread* target_spmt_thread);
+    PutRetMsg(SpmtThread* target_spmt_thread);
     virtual bool equal(Message* msg);
     void show(std::ostream& os) const;
     virtual void show_detail(std::ostream& os, int id) const;
 };
 
 
-class ArrayLoadReturnMsg : public Message {
+class ALoadRetMsg : public Message {
 public:
-    ArrayLoadReturnMsg(SpmtThread* target_spmt_thread, uintptr_t* val, int size);
+    ALoadRetMsg(SpmtThread* target_spmt_thread, uintptr_t* val, int size);
     virtual bool equal(Message* msg);
     void show(std::ostream& os) const;
     virtual void show_detail(std::ostream& os, int id) const;
@@ -205,9 +205,9 @@ public:
 };
 
 
-class ArrayStoreReturnMsg : public Message {
+class AStoreRetMsg : public Message {
 public:
-    ArrayStoreReturnMsg(SpmtThread* target_spmt_thread);
+    AStoreRetMsg(SpmtThread* target_spmt_thread);
     virtual bool equal(Message* msg);
     void show(std::ostream& os) const;
     virtual void show_detail(std::ostream& os, int id) const;

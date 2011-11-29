@@ -4,7 +4,7 @@
 
 using namespace std;
 
-ArrayStoreReturnMsg::ArrayStoreReturnMsg(SpmtThread* target_spmt_thread)
+AStoreRetMsg::AStoreRetMsg(SpmtThread* target_spmt_thread)
 :
     Message(MsgType::ASTORE_RET, target_spmt_thread)
 {
@@ -12,7 +12,7 @@ ArrayStoreReturnMsg::ArrayStoreReturnMsg(SpmtThread* target_spmt_thread)
 
 
 bool
-ArrayStoreReturnMsg::equal(Message* msg)
+AStoreRetMsg::equal(Message* msg)
 {
     if (m_type != msg->get_type())
         return false;
@@ -22,13 +22,13 @@ ArrayStoreReturnMsg::equal(Message* msg)
 
 
 void
-ArrayStoreReturnMsg::show(std::ostream& os) const
+AStoreRetMsg::show(std::ostream& os) const
 {
     os << "ASTORE_RET";
 }
 
 
 void
-ArrayStoreReturnMsg::show_detail(std::ostream& os, int id) const
+AStoreRetMsg::show_detail(std::ostream& os, int id) const
 {
 }
