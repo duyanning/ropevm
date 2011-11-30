@@ -25,6 +25,36 @@ GetMsg::get_field_size()
 }
 
 
+bool
+GetMsg::is_irrevocable()
+{
+    return false;
+}
+
+
+bool
+GetMsg::equal(Message* msg)
+{
+    if (m_type != msg->get_type())
+        return false;
+
+    GetMsg* m = static_cast<GetMsg*>(msg);
+// - 目标对象
+// - 字段的名字
+// + 源线程（即发起方法的线程。）
+
+
+    if (m_target_st != m->m_target_st)
+        return false;
+    if (fb != m->fb)
+        return false;
+    if (m_source_st != m->m_source_st)
+        return false;
+
+    return true;
+}
+
+
 void
 GetMsg::show(ostream& os) const
 {

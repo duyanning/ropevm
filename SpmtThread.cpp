@@ -539,6 +539,13 @@ SpmtThread::revoke_spec_msg(RoundTripMsg* msg)
             << "#" << msg->get_target_st()->id()
             << " " << msg);
 
+    if (RopeVM::support_irrevocable and msg->is_irrevocable()) {    // 不可收回消息
+        MINILOG(spec_msg_logger, "#" << m_id
+                << " irrevocable msg"
+                << " " << msg);
+        return;
+    }
+
     msg->get_target_st()->add_revoked_spec_msg(msg);
 }
 
@@ -815,8 +822,16 @@ SpmtThread::verify_speculation(Message* certain_msg)
     // 比较第一个待验证消息与确定消息（异步消息比指针，同步消息比内容）
     Message* spec_msg = *m_spec_msg_queue.begin();
     bool success = false;
-    if (g_is_async_msg(certain_msg)) {
+    if (g_is_async_msg(spec_msg)) {
         success = (spec_msg == certain_msg);
+
+        // 如果待验证消息是个不可撤回消息，那么比较指针不等后还要比较内容。内容不等才能认为它是错的。
+        if (not success and RopeVM::support_irrevocable) {
+            RoundTripMsg* round_trip_msg = static_cast<RoundTripMsg*>(spec_msg);
+            if (round_trip_msg->is_irrevocable()) {
+                success = certain_msg->equal(spec_msg);
+            }
+        }
     }
     else {
         success = certain_msg->equal(spec_msg);
@@ -842,9 +857,7 @@ SpmtThread::verify_speculation(Message* certain_msg)
 
 
         // 比较指针就相等的消息，确定消息和推测消息是同一个消息。只销毁一次。
-        if (g_is_async_msg(certain_msg)) {
-            assert(certain_msg == spec_msg);
-
+        if (certain_msg == spec_msg) {
             delete certain_msg;
             certain_msg = nullptr;
             spec_msg = nullptr;

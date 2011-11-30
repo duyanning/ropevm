@@ -147,3 +147,31 @@ RopeVM::turn_off_log_backdoor()
     m_logger_enabled_backdoor = false;
     adjust_log_state();
 }
+
+
+namespace {
+
+    template <typename T>
+    void
+    print_entry(const char* name, T val)
+    {
+        cout << setw(25) << right << name << "   " << val << "\n";
+    }
+
+}
+
+// 变量名跟变量的显示名相同
+#define PRINT_ENTRY(name) print_entry(#name, name)
+
+void
+RopeVM::dump_rope_params()
+{
+    cout << "\n" << setw(40) << setfill('=') << "\n" << setfill(' ');
+    PRINT_ENTRY(model);
+    print_entry("log", m_logger_enabled);
+    PRINT_ENTRY(support_invoker_execute);
+    PRINT_ENTRY(support_irrevocable);
+    PRINT_ENTRY(support_spec_safe_native);
+    PRINT_ENTRY(support_spec_barrier);
+    PRINT_ENTRY(support_self_read);
+}

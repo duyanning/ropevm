@@ -38,7 +38,7 @@ public:
     Effect* get_effect();
     void set_effect(Effect* effect);
 
-    virtual bool equal(Message* msg);
+    virtual bool equal(Message* msg) = 0;
     virtual void show(std::ostream& os) const = 0;
     virtual void show_detail(std::ostream& os, int id) const = 0;
 
@@ -54,6 +54,7 @@ public:
     RoundTripMsg(MsgType type,
                  SpmtThread* source_st, SpmtThread* target_st,
                  Object* target_object);
+    virtual bool is_irrevocable() = 0;
     //virtual bool equal(Message* msg);
     virtual void show(std::ostream& os) const = 0;
     virtual void show_detail(std::ostream& os, int id) const = 0;
@@ -78,7 +79,8 @@ public:
               bool is_top = false);
     bool is_top() { return m_is_top; }
 
-    //virtual bool equal(Message* msg);
+    virtual bool is_irrevocable();
+    virtual bool equal(Message* msg);
     virtual void show(std::ostream& os) const;
     virtual void show_detail(std::ostream& os, int id) const;
 
@@ -97,9 +99,12 @@ class GetMsg : public RoundTripMsg {
 public:
     GetMsg(SpmtThread* source_st, SpmtThread* target_st,
            Object* target_object, FieldBlock* fb);
+
     uintptr_t* get_field_addr();
     int get_field_size();
-    //virtual bool equal(Message* msg);
+    virtual bool is_irrevocable();
+
+    virtual bool equal(Message* msg);
     void show(std::ostream& os) const;
     virtual void show_detail(std::ostream& os, int id) const;
 
@@ -113,7 +118,8 @@ public:
            Object* target_object, FieldBlock* fb,
            uintptr_t* val);
     uintptr_t* get_field_addr();
-    //virtual bool equal(Message* msg);
+    virtual bool is_irrevocable();
+    virtual bool equal(Message* msg);
     void show(std::ostream& os) const;
     virtual void show_detail(std::ostream& os, int id) const;
 
@@ -126,7 +132,8 @@ class ALoadMsg : public RoundTripMsg {
 public:
     ALoadMsg(SpmtThread* source_st, SpmtThread* target_st,
                  Object* array, int type_size, int index);
-    //virtual bool equal(Message* msg);
+    virtual bool is_irrevocable();
+    virtual bool equal(Message* msg);
     void show(std::ostream& os) const;
     virtual void show_detail(std::ostream& os, int id) const;
 
@@ -139,7 +146,8 @@ class AStoreMsg : public RoundTripMsg {
 public:
     AStoreMsg(SpmtThread* source_st, SpmtThread* target_st,
                   Object* array, int type_size, int index, uintptr_t* slots);
-    //virtual bool equal(Message* msg);
+    virtual bool is_irrevocable();
+    virtual bool equal(Message* msg);
     void show(std::ostream& os) const;
     virtual void show_detail(std::ostream& os, int id) const;
 

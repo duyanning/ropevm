@@ -320,13 +320,14 @@ int main(int argc, char *argv[])
     mainThreadWaitToExitVM();
 
 
-    std::cout << "\n=================================\n"
-              << "model: " << RopeVM::model << ", log: " << args.do_log << "\n"
-              << "support_invoker_execute: " << RopeVM::support_invoker_execute << "\n"
-              << "support_irrevocable: " << RopeVM::support_irrevocable << "\n"
-              << "support_spec_safe_native: " << RopeVM::support_spec_safe_native << "\n"
-              << "support_spec_barrier: " << RopeVM::support_spec_barrier << "\n"
-              << "support_self_read: " << RopeVM::support_self_read << "\n";
+    RopeVM::instance()->dump_rope_params();
+    // std::cout << "\n=================================\n"
+    //           << "model: " << RopeVM::model << ", log: " << args.do_log << "\n"
+    //           << "support_invoker_execute: " << RopeVM::support_invoker_execute << "\n"
+    //           << "support_irrevocable: " << RopeVM::support_irrevocable << "\n"
+    //           << "support_spec_safe_native: " << RopeVM::support_spec_safe_native << "\n"
+    //           << "support_spec_barrier: " << RopeVM::support_spec_barrier << "\n"
+    //           << "support_self_read: " << RopeVM::support_self_read << "\n";
 
 
     //{{{ statistic

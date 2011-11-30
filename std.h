@@ -13,6 +13,7 @@
 #include <fstream>
 #include <sstream>
 #include <iterator>
+#include <iomanip>
 #include <tr1/unordered_map>
 #include <tr1/unordered_set>
 
