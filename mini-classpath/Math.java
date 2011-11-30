@@ -58,6 +58,11 @@ public final class Math
     @RopeInvokerExecute
     @RopeSpecSafe
     public static native double sqrt(double a);
+
+    @RopeInvokerExecute
+    @RopeSpecSafe
+    public static native double log(double a);
+
 }
 
 

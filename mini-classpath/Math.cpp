@@ -6,21 +6,28 @@
 using namespace std;
 
 JNIEXPORT jdouble JNICALL Java_Math_sqrt
-  (JNIEnv *, jclass, jdouble x)
+  (JNIEnv*, jclass, jdouble x)
 {
     return sqrt(x);
 }
 
 
 JNIEXPORT jdouble JNICALL Java_Math_pow
-  (JNIEnv *, jclass, jdouble x, jdouble y)
+  (JNIEnv*, jclass, jdouble x, jdouble y)
 {
     return pow (x, y);
 }
 
 
 JNIEXPORT jdouble JNICALL Java_Math_floor
-  (JNIEnv *, jclass, jdouble x)
+  (JNIEnv*, jclass, jdouble x)
 {
     return floor (x);
+}
+
+
+JNIEXPORT jdouble JNICALL Java_Math_log
+  (JNIEnv*, jclass, jdouble x)
+{
+    return log (x);
 }
