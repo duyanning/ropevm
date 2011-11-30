@@ -37,8 +37,11 @@ public class TSP
         if (printMsgs)
             System.out.println("Building tree of size " + cities);
 
+        Tree.initSeed(783);
+
         long start0 = System.currentTimeMillis();
-        Tree  t = Tree.buildTree(cities, false, 0.0, 1.0, 0.0, 1.0);
+        //Tree  t = Tree.buildTree(cities, false, 0.0, 1.0, 0.0, 1.0);
+        Tree  t = new Tree(cities, false, 0.0, 1.0, 0.0, 1.0);
         long end0 = System.currentTimeMillis();
 
         long start1 = System.currentTimeMillis();

@@ -35,10 +35,19 @@ final class Tree
     private Tree  prev;
 
     // used by the random number generator
-    private static final double  M_E2  = 7.3890560989306502274;
-    private static final double  M_E3  = 20.08553692318766774179;
-    private static final double  M_E6  = 403.42879349273512264299;
+    // private static final double  M_E2  = 7.3890560989306502274;
+    // private static final double  M_E3  = 20.08553692318766774179;
+    // private static final double  M_E6  = 403.42879349273512264299;
     private static final double  M_E12 = 162754.79141900392083592475;
+
+    // 原始程序中每次需要随机数时都产生一个新的随机数发生器，故而程序输
+    // 出每次运行都不一样。我们用一个固定的随机数发生器，一个固定的种子。
+    private static Random rand;
+
+    public static void initSeed(long seed)
+    {
+        rand = new Random(seed);
+    }
 
     /**
      * Construct a Tree node (a city) with the specified size
@@ -377,7 +386,8 @@ final class Tree
     private static double median(double min, double max, int n)
     {
         // get random value in [0.0, 1.0)
-        double t = (new Random()).nextDouble();
+        //double t = (new Random()).nextDouble();
+        double t = rand.nextDouble(); // 采用我们固定的随机数发生器
 
         double retval;
         if (t > 0.5) {
@@ -398,7 +408,8 @@ final class Tree
     private static double uniform(double min, double max)
     {
         // get random value between [0.0,1.0)
-        double retval = (new Random()).nextDouble();
+        //double retval = (new Random()).nextDouble();
+        double retval = rand.nextDouble();
         retval = retval * (max-min);
         return retval + min;
     }
@@ -427,7 +438,7 @@ final class Tree
         if (dir) {
             dir = !dir;
             double med = median(min_x,max_x,n);
-            left = buildTree(n/2, dir, min_x, med, min_y, max_y); // left = new Tree(,,,,);
+            left = buildTree(n/2, dir, min_x, med, min_y, max_y);
             right = buildTree(n/2, dir, med, max_x, min_y, max_y);
             x = med;
             y = uniform(min_y, max_y);
@@ -440,6 +451,43 @@ final class Tree
             x = uniform(min_x, max_x);
         }
         return new Tree(n, x, y, left, right);
+    }
+
+    // 打算用构造函数代替buildTree
+    Tree(int n, boolean dir, double min_x,
+         double max_x, double min_y, double max_y)
+    {
+        sz = n;
+        if (dir) {
+            dir = !dir;
+            double med = Tree.median(min_x,max_x,n);
+            if (n/2 == 0) {
+                left = null;
+                right = null;
+            }
+            else {
+                left = new Tree(n/2, dir, min_x, med, min_y, max_y);
+                right = new Tree(n/2, dir, med, max_x, min_y, max_y);
+            }
+            x = med;
+            y = Tree.uniform(min_y, max_y);
+        } else {
+            dir = !dir;
+            double med = Tree.median(min_y,max_y,n);
+            if (n/2 == 0) {
+                left = null;
+                right = null;
+            }
+            else {
+                left = new Tree(n/2, dir, min_x, max_x, min_y, med);
+                right = new Tree(n/2, dir, min_x, max_x, med, max_y);
+            }
+            y = med;
+            x = Tree.uniform(min_x, max_x);
+        }
+
+
+
     }
 
 }

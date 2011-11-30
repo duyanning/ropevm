@@ -10,7 +10,7 @@ class RvpBuffer {
     void clear() { m_hashtable.clear(); }
     void clear(void* begin, void* end);
  private:
-    typedef std::tr1::unordered_map<Word*, Word> Hashtable;
+    typedef std::unordered_map<Word*, Word> Hashtable;
     Hashtable m_hashtable;
 };
 

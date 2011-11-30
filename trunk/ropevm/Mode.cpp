@@ -168,7 +168,7 @@ Mode::process_msg(Message* msg)
 
         // 向put_msg指定的字段写入一个值
         uintptr_t* field_addr = put_msg->get_field_addr();
-        for (int i = 0; i < put_msg->val.size(); ++i) {
+        for (auto i = 0u; i < put_msg->val.size(); ++i) {
             write(field_addr + i, put_msg->val[i]);
         }
 

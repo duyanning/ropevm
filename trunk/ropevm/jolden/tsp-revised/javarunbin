@@ -1,4 +1,0 @@
-#!/usr/bin/env sh
-
-java -cp bin TSP -c 1000 -m
-
