@@ -34,7 +34,7 @@ private:
 
     typedef std::deque<Node> History;
 
-    typedef std::tr1::unordered_map<Word*, History*> Hashtable;
+    typedef std::unordered_map<Word*, History*> Hashtable;
 
     Hashtable m_hashtable;
 

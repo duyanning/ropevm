@@ -14,8 +14,8 @@
 #include <sstream>
 #include <iterator>
 #include <iomanip>
-#include <tr1/unordered_map>
-#include <tr1/unordered_set>
+#include <unordered_map>
+#include <unordered_set>
 
 // C
 #include <assert.h>

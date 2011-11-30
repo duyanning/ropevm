@@ -1,4 +1,0 @@
-#!/usr/bin/env sh
-
-minivm -cp bin TSP -c 1000 -m
-
