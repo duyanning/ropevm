@@ -1,10 +1,11 @@
 
-import java.util.Random;
+//import java.util.Random;
 
 /**
  * A class that represents a node in a binary tree.  Each node represents
  * a city in the TSP benchmark.
  **/
+@GroupingPolicies(self=GroupingPolicy.NEW_GROUP)
 final class Tree
 {
     /**
@@ -40,14 +41,16 @@ final class Tree
     // private static final double  M_E6  = 403.42879349273512264299;
     private static final double  M_E12 = 162754.79141900392083592475;
 
-    // 原始程序中每次需要随机数时都产生一个新的随机数发生器，故而程序输
-    // 出每次运行都不一样。我们用一个固定的随机数发生器，一个固定的种子。
-    private static Random rand;
+    // // 原始程序中每次需要随机数时都产生一个新的随机数发生器，故而程序输
+    // // 出每次运行都不一样。我们用一个固定的随机数发生器，一个固定的种子。
+    // private static Random rand;
 
-    public static void initSeed(long seed)
-    {
-        rand = new Random(seed);
-    }
+    // public static void initSeed(long seed)
+    // {
+    //     rand = new Random(seed);
+    // }
+
+    private Random rand;        // 每个Tree对象一个随机数发生器，种子在Tree的构造方法中设定。
 
     /**
      * Construct a Tree node (a city) with the specified size
@@ -57,16 +60,16 @@ final class Tree
      * @param left the left subtree
      * @param right the right subtree
      **/
-    Tree(int size, double x, double y, Tree l, Tree r)
-    {
-        sz = size;
-        this.x = x;
-        this.y = y;
-        left = l;
-        right = r;
-        next = null;
-        prev = null;
-    }
+    // Tree(int size, double x, double y, Tree l, Tree r)
+    // {
+    //     sz = size;
+    //     this.x = x;
+    //     this.y = y;
+    //     left = l;
+    //     right = r;
+    //     next = null;
+    //     prev = null;
+    // }
 
     /**
      * Find Euclidean distance between this node and the specified node.
@@ -348,6 +351,7 @@ final class Tree
      * Compute TSP for the tree t. Use conquer for problems <= sz
      * @param sz the cutoff point for using conquer vs. merge
      **/
+    @RopeIrrevocable
     Tree tsp(int sz)
     {
         if (this.sz <= sz) return conquer();
@@ -356,6 +360,10 @@ final class Tree
         Tree rightval = right.tsp(sz);
 
         return merge(leftval, rightval);
+    }
+    Tree __rvp__tsp(int sz)
+    {
+        return null;
     }
 
     /**
@@ -383,7 +391,8 @@ final class Tree
      * @param n
      * @return an estimate of median of n values distributed in [min,max)
      **/
-    private static double median(double min, double max, int n)
+    // private static double median(double min, double max, int n)
+    private double median(double min, double max, int n)
     {
         // get random value in [0.0, 1.0)
         //double t = (new Random()).nextDouble();
@@ -391,9 +400,26 @@ final class Tree
 
         double retval;
         if (t > 0.5) {
-            retval = java.lang.Math.log(1.0-(2.0*(M_E12-1)*(t-0.5)/M_E12))/12.0;
+            retval = Math.log(1.0-(2.0*(M_E12-1)*(t-0.5)/M_E12))/12.0;
         } else {
-            retval = -java.lang.Math.log(1.0-(2.0*(M_E12-1)*t/M_E12))/12.0;
+            retval = -Math.log(1.0-(2.0*(M_E12-1)*t/M_E12))/12.0;
+        }
+        // We now have something distributed on (-1.0,1.0)
+        retval = (retval+1.0) * (max-min)/2.0;
+        retval = retval + min;
+        return retval;
+    }
+    private double __rvp__median(double min, double max, int n)
+    {
+        // get random value in [0.0, 1.0)
+        //double t = (new Random()).nextDouble();
+        double t = rand.nextDouble(); // 采用我们固定的随机数发生器
+
+        double retval;
+        if (t > 0.5) {
+            retval = Math.log(1.0-(2.0*(M_E12-1)*(t-0.5)/M_E12))/12.0;
+        } else {
+            retval = -Math.log(1.0-(2.0*(M_E12-1)*t/M_E12))/12.0;
         }
         // We now have something distributed on (-1.0,1.0)
         retval = (retval+1.0) * (max-min)/2.0;
@@ -405,7 +431,16 @@ final class Tree
      * Get double uniformly distributed over [min,max)
      * @return double uniformily distributed over [min,max)
      **/
-    private static double uniform(double min, double max)
+    // private static double uniform(double min, double max)
+    private double uniform(double min, double max)
+    {
+        // get random value between [0.0,1.0)
+        //double retval = (new Random()).nextDouble();
+        double retval = rand.nextDouble();
+        retval = retval * (max-min);
+        return retval + min;
+    }
+    private double __rvp__uniform(double min, double max)
     {
         // get random value between [0.0,1.0)
         //double retval = (new Random()).nextDouble();
@@ -426,41 +461,42 @@ final class Tree
      * @param max_y the maximum y coordinate
      * @return a reference to the root of the subtree
      **/
-    // 这个方法如果能像TreeAdd那样就好了。传递参数给左右孩子的构造函数，让左右孩子自己去做。构造函数的返回值为void。
-    // treeadd中有个叫createTree的方法，类似这个，不过没用到。
-    public static Tree buildTree(int n, boolean dir, double min_x,
-                                 double max_x, double min_y, double max_y)
-    {
-        if (n==0) return null;
+    // public static Tree buildTree(int n, boolean dir, double min_x,
+    //                              double max_x, double min_y, double max_y)
+    // {
+    //     if (n==0) return null;
 
-        Tree left, right;
-        double x, y;
-        if (dir) {
-            dir = !dir;
-            double med = median(min_x,max_x,n);
-            left = buildTree(n/2, dir, min_x, med, min_y, max_y);
-            right = buildTree(n/2, dir, med, max_x, min_y, max_y);
-            x = med;
-            y = uniform(min_y, max_y);
-        } else {
-            dir = !dir;
-            double med = median(min_y,max_y,n);
-            left = buildTree(n/2, dir, min_x, max_x, min_y, med);
-            right = buildTree(n/2, dir, min_x, max_x, med, max_y);
-            y = med;
-            x = uniform(min_x, max_x);
-        }
-        return new Tree(n, x, y, left, right);
-    }
+    //     Tree left, right;
+    //     double x, y;
+    //     if (dir) {
+    //         dir = !dir;
+    //         double med = median(min_x,max_x,n);
+    //         left = buildTree(n/2, dir, min_x, med, min_y, max_y);
+    //         right = buildTree(n/2, dir, med, max_x, min_y, max_y);
+    //         x = med;
+    //         y = uniform(min_y, max_y);
+    //     } else {
+    //         dir = !dir;
+    //         double med = median(min_y,max_y,n);
+    //         left = buildTree(n/2, dir, min_x, max_x, min_y, med);
+    //         right = buildTree(n/2, dir, min_x, max_x, med, max_y);
+    //         y = med;
+    //         x = uniform(min_x, max_x);
+    //     }
+    //     return new Tree(n, x, y, left, right);
+    // }
 
-    // 打算用构造函数代替buildTree
+    // 代替buildTree
     Tree(int n, boolean dir, double min_x,
          double max_x, double min_y, double max_y)
     {
+        rand = new Random(738);
+        //rand = new Random(hashCode()); 比用固定值差很多
+
         sz = n;
         if (dir) {
             dir = !dir;
-            double med = Tree.median(min_x,max_x,n);
+            double med = median(min_x,max_x,n);
             if (n/2 == 0) {
                 left = null;
                 right = null;
@@ -470,10 +506,10 @@ final class Tree
                 right = new Tree(n/2, dir, med, max_x, min_y, max_y);
             }
             x = med;
-            y = Tree.uniform(min_y, max_y);
+            y = uniform(min_y, max_y);
         } else {
             dir = !dir;
-            double med = Tree.median(min_y,max_y,n);
+            double med = median(min_y,max_y,n);
             if (n/2 == 0) {
                 left = null;
                 right = null;
@@ -483,11 +519,12 @@ final class Tree
                 right = new Tree(n/2, dir, min_x, max_x, med, max_y);
             }
             y = med;
-            x = Tree.uniform(min_x, max_x);
+            x = uniform(min_x, max_x);
         }
 
-
-
     }
-
+    void __rvp__ctor(int n, boolean dir, double min_x,
+                     double max_x, double min_y, double max_y)
+    {
+    }
 }

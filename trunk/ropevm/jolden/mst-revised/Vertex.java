@@ -22,7 +22,7 @@ class Vertex
      * Create a vertex and initialize the fields.
      * @param n the next element
      **/
-    Vertex(Vertex n, int numvert)
+    Vertex(Vertex n, int numvert) // 顶点自己构成链表
     {
         mindist = 9999999;
         next = n;

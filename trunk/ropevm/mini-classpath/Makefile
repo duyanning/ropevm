@@ -1,4 +1,4 @@
-all: mini-classpath.so Math.class
+all: mini-classpath.so Math.class Random.class
 
 
 mini-classpath.so : debug/mini-classpath.so
@@ -7,11 +7,13 @@ mini-classpath.so : debug/mini-classpath.so
 debug/mini-classpath.so : Math.cpp Math.h
 	epm b
 
-Math.h : Math.java
-	javac -g -cp .:$(ROPE_CLASSES) Math.java
+Math.h : Math.class
 	-rm Math.h
 	javah -jni Math
 
 
 Math.class : Math.java
 	javac -g -cp .:$(ROPE_CLASSES) Math.java
+
+Random.class : Random.java
+	javac -g -cp .:$(ROPE_CLASSES) Random.java
