@@ -25,6 +25,45 @@ InvokeMsg::InvokeMsg(SpmtThread* source_st, SpmtThread* target_st,
 }
 
 
+bool
+InvokeMsg::is_irrevocable()
+{
+    return mb->is_rope_irrevocable();
+}
+
+
+bool
+InvokeMsg::equal(Message* msg)
+{
+    if (m_type != msg->get_type())
+        return false;
+
+    InvokeMsg* m = static_cast<InvokeMsg*>(msg);
+// + 目标对象（即方法所属的对象）
+// + 方法的名字
+// + 消息的参数值
+// + 源线程（即发起方法的线程。）
+// + 源线程的(PC, FP, SP)
+
+    if (m_target_st != m->m_target_st)
+        return false;
+    if (mb != m->mb)
+        return false;
+    if (parameters != m->parameters)
+        return false;
+    if (m_source_st != m->m_source_st)
+        return false;
+    if (caller_pc != m->caller_pc)
+        return false;
+    if (caller_frame != m->caller_frame)
+        return false;
+    if (caller_sp != m->caller_sp)
+        return false;
+
+    return true;
+}
+
+
 void
 InvokeMsg::show(ostream& os) const
 {

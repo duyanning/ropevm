@@ -92,7 +92,7 @@ classpath-0.97.2/vm/reference/java/lang
 由于这些代码的缩进，在emacs中看有些乱，用gedit看。
 ** gdb的设置
 set env CLASSPATH=/home/duyanning/work/ropevm/classes:/home/duyanning/work/ropevm/mini-classpath:bin-javac
-set env model=5
+set env model=3
 set env log=0
 
 ** epmacs的设置

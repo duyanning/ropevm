@@ -12,6 +12,9 @@ public:
     SpmtThread* new_spmt_thread();
     SpmtThread* create_spmt_thread();
 
+
+    void dump_rope_params();    // 输出与rope相关的参数信息
+
     static RopeVM* instance();
 
     void turn_on_log();

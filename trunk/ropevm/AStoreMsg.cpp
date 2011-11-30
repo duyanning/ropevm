@@ -21,6 +21,12 @@ AStoreMsg::AStoreMsg(SpmtThread* source_st, SpmtThread* target_st,
 }
 
 
+bool
+AStoreMsg::is_irrevocable()
+{
+    return false;
+}
+
 void
 AStoreMsg::show(ostream& os) const
 {
@@ -45,4 +51,34 @@ void
 AStoreMsg::show_detail(std::ostream& os, int id) const
 {
     //os << "#" << id << "\n";
+}
+
+
+bool
+AStoreMsg::equal(Message* msg)
+{
+    if (m_type != msg->get_type())
+        return false;
+
+    AStoreMsg* m = static_cast<AStoreMsg*>(msg);
+// - 目标对象(即数组对象)
+// - 元素的大小
+// - 元素的索引
+// - 写入的数值
+// + 源线程（即发起方法的线程。）
+
+
+
+    if (m_target_st != m->m_target_st)
+        return false;
+    if (type_size != m->type_size)
+        return false;
+    if (index != m->index)
+        return false;
+    if (val != m->val)
+        return false;
+    if (m_source_st != m->m_source_st)
+        return false;
+
+    return true;
 }

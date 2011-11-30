@@ -95,6 +95,7 @@ class TreeNode
      * of the children of this node.
      * @return the cumulative value of this tree.
      **/
+    @RopeIrrevocable
     int addTree()
     {
         int total = value;
@@ -104,7 +105,8 @@ class TreeNode
     }
     int __rvp__addTree()
     {
-        return 15;              // 因为我知道对于一个5级的数，第二级的两个子树会返回15。
+        return 0;               // 无法猜对
+        //return 15;              // 因为我知道对于一个5级的数，第二级的两个子树会返回15。
     }
 
 }

@@ -1,5 +1,0 @@
-#!/usr/bin/env sh
-
-# invoke execute
-model=4
-ropejavac
