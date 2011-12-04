@@ -1,12 +1,93 @@
 * 安装GNU Classpath 0.97.2
+./configure --disable-Werror --disable-gtk-peer --disable-gconf-peer --disable-plugin
+make
+sudo make install
+
+结束后，GNU Classpath被安装到默认位置/usr/local/classpath/。
+
+--disable-Werror选项是为了避免GCC 4.6报错。
+其他选项是禁用某些功能，以避免安装一些库。
+
+如果配置jamvm时，用了--disable-zip选项，jamvm将无法读取zip文件中的类，ropevm也不行。
+所以到GNU Classpath的安装目录/usr/local/classpath/share/classpath下
+将glibj.zip解开：
+sudo unzip glibj.zip
+
+** error: dereferencing type-punned pointer will break strict-aliasing rules
+gcc4.6在编译native/jni/native-lib/cpnet.c时报错
+cpnet.c: In function ‘cpnet_addMembership’:
+cpnet.c:583:32: error: dereferencing type-punned pointer will break strict-aliasing rules [-Werror=strict-aliasing]
+cpnet.c: In function ‘cpnet_dropMembership’:
+cpnet.c:598:32: error: dereferencing type-punned pointer will break strict-aliasing rules [-Werror=strict-aliasing]
+
+GNU Classpath 0.97.2有这个问题，GNU Classpath 0.98依然有这个问题。
+不光gcc 4.6编译时是这样，ubuntu 9.10自带的gcc编译也是这样。
+*** 解决办法一：禁止报错
+我还曾经为此写了一篇日志
+http://marxistprogrammer.blog.163.com/blog/static/4719898120101632058207/
+
+运行configure时加上选项--disable-Werror
+./configure --disable-Werror --disable-gtk-peer --disable-gconf-peer --disable-plugin
+
+
+*** 解决办法二：修改cpnet.c
+
+http://old.nabble.com/Fix-%27-dereferencing-type-punned-pointer-will-break-strict-aliasing-rules%27-td26012951.html
+给出了一个办法修改代码
+
+The warning is bogus.  Fixed thusly.
+
+Andrew.
+
+
+2009-10-22  Andrew Haley  <aph@...>
+
+        * native/jni/native-lib/cpnet.c (cpnet_addMembership): Fix
+        aliasing warning.
+        (cpnet_dropMembership): Likewise.
+
+Index: cpnet.c
+===================================================================
+RCS file: /sources/classpath/classpath/native/jni/native-lib/cpnet.c,v
+retrieving revision 1.10
+diff -u -p -r1.10 cpnet.c
+--- cpnet.c 25 Jun 2007 09:44:36 -0000 1.10
++++ cpnet.c 22 Oct 2009 16:18:07 -0000
+@@ -578,9 +578,10 @@ jint cpnet_addMembership (JNIEnv *env UN
+ {
+   struct ip_mreq req;
+   int ret;
++  struct sockaddr_in *sockaddr = (struct sockaddr_in *)addr->data;
+
+   memset(&req, 0, sizeof(req));
+-  req.imr_multiaddr = ((struct sockaddr_in *)addr->data)->sin_addr;
++  req.imr_multiaddr = sockaddr->sin_addr;
+   req.imr_interface.s_addr = INADDR_ANY;
+   ret = setsockopt(fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, &req, sizeof(req));
+   if (ret != 0)
+@@ -593,9 +594,10 @@ jint cpnet_dropMembership (JNIEnv *env U
+ {
+   struct ip_mreq req;
+   int ret;
++  struct sockaddr_in *sockaddr = (struct sockaddr_in *)addr->data;
+
+   memset(&req, 0, sizeof(req));
+-  req.imr_multiaddr = ((struct sockaddr_in *)addr->data)->sin_addr;
++  req.imr_multiaddr = sockaddr->sin_addr;
+   req.imr_interface.s_addr = INADDR_ANY;
+   ret = setsockopt(fd, IPPROTO_IP, IP_DROP_MEMBERSHIP, &req, sizeof(req));
+   if (ret != 0)
+
+* 安装jamvm 1.5.1 （ropevm现在已经不依赖jamvm，但是我的参考实现fixed-jamvm仍然依赖）
 ./configure
 make
 sudo make install
-（GNU Classpath将被安装到默认位置，即/usr/local/classpath)
-然后去
-/usr/local/classpath/share/classpath
-执行
-sudo unzip glibj.zip
+
+为给ropevm使用，去安装目录/usr/local/jamvm/share/jamvm下
+将压缩包classes.zip解开
+sudo unzip -d classes classes.zip
+
+如果./configure时加了--disable-zip，就已经是解开的。
 
 * 安装epm
 RopeVM使用epm进行工程管理
@@ -117,3 +198,5 @@ JamVM根据配置，可以生成好几种解释器。
 RopeVM所基于的是其中最简单的一种，即最幼稚的采用loop+switch的decode-and-dispatch解释器。
 即配置JamVM时执行configure --disable-int-threading所得到的解释器。
 也就是说，THREADED、DIRECT、INLINING都没有定义。
+
+jamvm 1.5.1可以跟GNU Classpath 0.97.2配合工作，但听说无法跟GNU Classpath 0.98配合（据说jamvm 1.5.2可以跟GNU Classpath 0.98f配合，但不能跟低于0.98的版本配合）。
