@@ -1,0 +1,51 @@
+以用为目的的程序有发布分支，以发表为目的的程序就该有发表分支。
+这对于研究团队来说很有意义，不过现在先不整。
+
+
+
+不同版本的程序放在不同的目录中。
+不同的输入也应当放在不同的目录中。
+
+将程序复制到eval文件夹下。
+文件夹名改为treeadd-1-2这种形式。
+第一个数字是程序版本号，第二个数字是输入版本号。
+
+最好能这样：
+在eval文件夹下，我运行一个名为start-eval的脚本。
+该脚本自动地去运行各个目录下的程序。
+程序运行会生成统计输出。
+这个程序的输出最后都应该对应一张excel的worksheet。
+所以产生的统计输出文件应该方便导入excel。
+
+
+* health
+一个版本（health-revised），两种不同输入
+或许还可加上village与hospital不同组的版本。
+
+health-1-1 两级
+health-1-2 三级
+
+* em3d
+同一版本（em3d-revised4），三种不同输入
+
+em3d-1-1 度为
+em3d-1-2
+em3d-1-3
+
+* power
+一个版本（power-revised），一种输入
+
+power1-1
+
+* bh
+一个版本（bh-revised），一种输入
+
+bh-1-1
+
+* treeadd
+两个版本，相同的输入
+版本1： treeadd-revised
+版本2： treeadd-revised3
+
+treeadd-1-1
+treeadd-2-1
