@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+
+olsc -cp . Health
+

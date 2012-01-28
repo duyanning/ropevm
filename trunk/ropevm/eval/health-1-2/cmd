@@ -1,0 +1,4 @@
+APP=Health
+
+PARMS='-l 3 -t 16 -s 1 -m'
+
