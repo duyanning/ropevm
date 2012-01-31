@@ -43,29 +43,25 @@ Mode::fetch_and_interpret_an_instruction()
     assert(is_sp_ok(sp, frame));
     assert(is_pc_ok(pc, mb));
 
-    //{{{ statistic
-    if (debug_scaffold::java_main_arrived
-        && m_st->is_certain_mode()
-        && is_app_obj(mb->classobj)
-        ) {
-        m_st->m_count_certain_instr++;
-        Statistic::instance()->probe_instr_exec(*pc);
-    }
+    STAT_CODE(\
+              // 每条指令的周期数先按1算，后边针对一些特别的指令再进行调整。
+              if (debug_scaffold::java_main_arrived and is_app_obj(mb->classobj)) {
+                  if (m_st->is_certain_mode()) {
+                      m_st->m_count_cert_cycle++;
+                      Statistic::instance()->probe_instr_exec(*pc);
+                  }
+                  else if (m_st->is_spec_mode()) {
+                      m_st->m_count_spec_cycle++;
+                  }
+                  else if (m_st->is_rvp_mode()) {
+                      m_st->m_count_rvp_cycle++;
+                  }
+                  else {
+                      assert(false);
+                  }
+              }
+              ) // STAT_CODE
 
-    // if (debug_scaffold::java_main_arrived
-    //     && m_st->is_spec_mode()
-    //     && is_app_obj(mb->classobj)
-    //     ) {
-    //     m_st->m_count_spec_instr++;
-    // }
-
-    // if (debug_scaffold::java_main_arrived
-    //     && m_st->is_rvp_mode()
-    //     && is_app_obj(mb->classobj)
-    //     ) {
-    //     m_st->m_count_rvp_instr++;
-    // }
-    //}}} statistic
 
     //{{{ just for debug
     // if (debug_scaffold::java_main_arrived
