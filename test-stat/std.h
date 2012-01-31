@@ -48,7 +48,3 @@
 #include <dlfcn.h>
 #include <arpa/inet.h>
 #include <fpu_control.h>
-
-// ropevm stuff
-#include "MiniLogger.h"
-#include "Stat.h"

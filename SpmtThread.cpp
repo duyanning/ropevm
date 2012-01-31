@@ -42,19 +42,20 @@ SpmtThread::SpmtThread(int id)
 
     m_iter_next_spec_msg = m_spec_msg_queue.begin();
 
-    // stat
-    m_count_spec_msgs_sent = 0;
-    m_count_spec_msgs_used = 0;
-    m_count_verify_all = 0;
-    m_count_verify_ok = 0;
-    m_count_verify_fail = 0;
-    m_count_verify_empty = 0;
-    m_count_rvp = 0;
-    m_count_certain_instr = 0;
-    m_count_spec_instr = 0;
-    m_count_rvp_instr = 0;
-    m_count_step = 0;
-    m_count_idle = 0;
+    STAT_CODE(
+              m_count_spec_msgs_sent = 0;
+              m_count_spec_msgs_used = 0;
+              m_count_verify_all = 0;
+              m_count_verify_ok = 0;
+              m_count_verify_fail = 0;
+              m_count_verify_empty = 0;
+              m_count_rvp = 0;
+              m_count_cert_cycle = 0;
+              m_count_spec_cycle = 0;
+              m_count_rvp_cycle = 0;
+              m_count_busy_cycle = 0;
+              m_count_idle_cycle = 0;
+              ) // STAT_CODE
 
 }
 
@@ -104,7 +105,7 @@ void
 SpmtThread::step()
 {
     // stat
-    m_count_step++;
+    m_count_busy_cycle++;
 
     m_mode->step();
 }
@@ -113,7 +114,7 @@ void
 SpmtThread::idle()
 {
     // stat
-    m_count_idle++;
+    m_count_idle_cycle++;
 }
 
 
@@ -339,23 +340,45 @@ SpmtThread::clear_frame_in_rvp_buffer(Frame* f)
 }
 
 
-void
-SpmtThread::report_stat(ostream& os)
-{
-    os << '#' << m_id << '\t' << "spec msg sent" << '\t' << m_count_spec_msgs_sent << '\n';
-    os << '#' << m_id << '\t' << "spec msg used" << '\t' << m_count_spec_msgs_used << '\n';
-    os << '#' << m_id << '\t' << "verify all" << '\t' << m_count_verify_all << '\n';
-    os << '#' << m_id << '\t' << "verify ok" << '\t' << m_count_verify_ok << '\n';
-    os << '#' << m_id << '\t' << "verify fail" << '\t' << m_count_verify_fail << '\n';
-    os << '#' << m_id << '\t' << "verify empty" << '\t' << m_count_verify_empty << '\n';
-    os << '#' << m_id << '\t' << "rvp count" << '\t' << m_count_rvp << '\n';
-    os << '#' << m_id << '\t' << "certain instr count" << '\t' << m_count_certain_instr << '\n';
-    os << '#' << m_id << '\t' << "spec instr count" << '\t' << m_count_spec_instr << '\n';
-    os << '#' << m_id << '\t' << "rvp instr count" << '\t' << m_count_rvp_instr << '\n';
-    os << '#' << m_id << '\t' << "step count" << '\t' << m_count_step << '\n';
-    os << '#' << m_id << '\t' << "idle count" << '\t' << m_count_idle << '\n';
+namespace {
+
+    template <typename T>
+    void
+    print_entry(ostream& os, int id, const char* name, T val)
+    {
+        os << '#' << id << '\t' << name << '\t' << val << '\n';
+    }
+
 }
 
+// 变量名跟变量的显示名相同
+#define PRINT_ENTRY(name) print_entry(os, m_id, #name, name)
+
+
+STAT_DECL\
+(
+ // 下边这些输出应该用宏简化一下。
+ void
+ SpmtThread::report_stat(ostream& os)
+ {
+     os << '#' << m_id << '\t' << "spec msg sent" << '\t' << m_count_spec_msgs_sent << '\n';
+     os << '#' << m_id << '\t' << "spec msg used" << '\t' << m_count_spec_msgs_used << '\n';
+     os << '#' << m_id << '\t' << "verify all" << '\t' << m_count_verify_all << '\n';
+
+     PRINT_ENTRY(m_count_verify_ok);
+     PRINT_ENTRY(m_count_verify_fail);
+     PRINT_ENTRY(m_count_verify_empty);
+
+     os << '#' << m_id << '\t' << "rvp count" << '\t' << m_count_rvp << '\n';
+
+     PRINT_ENTRY(m_count_cert_cycle);
+     PRINT_ENTRY(m_count_spec_cycle);
+     PRINT_ENTRY(m_count_rvp_cycle);
+
+     PRINT_ENTRY(m_count_busy_cycle);
+     PRINT_ENTRY(m_count_idle_cycle);
+ }
+ ) // STAT_CODE
 
 void
 SpmtThread::commit_effect(Effect* effect)
@@ -794,6 +817,7 @@ SpmtThread::verify_speculation(Message* certain_msg)
     if (m_spec_msg_queue.begin() == m_iter_next_spec_msg) {
 
         MINILOG(verify_logger, "#" << m_id << " VERIFY empty." << " cert: " << certain_msg);
+        m_count_verify_empty++;
 
         if (g_is_async_msg(certain_msg)) {
             assert(m_iter_next_spec_msg == m_spec_msg_queue.begin());
@@ -847,6 +871,7 @@ SpmtThread::verify_speculation(Message* certain_msg)
     if (success) {
         MINILOG(verify_logger, "#" << m_id <<
                 " VERIFY ok." << " cert: " << certain_msg << " spec: " << spec_msg);
+        m_count_verify_ok++;
 
         m_spec_msg_queue.pop_front();
 
@@ -874,6 +899,7 @@ SpmtThread::verify_speculation(Message* certain_msg)
     else {
         MINILOG(verify_logger, "#" << m_id <<
                 " VERIFY error." << " cert: " << certain_msg << " spec: " << spec_msg);
+        m_count_verify_fail++;
 
         abort_uncertain_execution();
 

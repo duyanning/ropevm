@@ -196,25 +196,31 @@ private:
 
     //--------------------------------------------
 
-    // for stat
 public:
-    void report_stat(std::ostream& os);
-
-    // for debugging
+    STAT_DECL\
+    (
+     void report_stat(std::ostream& os);
+     ) // STAT_DECL
 
 private:
-    long long m_count_spec_msgs_sent;
-    long long m_count_spec_msgs_used;
-    long long m_count_verify_all;
-    long long m_count_verify_ok;
-    long long m_count_verify_fail;
-    long long m_count_verify_empty;
-    long long m_count_rvp;
-    long long m_count_certain_instr;
-    long long m_count_spec_instr;
-    long long m_count_rvp_instr;
-    long long m_count_step;
-    long long m_count_idle;
+    STAT_DECL                                   \
+    (
+     long long m_count_spec_msgs_sent;
+     long long m_count_spec_msgs_used;
+     long long m_count_verify_all;
+
+     long long m_count_verify_ok; // 验证成功次数
+     long long m_count_verify_fail; // 验证失败次数（不含无待验证消息的情况）
+     long long m_count_verify_empty; // 验证时无待验证消息的次数
+
+     long long m_count_rvp;
+     long long m_count_cert_cycle;
+     long long m_count_spec_cycle;
+     long long m_count_rvp_cycle;
+
+     long long m_count_busy_cycle; // 繁忙的周期数
+     long long m_count_idle_cycle; // 空闲的周期数
+     ); // STAT_DECL
 };
 
 
