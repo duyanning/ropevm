@@ -19,8 +19,7 @@ Statistic::instance()
 
 Statistic::Statistic()
 :
-    m_enabled(true),
-    m_certain_instr_count(0)
+    m_enabled(true)
 {
 }
 
@@ -29,7 +28,7 @@ Statistic::report_stat(ostream& os)
 {
     os << "\n";
     os << "statistic:\n";
-    os << "(certain mode)instructions: " << m_certain_instr_count << endl;
+    //os << "cycles: " << m_certain_instr_count << endl;
 }
 
 void
@@ -38,7 +37,7 @@ Statistic::probe_instr_exec(int opcode)
     if (not m_enabled)
         return;
 
-    m_certain_instr_count++;
+    //m_certain_instr_count++;
 }
 
 

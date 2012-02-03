@@ -18,7 +18,7 @@ public:
 private:
     bool m_enabled;
     static Statistic* m_instance;
-    long long m_certain_instr_count;
+    //long long m_certain_instr_count;
 
 };
 

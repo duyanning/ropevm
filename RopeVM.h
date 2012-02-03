@@ -13,6 +13,7 @@ public:
     SpmtThread* create_spmt_thread();
 
 
+    void output_summary();
     void dump_rope_params();    // 输出与rope相关的参数信息
 
     static RopeVM* instance();
@@ -53,7 +54,8 @@ private:
 
     // stat
 public:
-    long long m_count_control_transfer;
+    //long long m_count_control_transfer;
+    long long m_certain_instr_count;
     void report_stat(std::ostream& os);
 };
 

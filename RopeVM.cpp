@@ -29,7 +29,7 @@ RopeVM::RopeVM()
     pthread_mutex_init(&m_lock, 0);
 
     // stat
-    m_count_control_transfer = 0;
+    //m_count_control_transfer = 0;
 }
 
 // RopeVM::~RopeVM()
@@ -96,10 +96,10 @@ void initialiseJvm(InitArgs *args)
 void
 RopeVM::report_stat(std::ostream& os)
 {
-    Statistic::instance()->report_stat(os);
+    //Statistic::instance()->report_stat(os);
 
-    os << "JVM" << '\t' << "spmt thread count" << '\t' << m_sts.size()-4 << '\n';
-    os << "JVM" << '\t' << "control transfer" << '\t' << m_count_control_transfer << '\n';
+    // os << "JVM" << '\t' << "spmt thread count" << '\t' << m_sts.size()-4 << '\n';
+    // os << "JVM" << '\t' << "control transfer" << '\t' << m_count_control_transfer << '\n';
 
     for (vector<SpmtThread*>::iterator i = m_sts.begin(); i != m_sts.end(); ++i) {
         SpmtThread* st = *i;
@@ -174,4 +174,14 @@ RopeVM::dump_rope_params()
     PRINT_ENTRY(support_spec_safe_native);
     PRINT_ENTRY(support_spec_barrier);
     PRINT_ENTRY(support_self_read);
+}
+
+
+void
+RopeVM::output_summary()
+{
+    dump_rope_params();
+    cout<< "\n";
+    cout << "statistic:\n";
+    cout << "cycles: " << m_certain_instr_count << endl;
 }

@@ -43,16 +43,14 @@ SpmtThread::SpmtThread(int id)
     m_iter_next_spec_msg = m_spec_msg_queue.begin();
 
     STAT_CODE(
-              m_count_spec_msgs_sent = 0;
-              m_count_spec_msgs_used = 0;
-              m_count_verify_all = 0;
               m_count_verify_ok = 0;
               m_count_verify_fail = 0;
               m_count_verify_empty = 0;
-              m_count_rvp = 0;
+
               m_count_cert_cycle = 0;
               m_count_spec_cycle = 0;
               m_count_rvp_cycle = 0;
+
               m_count_busy_cycle = 0;
               m_count_idle_cycle = 0;
               ) // STAT_CODE
@@ -216,9 +214,6 @@ SpmtThread::switch_to_speculative_mode()
 void
 SpmtThread::switch_to_rvp_mode()
 {
-    // stat
-    m_count_rvp++;
-
     switch_to_mode(&m_rvp_mode);
 }
 
@@ -346,37 +341,29 @@ namespace {
     void
     print_entry(ostream& os, int id, const char* name, T val)
     {
-        os << '#' << id << '\t' << name << '\t' << val << '\n';
+        os << '#' << id << '\t' << name << "\t" << val << '\n';
     }
 
 }
 
 // 变量名跟变量的显示名相同
-#define PRINT_ENTRY(name) print_entry(os, m_id, #name, name)
-
+#define PRINT_ENTRY(name) print_entry(os, m_id, #name, m_ ## name)
 
 STAT_DECL\
 (
- // 下边这些输出应该用宏简化一下。
  void
  SpmtThread::report_stat(ostream& os)
  {
-     os << '#' << m_id << '\t' << "spec msg sent" << '\t' << m_count_spec_msgs_sent << '\n';
-     os << '#' << m_id << '\t' << "spec msg used" << '\t' << m_count_spec_msgs_used << '\n';
-     os << '#' << m_id << '\t' << "verify all" << '\t' << m_count_verify_all << '\n';
+     PRINT_ENTRY(count_verify_ok);
+     PRINT_ENTRY(count_verify_fail);
+     PRINT_ENTRY(count_verify_empty);
 
-     PRINT_ENTRY(m_count_verify_ok);
-     PRINT_ENTRY(m_count_verify_fail);
-     PRINT_ENTRY(m_count_verify_empty);
+     PRINT_ENTRY(count_cert_cycle);
+     PRINT_ENTRY(count_spec_cycle);
+     PRINT_ENTRY(count_rvp_cycle);
 
-     os << '#' << m_id << '\t' << "rvp count" << '\t' << m_count_rvp << '\n';
-
-     PRINT_ENTRY(m_count_cert_cycle);
-     PRINT_ENTRY(m_count_spec_cycle);
-     PRINT_ENTRY(m_count_rvp_cycle);
-
-     PRINT_ENTRY(m_count_busy_cycle);
-     PRINT_ENTRY(m_count_idle_cycle);
+     PRINT_ENTRY(count_busy_cycle);
+     PRINT_ENTRY(count_idle_cycle);
  }
  ) // STAT_CODE
 

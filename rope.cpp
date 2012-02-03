@@ -319,27 +319,20 @@ int main(int argc, char *argv[])
     /* Wait for all but daemon threads to die */
     mainThreadWaitToExitVM();
 
+    // 输出汇总信息
+    RopeVM::instance()->output_summary();
 
-    RopeVM::instance()->dump_rope_params();
-    // std::cout << "\n=================================\n"
-    //           << "model: " << RopeVM::model << ", log: " << args.do_log << "\n"
-    //           << "support_invoker_execute: " << RopeVM::support_invoker_execute << "\n"
-    //           << "support_irrevocable: " << RopeVM::support_irrevocable << "\n"
-    //           << "support_spec_safe_native: " << RopeVM::support_spec_safe_native << "\n"
-    //           << "support_spec_barrier: " << RopeVM::support_spec_barrier << "\n"
-    //           << "support_self_read: " << RopeVM::support_self_read << "\n";
-
-
-    //{{{ statistic
-    Statistic::instance()->report_stat(std::cout);
-
+    // 输出profile信息
+    /// 确定profile文件名
     std::stringstream ssfilename;
-    ssfilename << "stat-report-model" << RopeVM::model << ".txt";
-
+    //ssfilename << "stat-report-model" << RopeVM::model << ".txt";
+    ssfilename << "profile.txt";
+    /// 输出至该文件
     std::ofstream ofs(ssfilename.str());
     RopeVM::instance()->report_stat(ofs);
     ofs << std::endl;
-    //}}} statistic
+
+
 
     exitVM(status);
 }
