@@ -1,38 +1,24 @@
-* 程序
-bh: bh-revised，针对不同输入规模测了两次。
-em3d: em3d-revised2，针对节点间不同程度的怜惜程度，做了三个测试，节点数目没有变化。
-health: health-revised，针对不同级别测了一下，并没有考虑是否把医院跟村庄看作一个整体进行对比的问题。
-power
-treeadd: treeadd-revised(每个节点一个core)， treeadd-revised3(左右子树各一个core)
-
 * health
-一个版本（health-revised），两种不同输入
+health-1-1：health-revised，两级
+health-1-2：health-revised，三级
+
 或许还可加上village与hospital不同组的版本。
 
-health-1-1 两级
-health-1-2 三级
-
 * em3d
-同一版本（em3d-revised4），三种不同输入
+em3d-1-1：em3d-revised4
+em3d-1-2：em3d-revised4
+em3d-1-3：em3d-revised4
 
-em3d-1-1 度为
-em3d-1-2
-em3d-1-3
+节点的度不同。
 
 * power
-一个版本（power-revised），一种输入
-
-power1-1
+power-1-1：power-revised
 
 * bh
-一个版本（bh-revised），一种输入
-
-bh-1-1
+bh-1-1：bh-revised
 
 * treeadd
 两个版本，相同的输入
-版本1： treeadd-revised
-版本2： treeadd-revised3
+treeadd-1-1：treeadd-revised，每个结点独立成组
+treeadd-2-1：treeadd-revised3，左右子树各一个组
 
-treeadd-1-1
-treeadd-2-1
