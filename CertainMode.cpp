@@ -129,6 +129,16 @@ CertainMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
 {
     assert(target_object);
 
+    STAT_CODE\
+        (
+         // if (debug_scaffold::java_main_arrived
+         //     //and is_app_obj(mb->classobj)) {
+         //     ) {
+         //     RopeVM::instance()->m_certain_instr_count++;
+         // }
+
+         ) // STAT_CODE
+
     MINILOG_IF((m_st->m_id == 0 or m_st->m_id >= 5), order_logger, "invoke " << new_mb);
 
     frame->last_pc = pc;
