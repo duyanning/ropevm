@@ -35,9 +35,9 @@ MiniLogger c_new_logger(cout, true, &c_logger);
 MiniLogger c_pop_frame_logger(cout, true, &c_logger);
 
 
-MiniLogger s_logger(cout, false);
+MiniLogger s_logger(cout, true);
 MiniLogger s_new_logger(cout, false, &s_logger);
-MiniLogger s_push_frame_logger(cout, true, &s_logger);
+MiniLogger s_push_frame_logger(cout, false, &s_logger);
 MiniLogger s_pop_frame_logger(cout, true, &s_logger);
 
 MiniLogger r_logger(cout, false);
@@ -47,9 +47,9 @@ MiniLogger r_pop_frame_logger(cout, true, &r_logger);
 
 MiniLogger step_loop_in_out_logger(cout, true);
 
-MiniLogger snapshot_logger(cout, false); // 只用来控制下级logger，不用来输出
+MiniLogger snapshot_logger(cout, true); // 只用来控制下级logger，不用来输出
 MiniLogger snapshot_take_logger(cout, true, &snapshot_logger);
-MiniLogger snapshot_take_pin_logger(cout, false, &snapshot_take_logger);
+MiniLogger snapshot_take_pin_logger(cout, true, &snapshot_take_logger);
 MiniLogger snapshot_commit_logger(cout, true, &snapshot_logger);
 MiniLogger snapshot_discard_logger(cout, true, &snapshot_logger);
 
