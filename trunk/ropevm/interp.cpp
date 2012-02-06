@@ -46,7 +46,9 @@ Mode::fetch_and_interpret_an_instruction()
     STAT_CODE\
         (
          // 每条指令的周期数先按1算，后边针对一些特别的指令再进行调整。
-         if (debug_scaffold::java_main_arrived and is_app_obj(mb->classobj)) {
+         if (debug_scaffold::java_main_arrived
+             and is_app_obj(mb->classobj)) {
+             //) {
              if (m_st->is_certain_mode()) {
                  m_st->m_count_cert_cycle++;
                  //Statistic::instance()->probe_instr_exec(*pc);
