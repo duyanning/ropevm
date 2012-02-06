@@ -456,6 +456,14 @@ SpmtThread::resume_suspended_spec_execution()
 void
 SpmtThread::start_afresh_spec_execution()
 {
+    // 开始全新的推测执行，必然是从确定控制离开的地方开始
+    // 以只有对frame的赋值有意义，而对pc和sp的赋值无意义
+    //m_spec_mode.pc = m_certain_mode.pc;
+    m_spec_mode.pc = 0;
+    m_spec_mode.frame = m_certain_mode.frame;
+    //m_spec_mode.sp = m_certain_mode.sp;
+    m_spec_mode.sp = 0;
+
     m_spec_running_state = RunningState::ongoing;
 }
 
@@ -888,6 +896,11 @@ SpmtThread::verify_speculation(Message* certain_msg)
                 " VERIFY error." << " cert: " << certain_msg << " spec: " << spec_msg);
         m_count_verify_fail++;
 
+        if (m_id == 5) {
+            int x = 0;
+            x++;
+        }
+
         abort_uncertain_execution();
 
         // 验证失败时，如果确定消息是个异步消息，那么它有可能在队列中。从队列中移除（但不销毁）。
@@ -1011,6 +1024,10 @@ SpmtThread::launch_next_spec_msg()
     // 在处理新的推测之前对处理上一消息形成的状态进行快照
     take_snapshot(false);
 
+    // 使用的新推测消息并不会影响当前栈桢，所以不用钉住当前栈桢
+    // pin_frames();
+
+
     // 使下一个待处理消息成为当前消息
     m_current_spec_msg = *m_iter_next_spec_msg++;
 
@@ -1034,6 +1051,9 @@ SpmtThread::launch_spec_msg(Message* msg)
     // 在处理新的推测之前对处理上一消息形成的状态进行快照
     take_snapshot(true);
 
+    // 使用的新推测消息会影响当前栈桢，所以得钉住当前栈桢
+    pin_frames();
+
     m_current_spec_msg = msg;
 
     assert(not g_is_async_msg(m_current_spec_msg));
@@ -1053,6 +1073,8 @@ SpmtThread::launch_spec_msg(Message* msg)
 void
 SpmtThread::pin_frames()
 {
+    assert(m_spec_mode.frame);  // 该frame因使用推测消息而被钉住
+
     Frame* f = m_spec_mode.frame;
 
     for (;;) {
@@ -1112,7 +1134,7 @@ SpmtThread::take_snapshot(bool pin)
         snapshot->frame = m_spec_mode.frame;
         snapshot->sp = m_spec_mode.sp;
 
-        pin_frames();
+        //pin_frames();
     }
 
     MINILOG(snapshot_take_logger, "#" << m_id << " freeze " << snapshot);

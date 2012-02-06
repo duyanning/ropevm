@@ -7,7 +7,7 @@ result/speedups.txt: $(addsuffix /speedup.txt, $(DIRS))
 	done
 	@for i in $(?D); do								\
 		cd $$i;										\
-		rm ../result/$$i-profile.txt;				\
+		rm -rf ../result/$$i-profile.txt;				\
 		cp profile.txt ../result/$$i-profile.txt;	\
 		cd ..;										\
 	done

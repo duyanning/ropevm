@@ -101,8 +101,8 @@ class TreeNode
         if (right != null) total += right.addTree();
         return total;
     }
-    // int __rvp__addTree()
-    // {
-    //     return 0;
-    // }
+    int __rvp__addTree()
+    {
+        return 0;
+    }
 }
