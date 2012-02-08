@@ -52,3 +52,5 @@
 // ropevm stuff
 #include "MiniLogger.h"
 #include "Stat.h"
+#include "DebugScaffold.h"
+

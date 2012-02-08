@@ -1,0 +1,7 @@
+model=3
+log=0
+support_invoker_execute=1
+support_irrevocable=1
+support_spec_safe_native=1
+support_spec_barrier=0
+support_self_read=1
