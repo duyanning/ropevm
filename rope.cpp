@@ -303,7 +303,7 @@ int main(int argc, char *argv[])
 
         /* Call the main method */
         if(i == argc) {
-            debug_scaffold::java_main_arrived = true;
+            java_main_arrived = true;
 
             DummyFrame dummy;
             executeStaticMethod(&dummy, main_class, mb, array);

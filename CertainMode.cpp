@@ -312,7 +312,7 @@ CertainMode::push_frame(Object* object, MethodBlock* new_mb, uintptr_t* args,
 void
 CertainMode::pop_frame(Frame* frame)
 {
-    MINILOG_IF(debug_scaffold::java_main_arrived && is_app_obj(frame->mb->classobj),
+    MINILOG_IF(java_main_arrived && is_app_obj(frame->mb->classobj),
                c_pop_frame_logger, "#" << m_st->id()
                << " (C) destroy frame " << frame);
 

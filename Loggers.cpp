@@ -74,6 +74,8 @@ MiniLogger r_exception_logger(cout, true);
 
 MiniLogger free_frames_logger(cout, false);
 
+// 记录leader入主spmt线程
+MiniLogger leader_logger(cout, true);
 
 //-------------------------------------------------------------------
 void initialiseLoggers(InitArgs *args)

@@ -1,0 +1,5 @@
+APP=Em3d
+
+PARMS='-n 10 -d 3 -m -p -i 50'
+
+

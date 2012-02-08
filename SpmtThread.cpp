@@ -83,6 +83,10 @@ void
 SpmtThread::set_leader(Object* leader)
 {
     m_leader = leader;
+    MINILOG(leader_logger, "#" << id() << " set leader "
+            << (p ? (void*)leader : "(omitted)")
+            << " " << leader->classobj->name());
+
 }
 
 
@@ -273,7 +277,7 @@ SpmtThread::pop_frame(Frame* frame)
 void
 SpmtThread::unwind_frame(Frame* frame)
 {
-    MINILOG_IF(debug_scaffold::java_main_arrived && is_app_obj(frame->mb->classobj),
+    MINILOG_IF(java_main_arrived && is_app_obj(frame->mb->classobj),
                unwind_frame_logger, "#" << m_id
                << " unwind frame " << frame);
 
@@ -951,6 +955,15 @@ SpmtThread::before_alloc_object()
 void
 SpmtThread::after_alloc_object(Object* obj)
 {
+    // DEBUG_CODE\
+    //     (
+         if (strcmp(obj->classobj->name(), "Node") == 0) {
+             //assert(false);
+             int x = 0;
+             x++;
+         }
+         // ) // DEBUG_CODE
+
     m_mode->after_alloc_object(obj);
 }
 
