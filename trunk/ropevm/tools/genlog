@@ -1,5 +1,7 @@
 #!/bin/bash
 
+log=1
+
 ropejavac > log-model-$model.txt  2>&1
 
 echo model: $model
