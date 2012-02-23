@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+
+java -cp olscOutput Health -l 5 -t 500 -s 1 -m
+

@@ -166,6 +166,8 @@ namespace {
 void
 RopeVM::dump_rope_params()
 {
+    // 注意：以support_打头的变量值未必等于同名的环境变量的值，它们的取值还与model的取值有关。
+    // 参考函数initialiseJvm
     cout << "\n" << setw(40) << setfill('=') << "\n" << setfill(' ');
     PRINT_ENTRY(model);
     print_entry("log", m_logger_enabled);

@@ -40,7 +40,7 @@ extern MiniLogger rvp_logger;
 extern MiniLogger switch_mode_logger;
 extern MiniLogger unwind_frame_logger;
 extern MiniLogger leader_logger;
-
+extern MiniLogger break_logger;
 
 extern bool p;
 

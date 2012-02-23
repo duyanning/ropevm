@@ -13,6 +13,7 @@
 #include "DebugScaffold.h"
 #include "frame.h"
 #include "Break.h"
+#include "Loggers.h"
 
 #define THROW_EXCEPTION(excep_name, message)    \
     {                                           \
@@ -1850,6 +1851,11 @@ Mode::fetch_and_interpret_an_instruction()
         pc = pc_before_interpretation;
         frame = frame_before_interpretation;
         sp = sp_before_interpretation;
+
+        MINILOG(break_logger, "#" << m_st->id()
+                << " " << tag()
+                << " pc=" << (void*)pc << " frame=" << (void*)frame << " sp=" << (void*)sp);
+
 
     }
 

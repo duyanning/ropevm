@@ -2,7 +2,9 @@
 health-1-1：health-revised，两级
 health-1-2：health-revised，三级
 
-或许还可加上village与hospital不同组的版本。
+village与hospital不同组的版本:
+health-2-1：health-revised，两级
+health-2-2：health-revised，三级
 
 * em3d
 共用随机数发生器、随机数关闭：

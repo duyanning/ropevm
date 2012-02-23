@@ -1179,6 +1179,10 @@ SpmtThread::on_event_top_invoke(InvokeMsg* msg)
 void
 SpmtThread::on_event_top_return(ReturnMsg* return_msg)
 {
+    assert(is_certain_mode());
+
+    abort_uncertain_execution();
+
     // 方法重入会导致这些东西改变，所以需要按消息中的重新设置。
     m_certain_mode.pc = return_msg->caller_pc;
     m_certain_mode.frame = return_msg->caller_frame;

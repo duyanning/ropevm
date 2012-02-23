@@ -1,4 +1,6 @@
-; -*- mode: org;-*-
+-*- mode: org;-*-
+为了方便阅读，请在emacs下启用org模式
+
 * 安装GNU Classpath 0.97.2
 ./configure --disable-Werror --disable-gtk-peer --disable-gconf-peer --disable-plugin
 make
