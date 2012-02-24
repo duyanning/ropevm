@@ -32,6 +32,15 @@ Mode::get_name()
 
 
 void
+Mode::reset_context()
+{
+    pc = 0;
+    frame = 0;
+    sp = 0;
+}
+
+
+void
 Mode::set_st(SpmtThread* st)
 {
     m_st = st;

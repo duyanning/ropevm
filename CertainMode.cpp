@@ -283,6 +283,8 @@ CertainMode::do_method_return(int len)
         m_st->send_msg(return_msg);
 
         m_st->m_spec_running_state = RunningState::ongoing_but_need_launch_new_msg;
+        m_st->m_spec_mode.reset_context();
+
     }
 
 }
