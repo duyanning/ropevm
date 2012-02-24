@@ -186,6 +186,7 @@ SpecMode::do_method_return(int len)
 
         // 需要加载下一条待处理消息
         m_st->m_spec_running_state = RunningState::ongoing_but_need_launch_new_msg;
+        reset_context();
     }
 }
 

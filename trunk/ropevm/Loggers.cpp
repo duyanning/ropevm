@@ -72,7 +72,8 @@ MiniLogger c_exception_logger(cout, false);
 MiniLogger s_exception_logger(cout, false);
 MiniLogger r_exception_logger(cout, true);
 
-MiniLogger free_frames_logger(cout, false);
+// 释放栈桢所占内存时
+MiniLogger free_frames_logger(cout, true);
 
 // 记录leader入主spmt线程
 MiniLogger leader_logger(cout, true);

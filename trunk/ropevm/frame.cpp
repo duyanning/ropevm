@@ -2,6 +2,8 @@
 #include "rope.h"
 #include "thread.h"
 #include "SpmtThread.h"
+#include "Loggers.h"
+#include "Helper.h"
 
 using namespace std;
 
@@ -188,6 +190,11 @@ g_create_frame(SpmtThread* owner, Object* object, MethodBlock* new_mb, uintptr_t
 void
 g_destroy_frame(Frame* frame)
 {
+    MINILOG_IF((java_main_arrived and is_app_obj(frame->mb->classobj)),
+               free_frames_logger,
+               "#" << g_get_current_spmt_thread()->id()
+               << " delete frame=" << (void*)frame);
+
     delete frame;
     //frame->magic = 2009; // only mark dead, do not delete for debug purpose
 }

@@ -702,6 +702,7 @@ SpmtThread::discard_revoked_msg(RoundTripMsg* revoked_msg)
 
         // 表明推测执行需要加载推测消息（因为收回消息把人家正在处理的消息下马了）
         m_spec_running_state = RunningState::ongoing_but_need_launch_new_msg;
+        m_spec_mode.reset_context();
 
     }
 }
@@ -1415,6 +1416,7 @@ SpmtThread::process_exception(Object* excep, Frame* excep_frame)
             unwind_frame(current_frame);
 
             m_spec_running_state = RunningState::ongoing_but_need_launch_new_msg;
+            m_spec_mode.reset_context();
 
             return;
         }
