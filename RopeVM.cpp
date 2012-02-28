@@ -23,9 +23,7 @@ RopeVM::instance()
 RopeVM::RopeVM()
 :
     m_logger_enabled(true),
-    m_logger_enabled_backdoor(true),
-    m_probe_enabled(true)
-
+    m_logger_enabled_backdoor(true)
 {
     pthread_mutex_init(&m_lock, 0);
 
@@ -73,6 +71,7 @@ RopeVM::create_spmt_thread()
 }
 
 
+bool RopeVM::probe_enabled;
 int RopeVM::model;
 bool RopeVM::support_invoker_execute;
 bool RopeVM::support_irrevocable;
@@ -169,14 +168,14 @@ RopeVM::turn_off_log_backdoor()
 void
 RopeVM::turn_on_probe()
 {
-    m_probe_enabled = true;
+    probe_enabled = true;
 }
 
 
 void
 RopeVM::turn_off_probe()
 {
-    m_probe_enabled = false;
+    probe_enabled = false;
 }
 
 
@@ -224,6 +223,9 @@ RopeVM::output_summary()
 bool
 g_should_enable_probe(MethodBlock* mb)
 {
+    if (not RopeVM::probe_enabled)
+        return false;
+
     if (not java_main_arrived)
         return false;
 

@@ -43,7 +43,7 @@ public:
     bool m_logger_enabled;      // 虚拟机是否开启日志功能
     bool m_logger_enabled_backdoor; // java程序通过后门控制虚拟机是否开启日志功能
 
-    bool m_probe_enabled;
+    static bool probe_enabled;
 
 protected:
     RopeVM();
