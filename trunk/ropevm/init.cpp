@@ -10,6 +10,7 @@ void
 use_env_args(InitArgs *args)
 {
     args->do_log = get_bool(getenv("log"), "1");
+    args->do_probe = get_bool(getenv("probe"), "1");
     args->model = get_int(getenv("model"), "3");
     args->support_invoker_execute = get_bool(getenv("support_invoker_execute"), "1");
     args->support_irrevocable = get_bool(getenv("support_irrevocable"), "1");
