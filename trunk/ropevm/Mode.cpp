@@ -11,7 +11,6 @@
 #include "jni.h"
 
 #include "Message.h"
-#include "Statistic.h"
 
 using namespace std;
 

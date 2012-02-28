@@ -1,10 +1,10 @@
 public class RopeVMBackdoor {
     // 开关统计
-    public static void turn_on_statistic()
+    public static void turn_on_probe()
     {
     }
 
-    public static void turn_off_statistic()
+    public static void turn_off_probe()
     {
     }
 

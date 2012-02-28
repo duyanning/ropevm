@@ -9,7 +9,6 @@
 #include "RopeVM.h"
 #include "interp-indirect.h"
 #include "Helper.h"
-#include "Statistic.h"
 #include "DebugScaffold.h"
 #include "frame.h"
 #include "Break.h"
@@ -47,7 +46,7 @@ Mode::fetch_and_interpret_an_instruction()
     STAT_CODE\
         (
          // 每条指令的周期数先按1算，后边针对一些特别的指令再进行调整。
-         if (g_should_enable_stat(mb)) {
+         if (g_should_enable_probe(mb)) {
              if (m_st->is_certain_mode()) {
                  m_st->m_count_cert_cycle++;
                  //Statistic::instance()->probe_instr_exec(*pc);
@@ -1582,17 +1581,17 @@ Mode::fetch_and_interpret_an_instruction()
                     return;
                 }
 
-                if (new_mb->name == SYMBOL(turn_on_statistic)) {
-                    Statistic::instance()->turn_on_statistic();
+                if (new_mb->name == SYMBOL(turn_on_probe)) {
+                    RopeVM::instance()->turn_on_probe();
                 }
-                else if (new_mb->name == SYMBOL(turn_off_statistic)) {
-                    Statistic::instance()->turn_off_statistic();
+                else if (new_mb->name == SYMBOL(turn_off_probe)) {
+                    RopeVM::instance()->turn_off_probe();
                 }
                 else if (new_mb->name == SYMBOL(turn_on_log)) {
-                    RopeVM::instance()->turn_on_log_backdoor();
+                    RopeVM::instance()->turn_on_log();
                 }
                 else if (new_mb->name == SYMBOL(turn_off_log)) {
-                    RopeVM::instance()->turn_off_log_backdoor();
+                    RopeVM::instance()->turn_off_log();
                 }
 
                 pc +=  3;

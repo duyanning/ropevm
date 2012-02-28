@@ -6,7 +6,6 @@
 #include "frame.h"
 #include "thread.h"
 #include "DebugScaffold.h"
-#include "Statistic.h"
 #include "Helper.h"
 
 #ifdef USE_ZIP

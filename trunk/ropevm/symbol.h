@@ -64,8 +64,8 @@ extern const char* symbol_values[];
     action(RopeSpecSafe, "LRopeSpecSafe;"),                     \
     action(RopeSpecBarrier, "RopeSpecBarrier"),                 \
     action(RopeVMBackdoor, "RopeVMBackdoor"),                   \
-    action(turn_on_statistic, "turn_on_statistic"),             \
-    action(turn_off_statistic, "turn_off_statistic"),           \
+    action(turn_on_probe, "turn_on_probe"),                     \
+    action(turn_off_probe, "turn_off_probe"),                   \
     action(turn_on_log, "turn_on_log"),                         \
     action(turn_off_log, "turn_off_log"),                       \
                                                                 \
