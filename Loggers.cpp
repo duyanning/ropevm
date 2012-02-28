@@ -81,12 +81,12 @@ MiniLogger leader_logger(cout, true);
 MiniLogger break_logger(cout, true);
 
 //-------------------------------------------------------------------
-void initialiseLoggers(InitArgs *args)
-{
-    if (args->do_log) {
-        RopeVM::instance()->turn_on_log();
-    }
-    else {
-        RopeVM::instance()->turn_off_log();
-    }
-}
+// void initialiseLoggers(InitArgs *args)
+// {
+//     if (args->do_log) {
+//         RopeVM::instance()->turn_on_log();
+//     }
+//     else {
+//         RopeVM::instance()->turn_off_log();
+//     }
+// }

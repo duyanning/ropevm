@@ -2,7 +2,6 @@
 #include "rope.h"
 #include "RopeVM.h"
 #include "Helper.h"
-#include "Statistic.h"
 #include "thread.h"
 #include "SpmtThread.h"
 
@@ -24,7 +23,9 @@ RopeVM::instance()
 RopeVM::RopeVM()
 :
     m_logger_enabled(true),
-    m_logger_enabled_backdoor(true)
+    m_logger_enabled_backdoor(true),
+    m_probe_enabled(true)
+
 {
     pthread_mutex_init(&m_lock, 0);
 
@@ -82,6 +83,21 @@ bool RopeVM::support_self_read;
 
 void initialiseJvm(InitArgs *args)
 {
+    if (args->do_log) {
+        RopeVM::instance()->turn_on_log();
+    }
+    else {
+        RopeVM::instance()->turn_off_log();
+    }
+
+    if (args->do_probe) {
+        RopeVM::instance()->turn_on_probe();
+    }
+    else {
+        RopeVM::instance()->turn_off_probe();
+    }
+
+
     RopeVM::model = args->model;
     if (RopeVM::model < 3)      // 模型3以下，不支持这些特征。其值皆为false。
         return;
@@ -112,6 +128,7 @@ RopeVM::report_stat(std::ostream& os)
 void
 RopeVM::adjust_log_state()
 {
+    // 由两个变量共同控制，只要有一个为false，就不产生日志。
     MiniLogger::disable_all_loggers = not (m_logger_enabled and
                                            m_logger_enabled_backdoor);
 }
@@ -146,6 +163,20 @@ RopeVM::turn_off_log_backdoor()
 {
     m_logger_enabled_backdoor = false;
     adjust_log_state();
+}
+
+
+void
+RopeVM::turn_on_probe()
+{
+    m_probe_enabled = true;
+}
+
+
+void
+RopeVM::turn_off_probe()
+{
+    m_probe_enabled = false;
 }
 
 
@@ -186,4 +217,18 @@ RopeVM::output_summary()
     cout<< "\n";
     cout << "statistic:\n";
     cout << "cycles: " << m_certain_instr_count << endl;
+}
+
+
+// 只统计程序本身的代码，而不统计那庞大但未经并行化的标准库代码
+bool
+g_should_enable_probe(MethodBlock* mb)
+{
+    if (not java_main_arrived)
+        return false;
+
+    if (not is_app_obj(mb->classobj))
+        return false;
+
+    return true;
 }

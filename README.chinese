@@ -179,6 +179,15 @@ set env CLASSPATH=/home/duyanning/work/ropevm/classes:/home/duyanning/work/ropev
 set env model=3
 set env log=0
 
+** 虚拟机后门
+java代码中通往虚拟机的后门
+都是一些静态方法
+
+RopeVMBackdoor.turn_on_probe()
+RopeVMBackdoor.turn_off_probe()
+RopeVMBackdoor.turn_on_log()
+RopeVMBackdoor.turn_off_log()
+
 ** epmacs的设置
 例子：
 M-x epm-set-gdb-dir   jolden/health-revised

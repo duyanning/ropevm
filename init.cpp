@@ -21,6 +21,7 @@ use_env_args(InitArgs *args)
 /* Setup default values for command line args */
 void setDefaultInitArgs(InitArgs *args) {
     args->do_log = FALSE;
+    args->do_probe = TRUE;
     args->model = 3;
     args->support_invoker_execute = true;
     args->support_irrevocable = true;
@@ -62,7 +63,7 @@ int VMInitialising() {
 }
 
 void initVM(InitArgs *args) {
-    initialiseLoggers(args);
+    //initialiseLoggers(args);
     initialiseJvm(args);
     /* Perform platform dependent initialisation */
     initialisePlatform();
