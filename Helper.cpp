@@ -356,7 +356,7 @@ const char* opcode_name(int op)
 //     if (op >= sizeof opcode_names / sizeof opcode_names[0]) {
 //         cerr << "opcode is: " << op << endl;
 //     }
-    assert(op < sizeof opcode_names / sizeof opcode_names[0]);
+    assert((size_t)op < sizeof opcode_names / sizeof opcode_names[0]);
     return opcode_names[op];
 }
 

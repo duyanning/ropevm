@@ -22,4 +22,7 @@ private:
 
 };
 
+class MethodBlock;
+extern bool g_should_enable_stat(MethodBlock* mb);
+
 #endif // STATISTIC_H
