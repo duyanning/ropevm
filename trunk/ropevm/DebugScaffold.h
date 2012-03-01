@@ -14,6 +14,6 @@ extern bool enable_debug;
 #define DEBUG_CODE(code) {}
 #endif
 
-extern bool java_main_arrived;
+extern bool is_client_code;
 
 #endif // DEBUGSCAFFOLD_H

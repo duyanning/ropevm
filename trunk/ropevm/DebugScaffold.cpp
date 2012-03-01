@@ -5,4 +5,4 @@
 bool enable_debug = true;
 //bool enable_debug = false;
 
-bool java_main_arrived = false;
+bool is_client_code = false;

@@ -20,8 +20,8 @@ public:
 
     void turn_on_log();
     void turn_off_log();
-    void turn_on_log_backdoor();
-    void turn_off_log_backdoor();
+    // void turn_on_log_backdoor();
+    // void turn_off_log_backdoor();
 
     void turn_on_probe();
     void turn_off_probe();
@@ -41,7 +41,7 @@ public:
     // 要开启日志功能，以下两者必须都为true
     // 用两个变量控制是为了：即便java程序中通过后门开启了日志，我们也可通过命令行或环境变量关闭日志。
     bool m_logger_enabled;      // 虚拟机是否开启日志功能
-    bool m_logger_enabled_backdoor; // java程序通过后门控制虚拟机是否开启日志功能
+    //bool m_logger_enabled_backdoor; // java程序通过后门控制虚拟机是否开启日志功能
 
     static bool probe_enabled;
 

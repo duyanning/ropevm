@@ -302,7 +302,7 @@ int main(int argc, char *argv[])
 
         /* Call the main method */
         if(i == argc) {
-            java_main_arrived = true;
+            is_client_code = true; // 这个名字得改一下：in_java_main
 
             DummyFrame dummy;
             executeStaticMethod(&dummy, main_class, mb, array);
@@ -331,7 +331,7 @@ int main(int argc, char *argv[])
     RopeVM::instance()->report_stat(ofs);
     ofs << std::endl;
 
-
+    is_client_code = false;
 
     exitVM(status);
 }

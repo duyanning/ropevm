@@ -33,16 +33,26 @@ public class TreeAdd
         preloadClasses();
         parseCmdLine(args);
 
+        RopeSpecBarrier.set();
+        RopeVMBackdoor.turn_on_probe();
+
         //long start0 = System.currentTimeMillis();
         Tree left = new Tree(levels - 1);
         Tree right = new Tree(levels - 1);
         TreeNode root = new TreeNode(left, right);
         //long end0 = System.currentTimeMillis();
 
+        RopeSpecBarrier.set();
+        RopeVMBackdoor.turn_off_probe();
+        // RopeVMBackdoor.turn_on_probe();
 
         //long start1 = System.currentTimeMillis();
         int result = root.addTree();
         //long end1 = System.currentTimeMillis();
+
+        // RopeSpecBarrier.set();
+        // RopeVMBackdoor.turn_off_probe();
+
 
         if (printResult || printMsgs)
             System.out.println("Received results of tree " + result);
@@ -58,6 +68,9 @@ public class TreeAdd
     static void preloadClasses()
     {
         try {
+            Class.forName("RopeSpecBarrier");
+            Class.forName("RopeVMBackdoor");
+
             Class.forName("Tree");
             Class.forName("TreeNode");
         }

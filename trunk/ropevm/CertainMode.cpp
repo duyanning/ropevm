@@ -131,7 +131,7 @@ CertainMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
 
     STAT_CODE\
         (
-         // if (debug_scaffold::java_main_arrived
+         // if (debug_scaffold::is_client_code
          //     //and is_app_obj(mb->classobj)) {
          //     ) {
          //     RopeVM::instance()->m_certain_instr_count++;
@@ -314,7 +314,7 @@ CertainMode::push_frame(Object* object, MethodBlock* new_mb, uintptr_t* args,
 void
 CertainMode::pop_frame(Frame* frame)
 {
-    MINILOG_IF(java_main_arrived && is_app_obj(frame->mb->classobj),
+    MINILOG_IF(is_client_code && is_app_obj(frame->mb->classobj),
                c_pop_frame_logger, "#" << m_st->id()
                << " (C) destroy frame " << frame);
 

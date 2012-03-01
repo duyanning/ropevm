@@ -277,7 +277,7 @@ SpmtThread::pop_frame(Frame* frame)
 void
 SpmtThread::unwind_frame(Frame* frame)
 {
-    MINILOG_IF(java_main_arrived && is_app_obj(frame->mb->classobj),
+    MINILOG_IF(is_client_code && is_app_obj(frame->mb->classobj),
                unwind_frame_logger, "#" << m_id
                << " unwind frame " << frame);
 
@@ -767,7 +767,7 @@ SpmtThread::discard_effect(Effect* effect)
 void
 SpmtThread::abort_uncertain_execution()
 {
-    // MINILOG0_IF(debug_scaffold::java_main_arrived,
+    // MINILOG0_IF(debug_scaffold::is_client_code,
     //             "#" << id() << " discard uncertain execution");
 
     /*
