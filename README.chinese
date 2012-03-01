@@ -188,6 +188,8 @@ RopeVMBackdoor.turn_off_probe()
 RopeVMBackdoor.turn_on_log()
 RopeVMBackdoor.turn_off_log()
 
+model=3时，再调用这些方法前，必须设置推测路障。
+
 ** epmacs的设置
 例子：
 M-x epm-set-gdb-dir   jolden/health-revised
