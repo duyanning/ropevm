@@ -150,7 +150,7 @@ Mode::send_msg(Message* msg)
 void
 Mode::process_msg(Message* msg)
 {
-    // if (debug_scaffold::java_main_arrived &&
+    // if (debug_scaffold::is_client_code &&
     //     m_st->is_certain_mode()) {
     //     m_st->m_count_certain_instr++;
     //     Statistic::instance()->probe_instr_exec(0);

@@ -1499,7 +1499,7 @@ Class *findNonArrayClassFromClassLoader(char *classname, Object *loader) {
         {
             //Thread* this_thread = threadSelf();
             SpmtThread* current_st = g_get_current_spmt_thread();
-            // MINILOG0_IF(debug_scaffold::java_main_arrived,
+            // MINILOG0_IF(debug_scaffold::is_client_code,
             //             "#" << current_st->id() << " is to load class: " << dot_name);
         }
 

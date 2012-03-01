@@ -22,8 +22,8 @@ RopeVM::instance()
 
 RopeVM::RopeVM()
 :
-    m_logger_enabled(true),
-    m_logger_enabled_backdoor(true)
+    m_logger_enabled(true)//,
+    //m_logger_enabled_backdoor(true)
 {
     pthread_mutex_init(&m_lock, 0);
 
@@ -128,8 +128,9 @@ void
 RopeVM::adjust_log_state()
 {
     // 由两个变量共同控制，只要有一个为false，就不产生日志。
-    MiniLogger::disable_all_loggers = not (m_logger_enabled and
-                                           m_logger_enabled_backdoor);
+    // MiniLogger::disable_all_loggers = not (m_logger_enabled and
+    //                                        m_logger_enabled_backdoor);
+    MiniLogger::disable_all_loggers = not m_logger_enabled;
 }
 
 
@@ -149,20 +150,20 @@ RopeVM::turn_off_log()
 }
 
 
-void
-RopeVM::turn_on_log_backdoor()
-{
-    m_logger_enabled_backdoor = true;
-    adjust_log_state();
-}
+// void
+// RopeVM::turn_on_log_backdoor()
+// {
+//     m_logger_enabled_backdoor = true;
+//     adjust_log_state();
+// }
 
 
-void
-RopeVM::turn_off_log_backdoor()
-{
-    m_logger_enabled_backdoor = false;
-    adjust_log_state();
-}
+// void
+// RopeVM::turn_off_log_backdoor()
+// {
+//     m_logger_enabled_backdoor = false;
+//     adjust_log_state();
+// }
 
 
 void
@@ -226,11 +227,11 @@ g_should_enable_probe(MethodBlock* mb)
     if (not RopeVM::probe_enabled)
         return false;
 
-    if (not java_main_arrived)
+    if (not is_client_code)
         return false;
 
-    if (not is_app_obj(mb->classobj))
-        return false;
+    // if (not is_app_obj(mb->classobj))
+    //     return false;
 
     return true;
 }

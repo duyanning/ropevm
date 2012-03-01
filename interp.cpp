@@ -66,7 +66,7 @@ Mode::fetch_and_interpret_an_instruction()
 
 
     //{{{ just for debug
-    // if (debug_scaffold::java_main_arrived
+    // if (debug_scaffold::is_client_code
     //     && m_st->id() == 7
     //     //&& strcmp(frame->mb->name, "computeNewValue") == 0
     //     ) {
@@ -1576,22 +1576,37 @@ Mode::fetch_and_interpret_an_instruction()
                 return;
             }
             else if (new_mb->classobj->name() == SYMBOL(RopeVMBackdoor)) {
-                if (not m_st->is_certain_mode()) { // 只有确定模式可以开启或关闭统计
+
+                // 只有处于确定模式的线程才可以执行虚拟机后门操作，
+                // 处于推测模式或rvp模式的线程会忽略后门操作。
+                if (not m_st->is_certain_mode()) {
                     pc +=  3;
                     return;
                 }
 
+                // 注意！！！
+                // 如果推测执行经过并忽略了某后门方法调用，
+                // 若此后该推测执行被证明有效从而提交，
+                // 将导致确定执行直接越过该后门操作。
+                // 在这种情况下，确定线程压根不会碰到该后门方法调用。
+                // 为了避免这种情况发生，可在后门方法调用前设置推测路障
+                // （注意：推测路障功能首先得开启）
+
                 if (new_mb->name == SYMBOL(turn_on_probe)) {
                     RopeVM::instance()->turn_on_probe();
+                    std::cout << "backdoor: turn_on_probe\n";
                 }
                 else if (new_mb->name == SYMBOL(turn_off_probe)) {
                     RopeVM::instance()->turn_off_probe();
+                    std::cout << "backdoor: turn_off_probe\n";
                 }
                 else if (new_mb->name == SYMBOL(turn_on_log)) {
                     RopeVM::instance()->turn_on_log();
+                    std::cout << "backdoor: turn_on_log\n";
                 }
                 else if (new_mb->name == SYMBOL(turn_off_log)) {
                     RopeVM::instance()->turn_off_log();
+                    std::cout << "backdoor: turn_off_log\n";
                 }
 
                 pc +=  3;
