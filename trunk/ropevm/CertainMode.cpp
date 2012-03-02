@@ -245,6 +245,8 @@ CertainMode::do_method_return(int len)
 
         if (current_frame->is_top_frame()) {
 
+            // 因为推测模式下从顶级方法返回时，推测执行暂停，所以当确定模式下返回时要恢复推测执行为前进状态。
+            m_st->m_spec_running_state = RunningState::ongoing;
             m_st->signal_quit_drive_loop();
 
         }

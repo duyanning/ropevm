@@ -21,11 +21,8 @@ class ReturnMsg;
 class Snapshot;
 
 
-
-
-
-// 非确定模式下才会停机，确定模式是不会停机的。所以这些状态只对推测模式
-// 有意义。
+// 注意！！！所以这些状态都是指非确定模式的状态。
+// 非确定模式下才会停机，确定模式是不会停机的，所以确定模式无所谓状态。
 enum class RunningState {
     ongoing,                         // 推测执行进行中
     ongoing_but_need_launch_new_msg, // 推测执行进行中，但是需要加载新的异步消息
