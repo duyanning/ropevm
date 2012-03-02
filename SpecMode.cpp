@@ -147,7 +147,6 @@ SpecMode::do_method_return(int len)
 
     SpmtThread* target_st = current_frame->caller;
 
-    // 顶级方法因为调用方为原生代码
     if (target_st == m_st) {
 
         if (current_frame->is_top_frame()) {
