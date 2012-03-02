@@ -27,18 +27,19 @@ class Snapshot;
 // 非确定模式下才会停机，确定模式是不会停机的。所以这些状态只对推测模式
 // 有意义。
 enum class RunningState {
-    ongoing,                    // 推测执行进行中
+    ongoing,                         // 推测执行进行中
     ongoing_but_need_launch_new_msg, // 推测执行进行中，但是需要加载新的异步消息
-    halt_no_asyn_msg,                // 无异步消息，无法继续推测执行。（和ongoing_but_need_launch_new_msg并不重复，详见SpmtThread::add_spec_msg）
-    halt_no_syn_msg,                 // 无同步消息（即无返回值方法），无法继续推测执行
-    halt_cannot_signal_exception,    // 非确定模式不能抛出异常
-    halt_cannot_alloc_object,        // rvp模式不能产生新对象
-    halt_cannot_exec_native_method,  // 非确定模式不能执行native方法
+    halt_no_asyn_msg, // 无异步消息，无法继续推测执行。（和ongoing_but_need_launch_new_msg并不重复，详见SpmtThread::add_spec_msg）
+    halt_no_syn_msg, // 无同步消息（即无返回值方法），无法继续推测执行
+    halt_cannot_return_from_top_method,    // 推测模式不能从顶级方法返回（因为顶级方法的调用方是native代码）
+    halt_cannot_signal_exception,   // 非确定模式不能抛出异常
+    halt_cannot_alloc_object,       // rvp模式不能产生新对象
+    halt_cannot_exec_native_method, // 非确定模式不能执行native方法
     halt_cannot_exec_sync_method, // 非确定模式不能执行synchronized方法
-    halt_spec_barrier,                   // 遇到推测执行路障
-    halt_cannot_exec_method,             // 非确定模式不能execute_method
-    halt_worthless_to_execute,       // 时间太短，不值得推测执行
-    halt_model2_requirement          // 模型2
+    halt_spec_barrier,            // 遇到推测执行路障
+    halt_cannot_exec_method,      // 非确定模式不能execute_method
+    halt_worthless_to_execute,    // 时间太短，不值得推测执行
+    halt_model2_requirement       // 模型2
 };
 
 

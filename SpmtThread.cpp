@@ -131,6 +131,8 @@ operator<<(ostream& os, RunningState reason)
         os << "halt_no_asyn_msg";
     else if (reason == RunningState::halt_no_syn_msg)
         os << "halt_no_syn_msg";
+    else if (reason == RunningState::halt_cannot_return_from_top_method)
+        os << "halt_cannot_return_from_top_method";
     else if (reason == RunningState::halt_cannot_signal_exception)
         os << "halt_cannot_signal_exception";
     else if (reason == RunningState::halt_cannot_alloc_object)

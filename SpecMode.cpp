@@ -147,21 +147,27 @@ SpecMode::do_method_return(int len)
 
     SpmtThread* target_st = current_frame->caller;
 
+    // 顶级方法因为调用方为原生代码
     if (target_st == m_st) {
 
-        sp -= len;
-        uintptr_t* caller_sp = current_frame->caller_sp;
-        for (int i = 0; i < len; ++i) {
-            write(caller_sp++, read(&sp[i]));
+        if (current_frame->is_top_frame()) {
+            m_st->halt(RunningState::halt_cannot_return_from_top_method);
         }
+        else {
+            sp -= len;
+            uintptr_t* caller_sp = current_frame->caller_sp;
+            for (int i = 0; i < len; ++i) {
+                write(caller_sp++, read(&sp[i]));
+            }
 
 
-        frame = current_frame->prev;
-        sp = caller_sp;
-        pc = current_frame->caller_pc;
+            frame = current_frame->prev;
+            sp = caller_sp;
+            pc = current_frame->caller_pc;
 
-        pop_frame(current_frame);
-        pc += (*pc == OPC_INVOKEINTERFACE_QUICK ? 5 : 3);
+            pop_frame(current_frame);
+            pc += (*pc == OPC_INVOKEINTERFACE_QUICK ? 5 : 3);
+        }
 
     }
     else {
@@ -184,9 +190,11 @@ SpecMode::do_method_return(int len)
 
         m_st->send_msg(return_msg);
 
+
         // 需要加载下一条待处理消息
         m_st->m_spec_running_state = RunningState::ongoing_but_need_launch_new_msg;
         reset_context();
+
     }
 }
 
