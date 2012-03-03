@@ -114,7 +114,7 @@ public class Health
             Class.forName("List$ListNode");
         }
         catch (ClassNotFoundException e) {
-            System.out.println("forName fail" + e.toString());
+            System.out.println("forName cannot find: " + e);
         }
     }
 

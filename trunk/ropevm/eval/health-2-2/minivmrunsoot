@@ -1,5 +1,0 @@
-#!/usr/bin/env sh
-
-#minivm -cp sootOutput Health -l 5 -t 500 -s 1 -m
-minivm -cp sootOutput Health -l 1 -t 16 -s 1 -m
-
