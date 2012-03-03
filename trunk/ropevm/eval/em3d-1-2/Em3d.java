@@ -45,28 +45,44 @@ public class Em3d
      **/
     public static final void main(String args[])
     {
-        //RopeVMBackdoor.turn_off_statistic();
-        //RopeVMBackdoor.turn_off_log();
-
+        preloadClasses();
         parseCmdLine(args);
 
         if (printMsgs)
             System.out.println("Initializing em3d random graph...");
-        long start0 = System.currentTimeMillis();
-        BiGraph graph = new BiGraph(numNodes, numDegree, printResult);
-        long end0 = System.currentTimeMillis();
 
+        RopeVMBackdoor.turn_on_probe();
+        long start0 = 0;
+        if (printMsgs)
+            start0 = System.currentTimeMillis();
+
+        BiGraph graph = new BiGraph(numNodes, numDegree, printResult);
+
+        long end0 = 0;
+        if (printMsgs)
+            end0 = System.currentTimeMillis();
+        // RopeVMBackdoor.turn_off_probe();
+
+
+        // ================================================================
         // compute a single iteration of electro-magnetic propagation
         if (printMsgs)
             System.out.println("Propagating field values for " + numIter +
                                " iteration(s)...");
-        long start1 = System.currentTimeMillis();
-        //RopeVMBackdoor.turn_on_statistic();
-        //RopeVMBackdoor.turn_on_log();
+
+        // RopeVMBackdoor.turn_on_probe();
+        long start1 = 0;
+        if (printMsgs)
+            start1 = System.currentTimeMillis();
+
         for (int i = 0; i < numIter; i++) {
             graph.compute();
         }
-        long end1 = System.currentTimeMillis();
+
+        long end1 = 0;
+        if (printMsgs)
+            end1 = System.currentTimeMillis();
+        RopeVMBackdoor.turn_off_probe();
 
         // print current field values
         if (printResult)
@@ -80,6 +96,18 @@ public class Em3d
         System.out.println("Done!");
     }
 
+    static void preloadClasses()
+    {
+        try {
+            Class.forName("RopeSpecBarrier");
+            Class.forName("RopeVMBackdoor");
+
+            Class.forName("BiGraph");
+            Class.forName("Node");
+        }
+        catch (ClassNotFoundException e) {
+        }
+    }
 
     /**
      * Parse the command line options.

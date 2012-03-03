@@ -8,6 +8,7 @@ health-2-2：health-revised，三级
 
 * em3d
 共用随机数发生器、随机数关闭：
+推测路障开启
 em3d-1-1：em3d-revised4
 em3d-1-2：em3d-revised4
 em3d-1-3：em3d-revised4

@@ -42,16 +42,31 @@ public class Health
      **/
     public static final void main(String args[])
     {
+        preloadClasses();
         parseCmdLine(args);
 
-        //long start0 = System.currentTimeMillis();
+        RopeVMBackdoor.turn_on_probe();
+        long start0 = 0;
+        if (printMsgs)
+            start0 = System.currentTimeMillis();
+
         Village top = Village.createVillage(maxLevel, 0, null, (int)seed);
-        //long end0 = System.currentTimeMillis();
 
-        // if (printMsgs)
-        //     System.out.println("Columbian Health Care Simulator\nWorking...");
+        long end0 = 0;
+        if (printMsgs)
+            end0 = System.currentTimeMillis();
+        // RopeVMBackdoor.turn_off_probe();
 
-        //long start1 = System.currentTimeMillis();
+
+        // ============================================================
+        if (printMsgs)
+            System.out.println("Columbian Health Care Simulator\nWorking...");
+
+        // RopeVMBackdoor.turn_on_probe();
+        long start1 = 0;
+        if (printMsgs)
+            start1 = System.currentTimeMillis();
+
         for (int i=0; i < maxTime; i++) {
             if ((i % 50) == 0 && printMsgs)
                 System.out.println(i);
@@ -60,7 +75,11 @@ public class Health
 
         Results r = top.getResults();
 
-        //long end1 = System.currentTimeMillis();
+        long end1 = 0;
+        if (printMsgs)
+            end1 = System.currentTimeMillis();
+        RopeVMBackdoor.turn_off_probe();
+
 
         if (printResult || printMsgs) {
             System.out.println("# of people treated:            " + r.totalPatients + " people");
@@ -70,13 +89,33 @@ public class Health
                                r.totalHospitals / r.totalPatients);
         }
 
-        // if (printMsgs) {
-        //     System.out.println("Build Time " + (end0 - start0)/1000.0);
-        //     System.out.println("Run Time " + (end1 - start1)/1000.0);
-        //     System.out.println("Total Time " + (end1 - start0)/1000.0);
-        // }
+        if (printMsgs) {
+            System.out.println("Build Time " + (end0 - start0)/1000.0);
+            System.out.println("Run Time " + (end1 - start1)/1000.0);
+            System.out.println("Total Time " + (end1 - start0)/1000.0);
+        }
 
         System.out.println("Done!");
+    }
+
+    static void preloadClasses()
+    {
+        try {
+            Class.forName("RopeSpecBarrier");
+            Class.forName("RopeVMBackdoor");
+
+            Class.forName("Hospital");
+            Class.forName("Village");
+            Class.forName("Patient");
+            Class.forName("Results");
+            Class.forName("List");
+            Class.forName("java.util.Enumeration");
+            Class.forName("List$ListEnumerator");
+            Class.forName("List$ListNode");
+        }
+        catch (ClassNotFoundException e) {
+            System.out.println("forName fail" + e.toString());
+        }
     }
 
     private static final void parseCmdLine(String args[])

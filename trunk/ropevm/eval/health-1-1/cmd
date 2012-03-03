@@ -1,5 +1,7 @@
 APP=Health
 
-#PARAMS='-l 2 -t 16 -s 1'
-PARAMS='-l 2 -t 16 -s 1 -m'
+PARAMS='-l 2 -t 16 -s 1'
 
+if [ $quiet -ne 1 ] ; then
+   PARAMS="$PARAMS -m"
+fi

@@ -86,7 +86,7 @@ final class Node {
     // 本方法结束后，节点的“去往”节点就被确定下来了，节点的入度也确定下来了。
     void makeUniqueNeighbors(Node[] nodeTable)
     {
-        assert nodeTable.length <= 10;
+        //assert nodeTable.length <= 10;
         // 给本节点的“去往”节点数组的各个slot填充“去往”节点
         for (int filled = 0; filled < toNodes.length; filled++) {
             int k;
