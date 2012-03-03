@@ -1577,20 +1577,24 @@ Mode::fetch_and_interpret_an_instruction()
             }
             else if (new_mb->classobj->name() == SYMBOL(RopeVMBackdoor)) {
 
-                // 只有处于确定模式的线程才可以执行虚拟机后门操作，
-                // 处于推测模式或rvp模式的线程会忽略后门操作。
-                if (not m_st->is_certain_mode()) {
-                    pc +=  3;
+                // 虚拟机后门操作暗含一个推测路障，
+                // 所以只有处于确定模式的线程才可以执行虚拟机后门操作，
+                // 为什么要加上一个推测路障？
+                // 因为推测线程什么时候遇到后门操作，难以准确预料。
+
+                assert(not m_st->is_rvp_mode());
+
+                if (m_st->is_spec_mode()) {
+                    m_st->halt(RunningState::halt_spec_barrier);
+
+                    MINILOG(spec_barrier_logger, "#" << m_st->id()
+                            << " halt because spec barrier");
+
+                    //pc +=  3; 不增加pc，推测模式下无法越过该路障
                     return;
+
                 }
 
-                // 注意！！！
-                // 如果推测执行经过并忽略了某后门方法调用，
-                // 若此后该推测执行被证明有效从而提交，
-                // 将导致确定执行直接越过该后门操作。
-                // 在这种情况下，确定线程压根不会碰到该后门方法调用。
-                // 为了避免这种情况发生，可在后门方法调用前设置推测路障
-                // （注意：推测路障功能首先得开启）
 
                 if (new_mb->name == SYMBOL(turn_on_probe)) {
                     RopeVM::instance()->turn_on_probe();
