@@ -1,9 +1,8 @@
 APP=TreeAdd
 
-#PARAMS='-l 20 -m'
-#PARAMS='-l 2 -m'
-#PARAMS='-l 3 -m'
-PARAMS='-l 5 -m'
-#PARAMS='-l 6 -m'
-#PARAMS='-l 10 -m'
+PARAMS='-l 5'
+
+if [ $quiet -ne 1 ] ; then
+   PARAMS="$PARAMS -m"
+fi
 

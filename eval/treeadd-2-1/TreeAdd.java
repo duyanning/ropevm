@@ -33,35 +33,43 @@ public class TreeAdd
         preloadClasses();
         parseCmdLine(args);
 
-        RopeSpecBarrier.set();
         RopeVMBackdoor.turn_on_probe();
+        long start0 = 0;
+        if (printMsgs)
+            start0 = System.currentTimeMillis();
 
-        //long start0 = System.currentTimeMillis();
         Tree left = new Tree(levels - 1);
         Tree right = new Tree(levels - 1);
         TreeNode root = new TreeNode(left, right);
-        //long end0 = System.currentTimeMillis();
 
-        RopeSpecBarrier.set();
-        RopeVMBackdoor.turn_off_probe();
-        // RopeVMBackdoor.turn_on_probe();
-
-        //long start1 = System.currentTimeMillis();
-        int result = root.addTree();
-        //long end1 = System.currentTimeMillis();
-
-        // RopeSpecBarrier.set();
+        long end0 = 0;
+        if (printMsgs)
+            end0 = System.currentTimeMillis();
         // RopeVMBackdoor.turn_off_probe();
+
+        // ================================================================
+
+        //RopeVMBackdoor.turn_on_probe();
+        long start1 = 0;
+        if (printMsgs)
+            start1 = System.currentTimeMillis();
+
+        int result = root.addTree();
+
+        long end1 = 0;
+        if (printMsgs)
+            end1 = System.currentTimeMillis();
+        RopeVMBackdoor.turn_off_probe();
 
 
         if (printResult || printMsgs)
             System.out.println("Received results of tree " + result);
 
-        // if (printMsgs) {
-        //     System.out.println("Treeadd alloc time " + (end0 - start0)/1000.0);
-        //     System.out.println("Treeadd add time " + (end1 - start1)/1000.0);
-        //     System.out.println("Treeadd total time " + (end1 - start0)/1000.0);
-        // }
+        if (printMsgs) {
+            System.out.println("Treeadd alloc time " + (end0 - start0)/1000.0);
+            System.out.println("Treeadd add time " + (end1 - start1)/1000.0);
+            System.out.println("Treeadd total time " + (end1 - start0)/1000.0);
+        }
         System.out.println("Done!");
     }
 
