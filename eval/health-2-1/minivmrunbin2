@@ -1,7 +1,0 @@
-#!/usr/bin/env sh
-
-#minivm -cp bin Health -l 5 -t 500 -s 1 -m
-valgrind --leak-check=yes minivm -cp bin Health -l 1 -t 16 -s 1 -m 2> ab.txt 1>&2
-#minivm -cp bin Health -l 2 -t 16 -s 1 -m
-#minivm -cp bin Health -l 3 -t 16 -s 1 -m
-
