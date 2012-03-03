@@ -1,8 +1,9 @@
 APP=Em3d
 
-#PARMS='-n 10 -d 3 -m -p -i 50'
-#PARMS='-n 10 -d 3 -i 50'
-PARMS='-n 50 -d 3 -i 50'
-#PARMS='-n 2 -d 1 -i 1'
+#PARAMS='-n 10 -d 3 -i 50'
+PARAMS='-n 50 -d 3 -i 50'
+#PARAMS='-n 2 -d 1 -i 1'
 
-
+if [ $quiet -ne 1 ] ; then
+   PARAMS="$PARAMS -m -p"
+fi

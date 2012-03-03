@@ -1,9 +1,9 @@
 APP=TreeAdd
 
-#PARMS='-l 20 -m'
-PARMS='-l 2 -m'
-#PARMS='-l 3 -m'
-#PARMS='-l 5 -m'
-#PARMS='-l 6 -m'
-#PARMS='-l 10 -m'
+#PARAMS='-l 20 -m'
+PARAMS='-l 2 -m'
+#PARAMS='-l 3 -m'
+#PARAMS='-l 5 -m'
+#PARAMS='-l 6 -m'
+#PARAMS='-l 10 -m'
 

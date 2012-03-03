@@ -230,8 +230,8 @@ g_should_enable_probe(MethodBlock* mb)
     if (not is_client_code)
         return false;
 
-    if (not is_app_obj(mb->classobj))
-        return false;
+    // if (not is_app_obj(mb->classobj))
+    //     return false;
 
     return true;
 }

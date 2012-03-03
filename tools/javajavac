@@ -2,5 +2,5 @@
 
 . cmd
 
-java -ea -cp $ROPE_CLASSES:$MINI_CLASSPATH:bin-javac $APP $PARMS
+java -ea -cp $ROPE_CLASSES:$MINI_CLASSPATH:bin-javac $APP $PARAMS
 # -ea选项开启java虚拟机的assert功能

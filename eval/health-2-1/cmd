@@ -1,5 +1,5 @@
 APP=Health
 
-PARMS='-l 2 -t 16 -s 1 -m'
-#PARMS='-l 1 -t 1 -s 1 -m'
+PARAMS='-l 2 -t 16 -s 1 -m'
+#PARAMS='-l 1 -t 1 -s 1 -m'
 
