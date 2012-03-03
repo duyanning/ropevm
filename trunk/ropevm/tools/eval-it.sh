@@ -3,10 +3,12 @@
 usejavac
 
 export model=1
+rm output.txt
 ropejavac > output.txt
 tail -n 1 output.txt | awk '{ printf "%s" , $2 ; }' > cycles.txt
 
 . vmparams
+rm output.txt
 ropejavac > output.txt
 tail -n 1 output.txt | awk '{ printf " %s\n" , $2 ; }' >> cycles.txt
 

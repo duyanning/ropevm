@@ -2,5 +2,5 @@
 
 
 . cmd
-jamvm -cp bin-javac $APP $PARMS
+jamvm -cp bin-javac $APP $PARAMS
 

@@ -1,4 +1,4 @@
 APP=Power
 
-PARMS='-m -p'
+PARAMS='-m -p'
 

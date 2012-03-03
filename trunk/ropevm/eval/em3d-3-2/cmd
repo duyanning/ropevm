@@ -1,4 +1,4 @@
 APP=Em3d
 
-PARMS='-n 10 -d 6 -m -p -i 50'
+PARAMS='-n 10 -d 6 -m -p -i 50'
 

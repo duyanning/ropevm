@@ -2,4 +2,4 @@
 
 . cmd
 
-ropevm -cp $ROPE_CLASSES:$MINI_CLASSPATH:bin-javac $APP $PARMS
+ropevm -cp $ROPE_CLASSES:$MINI_CLASSPATH:bin-javac $APP $PARAMS

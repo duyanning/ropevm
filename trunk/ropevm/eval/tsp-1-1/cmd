@@ -1,5 +1,5 @@
 APP=TSP
 
 
-#PARMS='-c 1000 -m'
-PARMS='-c 10 -m -p'
+#PARAMS='-c 1000 -m'
+PARAMS='-c 10 -m -p'
