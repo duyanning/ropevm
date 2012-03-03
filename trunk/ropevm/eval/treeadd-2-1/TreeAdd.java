@@ -83,6 +83,7 @@ public class TreeAdd
             Class.forName("TreeNode");
         }
         catch (ClassNotFoundException e) {
+            System.out.println("forName cannot find: " + e);
         }
     }
 

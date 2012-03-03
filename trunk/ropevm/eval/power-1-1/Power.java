@@ -44,15 +44,27 @@ public class Power
         parseCmdLine(args);
 
         // initial pass
-        long start0 = System.currentTimeMillis();
+        RopeVMBackdoor.turn_on_probe();
+        long start0 = 0;
+        if (printMsgs)
+            start0 = System.currentTimeMillis();
+
         //Root r = new Root(10, 20, 5, 10);
         Root r = new Root(2, 2, 2, 2);
-        long end0 = System.currentTimeMillis();
+        long end0 = 0;
+        if (printMsgs)
+            end0 = System.currentTimeMillis();
+        // RopeVMBackdoor.turn_off_probe();
 
+        // ================================================================
 
-        // 上的构造部分，加速比有1.9181。本来要构造2组共4个lateral，因为循环，两组并行构造。每组中，因为递归，也可以并行构造。加速比应当接近4。
+        // 以上的构造部分，加速比有1.9181。本来要构造2组共4个lateral，因为循环，两组并行构造。每组中，因为递归，也可以并行构造。加速比应当接近4。
 
-        long start1 = System.currentTimeMillis();
+        //RopeVMBackdoor.turn_on_probe();
+        long start1 = 0;
+        if (printMsgs)
+            start1 = System.currentTimeMillis();
+
         r.compute();
         r.nextIter(false, 0.7, 0.14);
 
@@ -68,7 +80,11 @@ public class Power
             r.nextIter(printResults);
         } /* while */
 
-        long end1 = System.currentTimeMillis();
+        long end1 = 0;
+        if (printMsgs)
+            end1 = System.currentTimeMillis();
+        RopeVMBackdoor.turn_off_probe();
+
 
         if (printMsgs) {
             System.out.println("Power build time " + (end0 - start0)/1000.0);
@@ -89,6 +105,7 @@ public class Power
             Class.forName("Math");
         }
         catch (ClassNotFoundException e) {
+            System.out.println("forName cannot find: " + e);
         }
     }
 
