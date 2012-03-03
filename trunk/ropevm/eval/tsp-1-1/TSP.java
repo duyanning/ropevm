@@ -32,6 +32,7 @@ public class TSP
      **/
     public static void main(String args[])
     {
+        preloadClasses();
         parseCmdLine(args);
 
         if (printMsgs)
@@ -39,18 +40,37 @@ public class TSP
 
         //Tree.initSeed(783);
 
-        long start0 = System.currentTimeMillis();
+        RopeVMBackdoor.turn_on_probe();
+        long start0 = 0;
+        if (printMsgs)
+            start0 = System.currentTimeMillis();
+
         //Tree  t = Tree.buildTree(cities, false, 0.0, 1.0, 0.0, 1.0);
         Tree  t = new Tree(cities, false, 0.0, 1.0, 0.0, 1.0);
-        long end0 = System.currentTimeMillis();
 
-        long start1 = System.currentTimeMillis();
+        long end0 = 0;
+        if (printMsgs)
+            end0 = System.currentTimeMillis();
+        //RopeVMBackdoor.turn_off_probe();
+
+        // ================================================================
+
+
+        //RopeVMBackdoor.turn_on_probe();
+        long start1 = 0;
+        if (printMsgs)
+            start1 = System.currentTimeMillis();
+
         t.tsp(150);
-        long end1 = System.currentTimeMillis();
+
+        long end1 = 0;
+        if (printMsgs)
+            end1 = System.currentTimeMillis();
+        RopeVMBackdoor.turn_off_probe();
 
         if (printResult) {
             // if the user specifies, print the final result
-            //t.printVisitOrder();
+            t.printVisitOrder();
         }
 
         if (printMsgs) {
@@ -59,6 +79,21 @@ public class TSP
             System.out.println("Tsp total time " + (end1 - start0)/1000.0);
         }
         System.out.println("Done!");
+    }
+
+    static void preloadClasses()
+    {
+        try {
+            Class.forName("RopeSpecBarrier");
+            Class.forName("RopeVMBackdoor");
+
+            Class.forName("Tree");
+            Class.forName("Random");
+            Class.forName("Math");
+        }
+        catch (ClassNotFoundException e) {
+            System.out.println("forName cannot find: " + e);
+        }
     }
 
     /**

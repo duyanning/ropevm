@@ -139,4 +139,6 @@ Class.forName("List$ListEnumerator");
 Class.forName("java.util.Enumeration");
 的形式。
 
+对于miniclasspath中的替代类，也需要加载。
+
 

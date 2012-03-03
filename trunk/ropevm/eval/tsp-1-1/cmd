@@ -1,5 +1,8 @@
 APP=TSP
 
-
 #PARAMS='-c 1000 -m'
-PARAMS='-c 10 -m -p'
+PARAMS='-c 10'
+
+if [ $quiet -ne 1 ] ; then
+   PARAMS="$PARAMS -m -p"
+fi
