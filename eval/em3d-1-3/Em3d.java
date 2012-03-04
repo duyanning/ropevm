@@ -98,6 +98,7 @@ public class Em3d
 
     static void preloadClasses()
     {
+        MiniClassPathHelper.preloadClasses();
         try {
             Class.forName("RopeSpecBarrier");
             Class.forName("RopeVMBackdoor");
@@ -106,6 +107,7 @@ public class Em3d
             Class.forName("Node");
         }
         catch (ClassNotFoundException e) {
+            System.out.println("forName cannot find: " + e);
         }
     }
 
