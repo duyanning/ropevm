@@ -1,6 +1,5 @@
 APP=Em3d
 
-#PARAMS='-n 10 -d 9 -m -p -i 50'
 PARAMS='-n 50 -d 9 -i 50'
 
 if [ $quiet -ne 1 ] ; then

@@ -96,13 +96,13 @@ public class Power
 
     static void preloadClasses()
     {
+        MiniClassPathHelper.preloadClasses();
         try {
             Class.forName("Root");
             Class.forName("Lateral");
             Class.forName("Branch");
             Class.forName("Leaf");
             Class.forName("Demand");
-            Class.forName("Math");
         }
         catch (ClassNotFoundException e) {
             System.out.println("forName cannot find: " + e);

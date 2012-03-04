@@ -2,6 +2,9 @@
 
 . benchmarks
 
+probe=0
+quiet=1
+
 for i in $DIRS
 do
     echo evaluating benchmark $i
