@@ -819,7 +819,8 @@ SpmtThread::verify_speculation(Message* certain_msg)
     if (m_spec_msg_queue.begin() == m_iter_next_spec_msg) {
 
         MINILOG(verify_logger, "#" << m_id << " VERIFY empty." << " cert: " << certain_msg);
-        m_count_verify_empty++;
+        if (g_should_enable_probe(0))
+            m_count_verify_empty++;
 
         if (g_is_async_msg(certain_msg)) {
             assert(m_iter_next_spec_msg == m_spec_msg_queue.begin());
@@ -873,7 +874,8 @@ SpmtThread::verify_speculation(Message* certain_msg)
     if (success) {
         MINILOG(verify_logger, "#" << m_id <<
                 " VERIFY ok." << " cert: " << certain_msg << " spec: " << spec_msg);
-        m_count_verify_ok++;
+        if (g_should_enable_probe(0))
+            m_count_verify_ok++;
 
         m_spec_msg_queue.pop_front();
 
@@ -901,7 +903,8 @@ SpmtThread::verify_speculation(Message* certain_msg)
     else {
         MINILOG(verify_logger, "#" << m_id <<
                 " VERIFY error." << " cert: " << certain_msg << " spec: " << spec_msg);
-        m_count_verify_fail++;
+        if (g_should_enable_probe(0))
+            m_count_verify_fail++;
 
         if (m_id == 5) {
             int x = 0;

@@ -45,11 +45,11 @@ public class TreeAdd
         long end0 = 0;
         if (printMsgs)
             end0 = System.currentTimeMillis();
-        // RopeVMBackdoor.turn_off_probe();
+        RopeVMBackdoor.turn_off_probe();
 
         // ================================================================
 
-        // opeVMBackdoor.turn_on_probe();
+        // RopeVMBackdoor.turn_on_probe();
         long start1 = 0;
         if (printMsgs)
             start1 = System.currentTimeMillis();
@@ -59,7 +59,7 @@ public class TreeAdd
         long end1 = 0;
         if (printMsgs)
             end1 = System.currentTimeMillis();
-        RopeVMBackdoor.turn_off_probe();
+        // RopeVMBackdoor.turn_off_probe();
 
 
         if (printResult || printMsgs)

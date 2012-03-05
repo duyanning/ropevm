@@ -1,0 +1,8 @@
+APP=TreeAdd
+
+PARAMS='-l 5'
+
+if [ $quiet -ne 1 ] ; then
+   PARAMS="$PARAMS -m"
+fi
+

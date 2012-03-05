@@ -33,7 +33,7 @@ public class TreeAdd
         preloadClasses();
         parseCmdLine(args);
 
-        RopeVMBackdoor.turn_on_probe();
+        // RopeVMBackdoor.turn_on_probe();
         long start0 = 0;
         if (printMsgs)
             start0 = System.currentTimeMillis();
@@ -49,7 +49,7 @@ public class TreeAdd
 
         // ================================================================
 
-        // opeVMBackdoor.turn_on_probe();
+        RopeVMBackdoor.turn_on_probe();
         long start1 = 0;
         if (printMsgs)
             start1 = System.currentTimeMillis();
