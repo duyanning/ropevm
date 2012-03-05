@@ -5,6 +5,10 @@
 probe=0
 quiet=1
 
+if [ ! -d result ] ; then
+    mkdir result
+fi
+
 for i in $DIRS
 do
     echo evaluating benchmark $i

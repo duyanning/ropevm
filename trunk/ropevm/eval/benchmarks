@@ -16,6 +16,7 @@ DIRS="$DIRS em3d-1-1 em3d-1-2 em3d-1-3"
 DIRS="$DIRS tsp-1-1"
 DIRS="$DIRS tsp-1-2"
 DIRS="$DIRS power-1-1"
+DIRS="$DIRS power-1-2"
 
 
 DIRS="$DIRS treeadd-1-1"        # 节点单独成组
