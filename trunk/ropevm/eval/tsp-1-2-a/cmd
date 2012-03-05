@@ -1,6 +1,6 @@
 APP=TSP
 
-PARAMS='-c 10'
+PARAMS='-c 20'
 
 if [ $quiet -ne 1 ] ; then
    PARAMS="$PARAMS -m -p"
