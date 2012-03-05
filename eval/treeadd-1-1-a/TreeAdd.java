@@ -38,18 +38,16 @@ public class TreeAdd
         if (printMsgs)
             start0 = System.currentTimeMillis();
 
-        Tree left = new Tree(levels - 1);
-        Tree right = new Tree(levels - 1);
-        TreeNode root = new TreeNode(left, right);
+        TreeNode root = new TreeNode(levels);
 
         long end0 = 0;
         if (printMsgs)
             end0 = System.currentTimeMillis();
-        // RopeVMBackdoor.turn_off_probe();
+        RopeVMBackdoor.turn_off_probe();
 
         // ================================================================
 
-        // opeVMBackdoor.turn_on_probe();
+        // RopeVMBackdoor.turn_on_probe();
         long start1 = 0;
         if (printMsgs)
             start1 = System.currentTimeMillis();
@@ -59,11 +57,10 @@ public class TreeAdd
         long end1 = 0;
         if (printMsgs)
             end1 = System.currentTimeMillis();
-        RopeVMBackdoor.turn_off_probe();
-
+        // RopeVMBackdoor.turn_off_probe();
 
         if (printResult || printMsgs)
-            System.out.println("Received results of tree " + result);
+            System.out.println("Received results of " + result);
 
         if (printMsgs) {
             System.out.println("Treeadd alloc time " + (end0 - start0)/1000.0);
@@ -79,7 +76,6 @@ public class TreeAdd
             Class.forName("RopeSpecBarrier");
             Class.forName("RopeVMBackdoor");
 
-            Class.forName("Tree");
             Class.forName("TreeNode");
         }
         catch (ClassNotFoundException e) {
