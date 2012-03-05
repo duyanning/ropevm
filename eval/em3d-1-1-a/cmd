@@ -1,6 +1,6 @@
-APP=TSP
+APP=Em3d
 
-PARAMS='-c 10'
+PARAMS='-n 50 -d 3 -i 50'
 
 if [ $quiet -ne 1 ] ; then
    PARAMS="$PARAMS -m -p"
