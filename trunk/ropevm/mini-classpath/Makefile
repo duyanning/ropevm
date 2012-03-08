@@ -12,11 +12,5 @@ Math.h : Math.class
 	javah -jni Math
 
 
-Math.class : Math.java
-	javac -g -cp .:$(ROPE_CLASSES) Math.java
-
-Random.class : Random.java
-	javac -g -cp .:$(ROPE_CLASSES) Random.java
-
-MiniClassPathHelper.class : MiniClassPathHelper.java
-	javac -g -cp .:$(ROPE_CLASSES) MiniClassPathHelper.java
+%.class : %.java
+	javac -g -cp .:$(ROPE_CLASSES) $<
