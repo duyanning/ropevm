@@ -107,6 +107,8 @@ svn co https://ropevm.svn.sourceforge.net/svnroot/ropevm/trunk/ropevm ropevm
 ** 编译
 执行make
 
+注意：为了编译ropevm，必须用gcc 4.7.0及更高版本。
+
 ** 安装
 不需要安装，RopeVM是一个自包含的绿色软件。
 执行
