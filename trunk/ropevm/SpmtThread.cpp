@@ -21,17 +21,7 @@ using namespace std;
 
 SpmtThread::SpmtThread(int id)
 :
-    m_id(id),
-    m_thread(nullptr),
-    m_leader(nullptr),
-    m_halt(true),
-    m_quit_drive_loop(false),
-    m_quit_causer(nullptr),
-    m_certain_message(nullptr),
-    m_current_spec_msg(nullptr),
-    m_spec_running_state(RunningState::halt_no_asyn_msg),
-    m_excep_threw_to_me(nullptr),
-    m_excep_frame(nullptr)
+    m_id(id)
 {
 
     m_certain_mode.set_st(this);

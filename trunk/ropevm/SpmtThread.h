@@ -157,11 +157,11 @@ public:
     void set_exception_threw_to_me(Object* exception, Frame* excep_frame, bool is_top);
 private:
     int m_id;
-    Thread* m_thread;           // 所属的java线程
-    Object* m_leader;
-    bool m_halt;
-    bool m_quit_drive_loop;
-    SpmtThread* m_quit_causer;
+    Thread* m_thread = nullptr;           // 所属的java线程
+    Object* m_leader = nullptr;
+    bool m_halt = true;
+    bool m_quit_drive_loop = false;
+    SpmtThread* m_quit_causer = nullptr;
 
     // 模式相关
     SpecMode m_spec_mode;
@@ -171,13 +171,13 @@ private:
     Mode* m_previous_mode;      // 进入确定模式之前的模式：推测或rvp
 
     // 确定消息
-    Message* m_certain_message;
+    Message* m_certain_message = nullptr;
 
     // 推测消息
     std::list<Message*> m_spec_msg_queue;
     std::list<Message*>::iterator m_iter_next_spec_msg;
-    Message* m_current_spec_msg; // 正在处理的推测消息。只要有正在进行的推测执行，此变量就不为nullptr。
-    RunningState m_spec_running_state; // 推测执行的状态
+    Message* m_current_spec_msg = nullptr; // 正在处理的推测消息。只要有正在进行的推测执行，此变量就不为nullptr。
+    RunningState m_spec_running_state = RunningState::halt_no_asyn_msg; // 推测执行的状态
     std::vector<RoundTripMsg*> m_revoked_msgs; // 发送方要求收回这些推测消息
 
     // 不同模式下读写的去处
@@ -185,8 +185,8 @@ private:
     RvpBuffer m_rvp_buffer;
     std::vector<Frame*> V;
 
-    Object* m_excep_threw_to_me; // 其他线程扔给我的异常
-    Frame* m_excep_frame;        // 异常发生的栈帧，跟m_excep_threw_to_me关联
+    Object* m_excep_threw_to_me = nullptr; // 其他线程扔给我的异常
+    Frame* m_excep_frame = nullptr;        // 异常发生的栈帧，跟m_excep_threw_to_me关联
     bool m_is_unwind_top;        // 被unwind的栈桢是否top frame，被unwind的栈桢的其上级为m_excep_frame
 
 private:
