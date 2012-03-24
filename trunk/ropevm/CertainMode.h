@@ -9,9 +9,8 @@ class CertainMode : public Mode {
     typedef Mode Base;
 public:
     CertainMode();
-    virtual const char* tag() { return "(C)"; }
-    virtual void step();
-
+    const char* tag() override;
+    void step() override;
 
     void before_signal_exception(Class *exception_class) override;
     void* do_execute_method(Object* target_object, MethodBlock *mb, std::vector<uintptr_t>& jargs, DummyFrame* dummy) override;
@@ -38,5 +37,11 @@ private:
 
     void do_spec_barrier() override;
 };
+
+
+inline
+const char*
+CertainMode::tag() { return "(C)"; }
+
 
 #endif // CERTAINMODE_H

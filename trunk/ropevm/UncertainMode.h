@@ -8,7 +8,7 @@ class Message;
 class UncertainMode : public Mode {
 public:
     UncertainMode(const char* name);
-    virtual void step();
+    void step() override;
 };
 
 

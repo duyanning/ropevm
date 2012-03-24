@@ -7,8 +7,7 @@ class RvpMode : public UncertainMode {
     typedef UncertainMode Base;
 public:
     RvpMode();
-    virtual const char* tag() { return "(R)"; }
-
+    const char* tag() override;
 
     void* do_execute_method(Object* target_object, MethodBlock *mb, std::vector<uintptr_t>& jargs, DummyFrame* dummy) override;
     void before_signal_exception(Class *exception_class) override;
@@ -19,7 +18,7 @@ public:
                       bool is_top) override;
     void pop_frame(Frame* frame) override;
 
-    //virtual void step();
+    // void step() override;
 private:
     void do_invoke_method(Object* target_object, MethodBlock* new_mb) override;
     void do_method_return(int len) override;
@@ -34,5 +33,8 @@ private:
     void do_spec_barrier() override;
 };
 
+
+inline
+const char* RvpMode::tag() { return "(R)"; }
 
 #endif // RVPMODE_H
