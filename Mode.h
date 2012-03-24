@@ -8,78 +8,66 @@ class Effect;
 
 class Mode {
 public:
+    // (PC, FP, SP)
+    CodePntr pc;
+    Frame* frame;
+    uintptr_t* sp;
+
+
     Mode(const char* name);
     const char* get_name();
     virtual const char* tag() = 0;
     virtual void step() = 0;
-    void fetch_and_interpret_an_instruction();
-
-    virtual void do_spec_barrier() = 0;
-
+    virtual void* do_execute_method(Object* target_object, MethodBlock *mb, std::vector<uintptr_t>& jargs, DummyFrame* dummy) = 0;
+    virtual Frame* push_frame(Object* object, MethodBlock* new_mb, uintptr_t* args,
+                              SpmtThread* caller, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp,
+                              bool is_top) = 0;
+    virtual void pop_frame(Frame* frame) = 0;
+    virtual void before_signal_exception(Class *exception_class) = 0;
     virtual void before_alloc_object();
     virtual void after_alloc_object(Object* obj);
-
-    virtual void* do_execute_method(Object* target_object, MethodBlock *mb, std::vector<uintptr_t>& jargs, DummyFrame* dummy) = 0;
-    virtual void do_invoke_method(Object* objectref, MethodBlock* new_mb) = 0;
-    virtual void do_method_return(int len) = 0;
-    virtual void before_signal_exception(Class *exception_class) = 0;
-
-    virtual void do_get_field(Object* obj, FieldBlock* fb, uintptr_t* addr, int size, bool is_static = false) = 0;
-    virtual void do_put_field(Object* obj, FieldBlock* fb, uintptr_t* addr, int size, bool is_static = false) = 0;
-
-    virtual void do_array_load(Object* array, int index, int type_size) = 0;
-    virtual void do_array_store(Object* array, int index, int type_size) = 0;
-
     virtual void process_msg(Message* msg);
     virtual void send_msg(Message* msg);
+
 
     // 参数用无模式方式读取
     void invoke_impl(Object* target_object, MethodBlock* new_mb, uintptr_t* args,
                      SpmtThread* caller, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp,
                      bool is_top);
 
+    void reset_context();
+    void set_st(SpmtThread* st);
+
+    template <class T> T read(T* addr);
+    template <class T, class U> void write(T* addr, U value);
+
+    void fetch_and_interpret_an_instruction();
 
     void load_from_array(uintptr_t* sp, Object* array, int index, int type_size);
     void store_to_array(uintptr_t* sp, Object* array, int index, int type_size);
     void load_from_array_to_c(uintptr_t* sp, Object* array, int index, int type_size);
     void store_to_array_from_c(uintptr_t* sp, Object* array, int index, int type_size);
-
-
-    virtual Frame* push_frame(Object* object, MethodBlock* new_mb, uintptr_t* args,
-                              SpmtThread* caller, CodePntr caller_pc, Frame* caller_frame, uintptr_t* caller_sp,
-                              bool is_top) = 0;
-
-    virtual void pop_frame(Frame* frame) = 0;
-
-
-    void set_st(SpmtThread* st);
-
-    void reset_context();
+protected:
+    SpmtThread* m_st;
+private:
+    virtual void do_invoke_method(Object* objectref, MethodBlock* new_mb) = 0;
+    virtual void do_method_return(int len) = 0;
+    virtual void do_get_field(Object* obj, FieldBlock* fb, uintptr_t* addr, int size, bool is_static = false) = 0;
+    virtual void do_put_field(Object* obj, FieldBlock* fb, uintptr_t* addr, int size, bool is_static = false) = 0;
+    virtual void do_array_load(Object* array, int index, int type_size) = 0;
+    virtual void do_array_store(Object* array, int index, int type_size) = 0;
 
     virtual uint32_t mode_read(uint32_t* addr) = 0;
     virtual void mode_write(uint32_t* addr, uint32_t value) = 0;
 
-    template <class T> T read(T* addr);
-    template <class T, class U> void write(T* addr, U value);
+    virtual void do_spec_barrier() = 0;
 
 
-public:
-    //-------------------
-    CodePntr pc;
-    Frame* frame;
-    uintptr_t* sp;
-    //------------------
-
-
-protected:
-    bool intercept_vm_backdoor(Object* objectref, MethodBlock* mb);
-    void vmlog(MethodBlock* mb);
-    void preload(MethodBlock* mb);
-    bool vm_math(MethodBlock* mb);
-    SpmtThread* m_st;
-private:
     const char* m_name;
 };
+
+
+
 
 // 因为mode_read和mode_write都是以4字节为单位读写。所以对于读取1或2字节
 // 的数值，需要把包含这1或2个字节的4字节整个都读出来，然后再从其中找到
@@ -142,7 +130,9 @@ Mode::read(T* addr)
     }
 }
 
-// 对于写2字节，先读出4字节，如果要写的2字节完全包含在这4字节中，就改写这4字节中的相应部分，然后将4字节写回。如果要写的2字节中的1字节在下一个4字节中，那么再读出下一个4字节，改写其中的1字节，写回。
+// 对于写2字节，先读出4字节，如果要写的2字节完全包含在这4字节中，就改写
+// 这4字节中的相应部分，然后将4字节写回。如果要写的2字节中的1字节在下一
+// 个4字节中，那么再读出下一个4字节，改写其中的1字节，写回。
 template <class T, class U>
 void
 Mode::write(T* addr, U value)
