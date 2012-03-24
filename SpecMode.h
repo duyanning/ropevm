@@ -7,8 +7,7 @@ class SpecMode : public UncertainMode {
     typedef UncertainMode Base;
 public:
     SpecMode();
-    virtual const char* tag() { return "(S)"; }
-
+    const char* tag() override;
 
     void before_signal_exception(Class *exception_class) override;
     void* do_execute_method(Object* target_object, MethodBlock *mb, std::vector<uintptr_t>& jargs, DummyFrame* dummy) override;
@@ -19,7 +18,7 @@ public:
                       bool is_top) override;
     void pop_frame(Frame* frame) override;
 
-    //virtual void step();
+    // void step() override;
 
 private:
     void do_invoke_method(Object* target_object, MethodBlock* new_mb) override;
@@ -34,5 +33,9 @@ private:
 
     void do_spec_barrier() override;
 };
+
+inline
+const char*
+SpecMode::tag() { return "(S)"; }
 
 #endif // SPECULATIVEMODE_H
