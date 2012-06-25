@@ -1147,7 +1147,7 @@ void linkClass(Class *classobj) {
        }
 
        for(fb = cb->fields, i = 0; i < cb->fields_count; i++,fb++)
-           if(fb->offset > ref_fb->offset)
+           if(fb->offset > ref_fb->offset) // valgrind说fb->offset是Conditional jump or move depends on uninitialised value(s)
                fb->offset--;
 
        ref_referent_offset = ref_fb->offset = field_offset - 1;
@@ -1343,6 +1343,7 @@ char *findFileEntry(char *path, int *file_len) {
     return NULL;
 }
 
+// 这个函数可能就是bootstrap class loader，完全用C/C++实现。
 Class *loadSystemClass(const char *classname) {
     int file_len, fname_len = strlen(classname) + 8;
     char buff[max_cp_element_len + fname_len];
@@ -1964,4 +1965,3 @@ void initialiseClass(InitArgs *args) {
     /* Register the address of where the java.lang.Class ref _will_ be */
     registerStaticClassRef(&java_lang_Class);
 }
-

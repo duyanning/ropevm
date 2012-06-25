@@ -2,4 +2,4 @@
 
 . cmd
 
-valgrind --leak-check=yes ropevm -cp $ROPE_CLASSES:$MINI_CLASSPATH:bin-javac $APP $PARAMS 2> val.txt 1>&2
+valgrind --leak-check=yes --track-origins=yes ropevm -cp $ROPE_CLASSES:$MINI_CLASSPATH:bin-javac $APP $PARAMS 2> val.txt 1>&2
