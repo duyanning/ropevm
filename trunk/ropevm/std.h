@@ -47,7 +47,10 @@
 #include <sched.h>
 #include <dlfcn.h>
 #include <arpa/inet.h>
-#include <fpu_control.h>
+
+#ifndef __CYGWIN__
+#include <fpu_control.h>        // cygwin下没有fpu_control.h这个头文件
+#endif
 
 // ropevm stuff
 #include "MiniLogger.h"
