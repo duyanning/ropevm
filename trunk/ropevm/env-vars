@@ -16,7 +16,7 @@ export ROPE_CLASSES=$ROPEVM_ROOT/classes
 export MINI_CLASSPATH=$ROPEVM_ROOT/mini-classpath
 
 
-export PATH=$ROPEVM_ROOT/debug:$ROPEVM_ROOT/tools:$FIXED_JAMVM_ROOT/debug:$PATH
+export PATH=.:$ROPEVM_ROOT/debug:$ROPEVM_ROOT/tools:$FIXED_JAMVM_ROOT/debug:$PATH
 
 
 # 影响ropevm运行的一些环境变量

@@ -213,6 +213,8 @@ private:
 
      long long m_count_busy_cycle; // 繁忙的周期数
      long long m_count_idle_cycle; // 空闲的周期数
+
+     long long m_count_revoked; // 消息被召回的次数
      ); // STAT_DECL
 };
 

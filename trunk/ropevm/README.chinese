@@ -1,7 +1,9 @@
 -*- mode: org;-*-
 为了方便阅读，请在emacs下启用org模式
 
+* 编译ropevm需要GCC 4.7.0以上
 * 安装GNU Classpath 0.97.2
+（可用GCC 4.7编译）
 ./configure --disable-Werror --disable-gtk-peer --disable-gconf-peer --disable-plugin
 make
 sudo make install
