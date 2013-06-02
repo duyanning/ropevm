@@ -43,6 +43,8 @@ SpmtThread::SpmtThread(int id)
 
               m_count_busy_cycle = 0;
               m_count_idle_cycle = 0;
+
+              m_count_revoked = 0;
               ) // STAT_CODE
 
 }
@@ -360,6 +362,8 @@ STAT_DECL\
 
      PRINT_ENTRY(count_busy_cycle);
      PRINT_ENTRY(count_idle_cycle);
+
+     PRINT_ENTRY(count_revoked);
  }
  ) // STAT_CODE
 
@@ -576,6 +580,9 @@ SpmtThread::discard_all_revoked_msgs()
 {
     if (m_revoked_msgs.empty())
         return;
+
+    if (g_should_enable_probe(0))
+        m_count_revoked++;
 
     for (RoundTripMsg* msg : m_revoked_msgs) {
         discard_revoked_msg(msg);
