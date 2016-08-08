@@ -97,6 +97,7 @@ sudo unzip -d classes classes.zip
 * 安装epm
 RopeVM使用epm进行工程管理
 
+
 * 安装RopeVM
 ** 下载
 从仓库中签出
@@ -109,7 +110,11 @@ svn co https://ropevm.svn.sourceforge.net/svnroot/ropevm/trunk/ropevm ropevm
 ** 编译
 执行make
 
-注意：为了编译ropevm，必须用gcc 4.7.0及更高版本。
+注意：
+－ 为了编译ropevm，必须用gcc 4.7.0及更高版本。
+－ 必须在运行make之前先执行'. env-vars'。
+－ 因为在Makefile中调用了epm，epm的位置在.profile中必须通过绝对路径的形式指出。
+
 
 ** 安装
 不需要安装，RopeVM是一个自包含的绿色软件。
@@ -124,7 +129,7 @@ svn co https://ropevm.svn.sourceforge.net/svnroot/ropevm/trunk/ropevm ropevm
 当前目录.也必须加入PATH，因为
 javajavac和ropejavac
 都要 . cmd
-cmd在各个test目录下
+cmd在各个test目录下（不过因为我们已经. env-vars了，所以这个已经是设置好的）
 
 运行. env-vars
 然后在各个测试目录下执行usejavac进行编译。
