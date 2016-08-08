@@ -1,0 +1,7 @@
+*.txt
+*.class
+/std.h.gch
+*.so
+debug/
+mini-classpath/Math.h
+
