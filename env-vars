@@ -23,6 +23,7 @@ export PATH=.:$ROPEVM_ROOT/debug:$ROPEVM_ROOT/tools:$FIXED_JAMVM_ROOT/debug:$PAT
 export model=3
 export log=0
 export probe=0
+export graph=0
 export quiet=0
 export support_invoker_execute=1
 export support_irrevocable=1

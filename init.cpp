@@ -6,12 +6,14 @@ static int VM_initing = TRUE;
 extern void initialisePlatform();
 
 
+// 根据环境变量调整默认参数值
 void
 use_env_args(InitArgs *args)
 {
     args->do_log = get_bool(getenv("log"), "1");
     args->do_probe = get_bool(getenv("probe"), "1");
     args->model = get_int(getenv("model"), "3");
+    args->do_graph = get_bool(getenv("graph"), "1");
     args->support_invoker_execute = get_bool(getenv("support_invoker_execute"), "1");
     args->support_irrevocable = get_bool(getenv("support_irrevocable"), "1");
     args->support_spec_safe_native = get_bool(getenv("support_spec_safe_native"), "1");
@@ -20,10 +22,13 @@ use_env_args(InitArgs *args)
 }
 
 /* Setup default values for command line args */
+// 设置默认的参数值，并根据环境变量，调整这些参数值
+// 注意：这些参数值后边还会受命令行选项控制，当然，不在这里，er在其他函数中
 void setDefaultInitArgs(InitArgs *args) {
     args->do_log = FALSE;
     args->do_probe = TRUE;
     args->model = 3;
+    args->do_graph = FALSE;
     args->support_invoker_execute = true;
     args->support_irrevocable = true;
     args->support_spec_safe_native = true;

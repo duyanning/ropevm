@@ -72,6 +72,7 @@ RopeVM::create_spmt_thread()
 
 
 bool RopeVM::probe_enabled;
+bool RopeVM::graph_enabled;
 int RopeVM::model;
 bool RopeVM::support_invoker_execute;
 bool RopeVM::support_irrevocable;
@@ -96,8 +97,21 @@ void initialiseJvm(InitArgs *args)
         RopeVM::instance()->turn_off_probe();
     }
 
+    if (args->do_graph) {
+        RopeVM::instance()->turn_on_graph();
+    }
+    else {
+        RopeVM::instance()->turn_off_graph();
+    }
+
 
     RopeVM::model = args->model;
+
+    // 对象协作图只能在串行模式下生成
+    if (args->do_graph) {
+        RopeVM::model = 1;
+    }
+
     if (RopeVM::model < 3)      // 模型3以下，不支持这些特征。其值皆为false。
         return;
 
@@ -174,6 +188,19 @@ RopeVM::turn_on_probe()
 
 
 void
+RopeVM::turn_off_graph()
+{
+    graph_enabled = false;
+}
+
+void
+RopeVM::turn_on_graph()
+{
+    graph_enabled = true;
+}
+
+
+void
 RopeVM::turn_off_probe()
 {
     probe_enabled = false;
@@ -235,3 +262,5 @@ g_should_enable_probe(MethodBlock* mb)
 
     return true;
 }
+
+std::ofstream ofs_graph("graph.txt");

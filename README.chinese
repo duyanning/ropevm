@@ -144,15 +144,19 @@ cmd在各个test目录下（不过因为我们已经. env-vars了，所以这个
 从模型2开始，消息就登上了舞台。bug可能因为消息传递而引起。
 
 * 环境变量与命令行参数
-model用来选择执行模型，log控制日志开关。
+model用来选择执行模型
+log控制日志开关
+graph控制是否输出对象协作图
 
 环境变量
 export model=1
 export log=1
+export graph=1
 
 命令行参数
 -Xmodel:<1/2/3>
 -Xlog:<on/off>
+-Xgraph:<on/off>
 
 * 目录结构
 env-vars			一些环境变量，每次使用之前要 . env-vars

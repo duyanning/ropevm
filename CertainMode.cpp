@@ -139,6 +139,15 @@ CertainMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
 
          ) // STAT_CODE
 
+    if (RopeVM::graph_enabled and is_client_code) {
+        Object* s = frame->get_object();
+        Object* t = target_object;
+        if (is_app_obj(s) and is_app_obj(t)) {
+            ofs_graph << type_name(s) << " " << s << " => " << type_name(t) << " " << t << endl;
+        }
+    }
+
+
     MINILOG_IF((m_st->m_id == 0 or m_st->m_id >= 5), order_logger, "invoke " << new_mb);
 
     frame->last_pc = pc;

@@ -231,6 +231,9 @@ int parseCommandLine(int argc, char *argv[], InitArgs *args) {
         } else if (strncmp(argv[i], "-Xlog:", 6) == 0) {
             const char* val = argv[i] + 6;
             args->do_log = get_bool(val);
+        } else if (strncmp(argv[i], "-Xgraph:", 8) == 0) {
+            const char* val = argv[i] + 8;
+            args->do_graph = get_bool(val);
         } else {
             printf("Unrecognised command line option: %s\n", argv[i]);
             break;
