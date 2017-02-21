@@ -1,3 +1,5 @@
+#!/usr/bin/env cpps
+
 #include "std.h" // precompile std.h
 
 using namespace std;
