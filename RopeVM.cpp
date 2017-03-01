@@ -264,3 +264,4 @@ g_should_enable_probe(MethodBlock* mb)
 }
 
 std::ofstream ofs_graph("graph.txt");
+std::ofstream ofs_timeline("timeline.txt");

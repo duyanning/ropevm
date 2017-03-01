@@ -1,0 +1,7 @@
+APP=Power
+
+PARAMS=''
+
+if [ $quiet -ne 1 ] ; then
+   PARAMS="$PARAMS -m -p"
+fi

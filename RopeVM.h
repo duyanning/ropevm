@@ -74,5 +74,6 @@ class MethodBlock;
 extern bool g_should_enable_probe(MethodBlock* mb);
 
 extern std::ofstream ofs_graph;
+extern std::ofstream ofs_timeline;
 
 #endif

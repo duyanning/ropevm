@@ -356,6 +356,13 @@ CertainMode::do_get_field(Object* target_object, FieldBlock* fb,
 
     MINILOG_IF((m_st->m_id == 0 or m_st->m_id >= 5), order_logger, "get " << fb);
 
+    if (RopeVM::graph_enabled and is_client_code) {
+        Object* s = frame->get_object();
+        Object* t = target_object;
+        if (is_app_obj(s) and is_app_obj(t)) {
+            ofs_graph << type_name(s) << " " << s << " => " << type_name(t) << " " << t << endl;
+        }
+    }
 
     if (RopeVM::support_self_read) { // 若支持自行read，就无所谓目标对象是否由本线程负责了。
         sp -= is_static ? 0 : 1;
@@ -418,6 +425,14 @@ CertainMode::do_put_field(Object* target_object, FieldBlock* fb,
     assert(size == 1 || size == 2);
 
     MINILOG_IF((m_st->m_id == 0 or m_st->m_id >= 5), order_logger, "put " << fb);
+
+    if (RopeVM::graph_enabled and is_client_code) {
+        Object* s = frame->get_object();
+        Object* t = target_object;
+        if (is_app_obj(s) and is_app_obj(t)) {
+            ofs_graph << type_name(s) << " " << s << " => " << type_name(t) << " " << t << endl;
+        }
+    }
 
     SpmtThread* target_st = target_object->get_st();
     assert(target_st->m_thread == m_st->m_thread);

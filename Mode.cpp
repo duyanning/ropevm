@@ -54,6 +54,13 @@ Mode::before_alloc_object()
 void
 Mode::after_alloc_object(Object* new_object)
 {
+    if (RopeVM::graph_enabled and is_client_code) {
+        if (is_app_obj(new_object)) {
+            ofs_timeline << type_name(new_object) << " " <<  new_object << " created" << endl;
+        }
+    }
+
+
     SpmtThread* st = m_st->get_thread()->assign_spmt_thread_for(new_object);
     // assign_spmt_thread_for后要么跟set_st，要么跟join_st_in_other_threads
     new_object->set_st(st);

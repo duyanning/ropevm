@@ -1,4 +1,5 @@
 *.txt
+*.net
 *.class
 /std.h.gch
 *.so

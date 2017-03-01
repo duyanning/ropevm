@@ -18,6 +18,8 @@ bool is_std_class_name(const string& name)
         return true;
     if (begin_with(name, "gnu/"))
         return true;
+    if (begin_with(name, "Math")) // 自己实现的一些代替标准库里对应类的类
+        return true;
     return false;
 }
 // -----------------------------------------
