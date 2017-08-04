@@ -1619,8 +1619,9 @@ Mode::fetch_and_interpret_an_instruction()
                     Object* obj_ref = (Object*)frame->ostack_base[0];
                     Object* jstr_name = (Object*)frame->ostack_base[1];
                     char* cstr_name = String2Utf8(jstr_name);
-                    std::cout << "backdoor: name " << cstr_name << " ref: " << obj_ref << std::endl;
                     //std::cout << "backdoor: " << "haha" << std::endl;
+                    //std::cout << "backdoor: name " << cstr_name << " ref: " << obj_ref << std::endl;
+                    ofs_ref_name << obj_ref << " " << cstr_name << std::endl;
                     sp -= 2;    // 将两个参数从操作数栈中清除
                 }
 

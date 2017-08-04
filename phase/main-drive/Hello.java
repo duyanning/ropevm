@@ -35,11 +35,15 @@ class Hello
     public static void main(String args[])
     {
 		Obj a = new Obj("a");
-        RopeVMBackdoor.register_obj(a, "a");
-        //RopeVMBackdoor.register_obj();
 		Obj b = new Obj("b");
 		Obj c = new Obj("c");
 		Obj d = new Obj("d");
+        RopeVMBackdoor.register_obj(Hello.class, "main");
+        RopeVMBackdoor.register_obj(a, "a");
+        //RopeVMBackdoor.register_obj();
+        RopeVMBackdoor.register_obj(b, "b");
+        RopeVMBackdoor.register_obj(c, "c");
+        RopeVMBackdoor.register_obj(d, "d");
 
         a.touch("main", b); 
         c.touch("main", d);

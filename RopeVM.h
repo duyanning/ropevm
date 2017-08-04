@@ -79,5 +79,6 @@ extern bool g_should_enable_probe(MethodBlock* mb);
 extern std::ofstream ofs_graph;
 extern std::ofstream ofs_timeline;
 extern std::ofstream ofs_event;
+extern std::ofstream ofs_ref_name;
 
 #endif
