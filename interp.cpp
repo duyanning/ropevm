@@ -26,7 +26,7 @@
 void
 Mode::fetch_and_interpret_an_instruction()
 {
-    op_no++;
+    //op_no++;
 
     assert(frame);
     //assert(frame->is_alive());
