@@ -21,6 +21,8 @@ public:
     bool pinned;
     bool is_top;
 
+    intmax_t frame_no;          // frame的编号(用于日志)
+
 
     // 该栈桢在创建其的effect的C集合中的位置，为方便在栈桢销毁时快速地
     // 从effect的C集合中删除。但是，当栈桢被销毁时，创建其的effect可能

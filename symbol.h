@@ -68,6 +68,7 @@ extern const char* symbol_values[];
     action(turn_off_probe, "turn_off_probe"),                   \
     action(turn_on_log, "turn_on_log"),                         \
     action(turn_off_log, "turn_off_log"),                       \
+    action(register_obj, "register_obj"),                       \
                                                                 \
     /* Constant pool attribute names */\
     action(Code, "Code"), \

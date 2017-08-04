@@ -147,6 +147,7 @@ cmd在各个test目录下（不过因为我们已经. env-vars了，所以这个
 model用来选择执行模型
 log控制日志开关
 graph控制是否输出对象协作图
+event控制是否输出事件历史
 
 环境变量
 export model=1
@@ -157,6 +158,7 @@ export graph=1
 -Xmodel:<1/2/3>
 -Xlog:<on/off>
 -Xgraph:<on/off>
+-Xevent:<on/off>
 
 * 目录结构
 env-vars			一些环境变量，每次使用之前要 . env-vars
@@ -201,7 +203,7 @@ RopeVMBackdoor.turn_off_probe()
 RopeVMBackdoor.turn_on_log()
 RopeVMBackdoor.turn_off_log()
 
-model=3时，再调用这些方法前，必须设置推测路障。
+model=3时，在调用这些方法前，必须设置推测路障。
 
 ** epmacs的设置
 例子：
@@ -230,3 +232,22 @@ RopeVM所基于的是其中最简单的一种，即最幼稚的采用loop+switch
 也就是说，THREADED、DIRECT、INLINING都没有定义。
 
 jamvm 1.5.1可以跟GNU Classpath 0.97.2配合工作，但听说无法跟GNU Classpath 0.98配合（据说jamvm 1.5.2可以跟GNU Classpath 0.98f配合，但不能跟低于0.98的版本配合）。
+* tools
+** 社区发现工具
+graph剖测运行后会生成
+graph.txt 代表对象交互情况的原始数据
+timeline.txt 代表对象产生顺序的原始数据
+
+graph2net.cpps根据graph.txt生成graph.net
+infomap根据graph.net生成graph.map
+（从graph.txt到graph.map的过程由discover.sh驱动。）
+
+find-leaders.cpps根据graph.map和timeline.txt将需要标记的类输出到控制台。
+** 阶段发现工具
+event剖测运行后会生成
+event.txt 代表事件（即操作）历史的原始数据
+event2net.cpps根据event.txt生成event.net
+infomap根据event.net生成event.map
+（从event.txt到event.map的过程由time-community.sh驱动）
+phase.cpps根据event.map输出阶段划分到控制台。
+

@@ -20,4 +20,10 @@ public class RopeVMBackdoor {
     {
     }
 
+    // 在对象地址与名字之间建立联系
+    public static void register_obj(Object obj, String name)
+    //public static void register_obj()
+    {
+        
+    }
 }

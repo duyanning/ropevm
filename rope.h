@@ -491,6 +491,7 @@ typedef struct InitArgs {
     int do_log;
     int do_probe;
     int do_graph;
+    int do_event;
     bool support_invoker_execute;
     bool support_irrevocable;
     bool support_spec_safe_native;

@@ -2,6 +2,8 @@
 #define STAT_H
 
 extern bool enable_stat;
+extern intmax_t op_no;          // 操作编号
+extern intmax_t frame_no;          // 栈桢编号
 
 //#define NO_STAT
 

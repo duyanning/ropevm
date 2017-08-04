@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # 从profiler产生的graph.txt中生成infomap需要的graph.net
-graph2net.cpp
+graph2net.cpps
 
 # 为infomap创建输出文件夹infomap-output
 if [ ! -d infomap-output ] ; then

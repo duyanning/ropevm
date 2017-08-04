@@ -73,6 +73,7 @@ RopeVM::create_spmt_thread()
 
 bool RopeVM::probe_enabled;
 bool RopeVM::graph_enabled;
+bool RopeVM::event_enabled;
 int RopeVM::model;
 bool RopeVM::support_invoker_execute;
 bool RopeVM::support_irrevocable;
@@ -104,11 +105,23 @@ void initialiseJvm(InitArgs *args)
         RopeVM::instance()->turn_off_graph();
     }
 
+    if (args->do_event) {
+        RopeVM::instance()->turn_on_event();
+    }
+    else {
+        RopeVM::instance()->turn_off_event();
+    }
+
 
     RopeVM::model = args->model;
 
     // 对象协作图只能在串行模式下生成
     if (args->do_graph) {
+        RopeVM::model = 1;
+    }
+
+    // 事件历史只能在串行模式下生成
+    if (args->do_event) {
         RopeVM::model = 1;
     }
 
@@ -199,6 +212,18 @@ RopeVM::turn_on_graph()
     graph_enabled = true;
 }
 
+void
+RopeVM::turn_off_event()
+{
+    event_enabled = false;
+}
+
+void
+RopeVM::turn_on_event()
+{
+    event_enabled = true;
+}
+
 
 void
 RopeVM::turn_off_probe()
@@ -265,3 +290,4 @@ g_should_enable_probe(MethodBlock* mb)
 
 std::ofstream ofs_graph("graph.txt");
 std::ofstream ofs_timeline("timeline.txt");
+std::ofstream ofs_event("event.txt");

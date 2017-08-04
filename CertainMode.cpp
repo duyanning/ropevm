@@ -13,6 +13,7 @@
 #include "DebugScaffold.h"
 #include "Snapshot.h"
 #include "frame.h"
+#include "Stat.h"
 
 using namespace std;
 
@@ -142,8 +143,16 @@ CertainMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
     if (RopeVM::graph_enabled and is_client_code) {
         Object* s = frame->get_object();
         Object* t = target_object;
-        if (is_app_obj(s) and is_app_obj(t)) {
+        if (s != t and is_app_obj(s) and is_app_obj(t)) {
             ofs_graph << type_name(s) << " " << s << " => " << type_name(t) << " " << t << endl;
+        }
+    }
+
+    if (RopeVM::event_enabled and is_client_code) {
+        Object* s = frame->get_object();
+        Object* t = target_object;
+        if (s != t and is_app_obj(s) and is_app_obj(t)) {
+            ofs_event << type_name(s) << " " << s << " => " << type_name(t) << " " << t << " " << op_no << endl;
         }
     }
 
@@ -210,6 +219,14 @@ void
 CertainMode::do_method_return(int len)
 {
     assert(len == 0 || len == 1 || len == 2);
+
+    // if (RopeVM::graph_enabled and is_client_code) {
+    //     Object* s = frame->get_object();
+    //     Object* t = target_object;
+    //     if (s != t and is_app_obj(s) and is_app_obj(t)) {
+    //         ofs_graph << type_name(s) << " " << s << " => " << type_name(t) << " " << t << endl;
+    //     }
+    // }
 
     Frame* current_frame = frame; // 因为后边的处理可能会改变frame，所以我们先保存一下
 
@@ -359,7 +376,7 @@ CertainMode::do_get_field(Object* target_object, FieldBlock* fb,
     if (RopeVM::graph_enabled and is_client_code) {
         Object* s = frame->get_object();
         Object* t = target_object;
-        if (is_app_obj(s) and is_app_obj(t)) {
+        if (s != t and is_app_obj(s) and is_app_obj(t)) {
             ofs_graph << type_name(s) << " " << s << " => " << type_name(t) << " " << t << endl;
         }
     }
@@ -429,7 +446,7 @@ CertainMode::do_put_field(Object* target_object, FieldBlock* fb,
     if (RopeVM::graph_enabled and is_client_code) {
         Object* s = frame->get_object();
         Object* t = target_object;
-        if (is_app_obj(s) and is_app_obj(t)) {
+        if (s != t and is_app_obj(s) and is_app_obj(t)) {
             ofs_graph << type_name(s) << " " << s << " => " << type_name(t) << " " << t << endl;
         }
     }

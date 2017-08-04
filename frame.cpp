@@ -88,6 +88,8 @@ Frame::Frame(int lvars_size, int ostack_size)
     }
     //}}} just for debug
     xxx = 0;
+
+    frame_no = 0;
 }
 
 Frame::~Frame()
@@ -169,6 +171,9 @@ g_create_frame(SpmtThread* owner, Object* object, MethodBlock* new_mb, uintptr_t
     ostack_size = ostack_size != 0 ? ostack_size : 4;
 
     Frame* new_frame = new Frame(lvars_size, ostack_size);
+
+    frame_no++;
+    new_frame->frame_no = frame_no;
 
     new_frame->is_top = is_top;
 

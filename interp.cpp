@@ -13,6 +13,7 @@
 #include "frame.h"
 #include "Break.h"
 #include "Loggers.h"
+#include "Stat.h"
 
 #define THROW_EXCEPTION(excep_name, message)    \
     {                                           \
@@ -25,6 +26,8 @@
 void
 Mode::fetch_and_interpret_an_instruction()
 {
+    op_no++;
+
     assert(frame);
     //assert(frame->is_alive());
     // assert(not frame->is_dead());
@@ -1611,6 +1614,14 @@ Mode::fetch_and_interpret_an_instruction()
                 else if (new_mb->name == SYMBOL(turn_off_log)) {
                     RopeVM::instance()->turn_off_log();
                     std::cout << "backdoor: turn_off_log\n";
+                }
+                else if (new_mb->name == SYMBOL(register_obj)) {
+                    Object* obj_ref = (Object*)frame->ostack_base[0];
+                    Object* jstr_name = (Object*)frame->ostack_base[1];
+                    char* cstr_name = String2Utf8(jstr_name);
+                    std::cout << "backdoor: name " << cstr_name << " ref: " << obj_ref << std::endl;
+                    //std::cout << "backdoor: " << "haha" << std::endl;
+                    sp -= 2;    // 将两个参数从操作数栈中清除
                 }
 
                 pc +=  3;
