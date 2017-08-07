@@ -8,7 +8,7 @@ class Obj {
 	public void touch(Obj who) {
         System.out.println(who.getName() + " -> " + m_name);
 	}
-	public void touch(String who, Obj next) {
+	public void touch(String who, Obj next) { // who touch me(this)? I(this) touch next.
         System.out.println(who + " -> " + m_name);
         next.touch(m_name);
 	}

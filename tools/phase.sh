@@ -19,6 +19,9 @@ END {
 	system(cmd); }
 ' ref_name.txt
 
+
+cp modified_event.net /mnt/hgfs/vmware-dir
+
 # 为infomap创建输出文件夹infomap-output
 #if [ ! -d infomap-output ] ; then
 #	mkdir infomap-output
