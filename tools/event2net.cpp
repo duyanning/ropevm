@@ -107,7 +107,7 @@ void output_net()
   a->c
   ...
   b->c
-  这种有相同目标的操作联系起来
+  这种有相同目标的操作联系起来(双向好还是单向好？目前是双向)
 */
 void link_ops_having_same_target()
 {
@@ -120,7 +120,7 @@ void link_ops_having_same_target()
             double ac = 1;
             intmax_t op_distance = calc_op_distance(vertices[j], vertices[i]);
             ac /= op_distance;
-            cout << i << " " << j << " distance=" << op_distance << " ac=" << ac << endl;
+            //cout << i << " " << j << " distance=" << op_distance << " ac=" << ac << endl;
 
             // 如果目标对象相同，那么就在两个操作之间建立一条连接（对同一个对象的两个操作，应由同一线程来执行）
             if (vertices[i].to_object_addr == vertices[j].to_object_addr) {
@@ -129,10 +129,10 @@ void link_ops_having_same_target()
                 e.weight = weight_same_target * ac;
                 edges.push_back(e);
 
-                e.from = j;
-                e.to = i;
-                e.weight = weight_same_target * ac;
-                edges.push_back(e);
+                // e.from = j;
+                // e.to = i;
+                // e.weight = weight_same_target * ac;
+                // edges.push_back(e);
             }
 
         }
@@ -144,7 +144,7 @@ void link_ops_having_same_target()
   a->b
   b->c
   c->a
-  之间建立连接，客观上导致环的出现。
+  之间建立连接（单向），客观上导致环的出现。
   此外还要检测重入
 */
 void link_ops_from_to_forward()
@@ -160,7 +160,7 @@ void link_ops_from_to_forward()
 
             if (vertices[i].to_object_addr == vertices[j].from_object_addr) {
                 e.weight = weight_from_to_forward * ac;
-                cout << "--------------" << i+1 << " " << j+1 << endl;
+                //cout << "--------------" << i+1 << " " << j+1 << endl;
 
                 // 检测重入
                 if (vertices[i].caller_frame_no == vertices[j].frame_no) {
@@ -189,7 +189,7 @@ void link_ops_from_to_forward()
   c->a
   b->c 
   a->b
-  之间建立连接，客观上导致环的出现。
+  之间建立连接（单向），客观上导致环的出现。
   这种环不会有重入
 */
 void link_ops_from_to_backward()
@@ -215,7 +215,7 @@ void link_ops_from_to_backward()
 }
 
 /*
-  按照动态序在操作之间建立单向连接
+  按照动态序在操作之间建立连接（单向）
 */
 void link_ops_according_to_dynamic_order()
 {
