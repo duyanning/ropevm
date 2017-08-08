@@ -153,7 +153,7 @@ CertainMode::do_invoke_method(Object* target_object, MethodBlock* new_mb)
         Object* t = target_object;
         if (s != t and is_app_obj(s) and is_app_obj(t)) {
             ofs_event << type_name(s) << " " << s << " => " << type_name(t) << " " << t << " " << op_no
-                      << frame->frame_no << " " << frame->prev->frame_no << endl;
+                      << " " << frame->frame_no << " " << frame->prev->frame_no << endl;
             op_no++;
         }
     }
