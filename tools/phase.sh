@@ -25,13 +25,23 @@ cp modified_event.net /mnt/hgfs/vmware-dir
 cp event.pdf /mnt/hgfs/vmware-dir
 
 # 为infomap创建输出文件夹infomap-output
-#if [ ! -d infomap-output ] ; then
-#	mkdir infomap-output
-#fi
+if [ ! -d infomap-output ] ; then
+	mkdir infomap-output
+fi
 
-# 用infomap在graph.net中发现社区，结果保存在infomap-output/graph.map中
-#infomap graph.net infomap-output/ -N 10 --two-level --map
+# 用infomap在event.net中发现社区，结果保存在infomap-output/event.map中
+infomap event.net infomap-output/ -d -2 -N 10 --two-level --map
+# ./Infomap -d -2 --bftree --without-iostream modified_event.net .
 
 # 移到当前目录下
-#mv infomap-output/graph.map .
+mv infomap-output/event.map .
+
+awk '
+{ option_to_sed=option_to_sed" -e \x27s/"$1"/"$2"/g\x27"; }
+END { 
+	cmd = "sed"option_to_sed" event.map > modified_event.map";
+	print cmd;
+	system(cmd); }
+' ref_name.txt
+
 

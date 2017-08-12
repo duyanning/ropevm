@@ -234,7 +234,7 @@ RopeVM所基于的是其中最简单的一种，即最幼稚的采用loop+switch
 jamvm 1.5.1可以跟GNU Classpath 0.97.2配合工作，但听说无法跟GNU Classpath 0.98配合（据说jamvm 1.5.2可以跟GNU Classpath 0.98f配合，但不能跟低于0.98的版本配合）。
 * tools
 ** 社区发现工具
-graph剖测运行后会生成
+graph=1剖测运行后会生成
 graph.txt 代表对象交互情况的原始数据
 timeline.txt 代表对象产生顺序的原始数据
 
@@ -244,10 +244,10 @@ infomap根据graph.net生成graph.map
 
 find-leaders.cpps根据graph.map和timeline.txt将需要标记的类输出到控制台。
 ** 阶段发现工具(todo)
-event剖测运行后会生成
+event=1剖测运行后会生成
 event.txt 代表事件（即操作）历史的原始数据
 event2net.cpps根据event.txt生成event.net
 infomap根据event.net生成event.map
-（从event.txt到event.map的过程由time-community.sh驱动）
+（从event.txt到event.map的过程由phase.sh驱动）
 phase.cpps根据event.map输出阶段划分到控制台。
 

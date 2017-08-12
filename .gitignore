@@ -10,5 +10,6 @@ BROWSE
 graph.net
 cscope.out
 *.gv
+*.dot
 *.pdf
 
