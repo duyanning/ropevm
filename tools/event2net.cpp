@@ -19,10 +19,15 @@ struct Vertex {
     intmax_t caller_frame_no;   // 操作所在栈桢的上级栈桢
 };
 
+enum class EdgeType {
+    SAME_TARGET, DYNAMIC_ORDER, FROM_TO_FORWARD, FROM_TO_BACKWARD
+};
+
 struct Edge {
     size_t from;
     size_t to;
     double weight;
+    EdgeType type;
 };
 
 vector<Vertex> vertices;
@@ -107,7 +112,7 @@ void output_net()
   a->c
   ...
   b->c
-  这种有相同目标的操作联系起来(双向好还是单向好？目前是双向)
+  这种有相同目标的操作联系起来(双向好还是单向好？目前看来是单向。why？)
 */
 void link_ops_having_same_target()
 {
@@ -127,6 +132,7 @@ void link_ops_having_same_target()
                 e.from = i;
                 e.to = j;
                 e.weight = weight_same_target * ac;
+                e.type = EdgeType::SAME_TARGET;
                 edges.push_back(e);
 
                 // e.from = j;
@@ -169,6 +175,7 @@ void link_ops_from_to_forward()
 
                 e.from = i;
                 e.to = j;
+                e.type = EdgeType::FROM_TO_FORWARD;
                 edges.push_back(e);
 
             }
@@ -207,6 +214,7 @@ void link_ops_from_to_backward()
                 e.from = i;
                 e.to = j;
                 e.weight = weight_from_to_backward * ac;
+                e.type = EdgeType::FROM_TO_BACKWARD;
                 edges.push_back(e);
             }
 
@@ -225,6 +233,7 @@ void link_ops_according_to_dynamic_order()
         e.from = i;
         e.to = i+1;
         e.weight = weight_dynamic_order;
+        e.type = EdgeType::DYNAMIC_ORDER;
         edges.push_back(e);
     }
 }
@@ -238,11 +247,27 @@ void build_net()
 }
 
 
+// 输出graphviz的.dot文件
+void output_dot()
+{
+    // // 注意调整节点编号，使之从1开始
+    ofstream ofs_dot("event.dot");
+    ofs_dot << "digraph G {" << endl;
+    for (size_t i = 0; i < edges.size(); ++i) {
+        const Edge& e = edges[i];
+        // const Vertex& from = vertices[e.from];
+        // const Vertex& to = vertices[e.to];
+        ofs_dot << e.from+1 << " -> " << e.to+1 << ";" << endl;
+    }
+    ofs_dot << "}" << endl;
+}
+
 int main(int argc, char* argv[])
 {
     input_log();
     build_net();
     output_net();
+    output_dot();
 
     return 0;
 }

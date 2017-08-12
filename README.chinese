@@ -243,7 +243,7 @@ infomap根据graph.net生成graph.map
 （从graph.txt到graph.map的过程由discover.sh驱动。）
 
 find-leaders.cpps根据graph.map和timeline.txt将需要标记的类输出到控制台。
-** 阶段发现工具
+** 阶段发现工具(todo)
 event剖测运行后会生成
 event.txt 代表事件（即操作）历史的原始数据
 event2net.cpps根据event.txt生成event.net
