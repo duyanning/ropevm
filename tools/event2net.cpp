@@ -258,6 +258,7 @@ void output_dot()
         // const Vertex& from = vertices[e.from];
         // const Vertex& to = vertices[e.to];
         ofs_dot << e.from+1 << " -> " << e.to+1;
+        // 边的颜色
         ofs_dot << " [color=";
         switch (e.type) {
         case EdgeType::SAME_TARGET:
@@ -270,9 +271,13 @@ void output_dot()
             ofs_dot << "red";
             break;
         case EdgeType::FROM_TO_BACKWARD:
-            ofs_dot << "lightblue";
+            ofs_dot << "blue";
             break;
         }
+        // 边的xxx？
+        ofs_dot << ", weight=" << e.weight;
+        // 边的粗细
+        ofs_dot << ", penwidth=" << e.weight;
         ofs_dot << "];" << endl;
     }
     ofs_dot << "}" << endl;

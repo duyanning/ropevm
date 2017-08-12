@@ -22,6 +22,7 @@ END {
 dot -Tpdf event.gv -o event.pdf
 
 cp modified_event.net /mnt/hgfs/vmware-dir
+cp event.pdf /mnt/hgfs/vmware-dir
 
 # 为infomap创建输出文件夹infomap-output
 #if [ ! -d infomap-output ] ; then
