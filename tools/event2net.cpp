@@ -270,7 +270,7 @@ void output_dot()
             ofs_dot << "red";
             break;
         case EdgeType::FROM_TO_BACKWARD:
-            ofs_dot << "blue";
+            ofs_dot << "lightblue";
             break;
         }
         ofs_dot << "];" << endl;
