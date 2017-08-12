@@ -19,6 +19,7 @@ END {
 	system(cmd); }
 ' ref_name.txt
 
+dot -Tpdf event.gv -o event.pdf
 
 cp modified_event.net /mnt/hgfs/vmware-dir
 

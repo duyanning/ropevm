@@ -251,13 +251,29 @@ void build_net()
 void output_dot()
 {
     // // 注意调整节点编号，使之从1开始
-    ofstream ofs_dot("event.dot");
+    ofstream ofs_dot("event.gv");
     ofs_dot << "digraph G {" << endl;
     for (size_t i = 0; i < edges.size(); ++i) {
         const Edge& e = edges[i];
         // const Vertex& from = vertices[e.from];
         // const Vertex& to = vertices[e.to];
-        ofs_dot << e.from+1 << " -> " << e.to+1 << ";" << endl;
+        ofs_dot << e.from+1 << " -> " << e.to+1;
+        ofs_dot << " [color=";
+        switch (e.type) {
+        case EdgeType::SAME_TARGET:
+            ofs_dot << "green";
+            break;
+        case EdgeType::DYNAMIC_ORDER:
+            ofs_dot << "grey";
+            break;
+        case EdgeType::FROM_TO_FORWARD:
+            ofs_dot << "red";
+            break;
+        case EdgeType::FROM_TO_BACKWARD:
+            ofs_dot << "blue";
+            break;
+        }
+        ofs_dot << "];" << endl;
     }
     ofs_dot << "}" << endl;
 }
