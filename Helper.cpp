@@ -40,6 +40,11 @@ bool is_array_object(Object* o)
 {
     return is_array_class(o->classobj);
 }
+
+bool is_primitive(Class* c)
+{
+    return IS_PRIMITIVE(c->classblock());
+}
 // -----------------------------------------
 bool is_class_obj(Object* o)
 {
@@ -65,6 +70,7 @@ bool is_std_obj(Object* o)
     }
 }
 
+// 是否应用程序员编写的对象
 bool is_app_obj(Object* o)
 {
     if (is_normal_obj(o)) {
@@ -85,6 +91,8 @@ bool is_app_class(Class* c)
     if (is_std_class(c))
         return false;
     if (is_array_class(c))
+        return false;
+    if (is_primitive(c))
         return false;
     return true;
 }

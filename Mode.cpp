@@ -54,7 +54,8 @@ Mode::before_alloc_object()
 void
 Mode::after_alloc_object(Object* new_object)
 {
-    if (RopeVM::graph_enabled and is_client_code) {
+    //if (RopeVM::graph_enabled and is_client_code) {
+    if (RopeVM::graph_enabled) {
         if (is_app_obj(new_object)) {
             ofs_timeline << type_name(new_object) << " " <<  new_object << " created" << endl;
         }
