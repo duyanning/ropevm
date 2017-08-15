@@ -59,6 +59,8 @@ int main(int argc, char* argv[])
     while (ifs_graph) {
         getline(ifs_graph, line);
         //cout << line << endl;
+        if (line == "")
+            break;
         istringstream iss(line);
         iss >> source_class_name >> source_object_addr >> arrow >> target_class_name >> target_object_addr;
         //cout << source_class_name << source_object_addr << arrow << target_class_name << target_object_addr << endl;

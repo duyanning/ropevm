@@ -292,3 +292,5 @@ int main(int argc, char* argv[])
 
     return 0;
 }
+
+// void返回值也应当考虑，如果是void返回值，联系强度应当适当调低
