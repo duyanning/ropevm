@@ -25,11 +25,13 @@ int main()
 
     ifstream ifs_map("graph.map");
     string line;
+    bool sth_in_line;           // 因为某些特殊情况下，读出的东西又会被退回，这个标志为true，表示line中还有未处理（即退回）的东西
     int module_count;
     int node_count;
     int module_no;
     int node_no;
     string tag;
+    sth_in_line = false;
     while (ifs_map) {
         getline(ifs_map, line);
         istringstream iss(line);
@@ -44,7 +46,9 @@ int main()
             int last_module_no = 1;
             vector<TimelineEntry> nodes_in_module;
             for (int i = 0; i < node_count; ++i) {
-                getline(ifs_map, line);
+                if (not sth_in_line)
+                    getline(ifs_map, line);
+                sth_in_line = false;
                 istringstream iss(line);
                 iss >> module_no;
                 iss.ignore(); // :
@@ -62,10 +66,12 @@ int main()
                 e.object_addr = object_addr;
                 nodes_in_module.push_back(e);
 
-                // 如果新的module开始了
+                // 如果新的module开始了，或者后边已经没有别的module了，就进行统计
                 if (module_no != last_module_no || i == node_count - 1) {
                     if (module_no != last_module_no) {
                         nodes_in_module.pop_back();
+                        i--;
+                        sth_in_line = true;
                     }
                     // 根据timeline找到nodes_in_module中最老的node
                     for (int i = 0; i < timeline.size(); ++i) {
