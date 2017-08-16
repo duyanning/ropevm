@@ -18,6 +18,8 @@ infomap event.net infomap-output/ -d -2 -N 10 --two-level --map
 # 移到当前目录下
 mv infomap-output/event.map .
 
+find-fiber.cpps
+
 # 为了方便调试，将对象地址替换为对象的名字
 if [ -s ref_name.txt ] ; then
     replace.sh event.net ref_name.txt ;
