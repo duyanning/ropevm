@@ -96,7 +96,7 @@ void output_net()
     size_t i;
     for (i = 0; i < vertices.size(); ++i) {
         const Vertex& v = vertices[i];
-        ofs_net << i+1 << " " << "\"" << v.from_object_addr << "->" << v.to_object_addr << "\"" << " 1.0" << endl;
+        ofs_net << i+1 << " " << "\"" << v.op_no << " " << v.from_object_addr << " -> " << v.to_object_addr << "\"" << " 1.0" << endl;
     }
 
     ofs_net << "*Arcs " << edges.size() << endl;
