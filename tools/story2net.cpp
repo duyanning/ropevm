@@ -6,13 +6,13 @@ struct Op {
     intmax_t op_no;
 };
 
-struct Fiber {
-    intmax_t fiber_no;
+struct Story {
+    intmax_t story_no;
     vector<Op> ops;
 };
 
 struct Vertex {
-    Fiber fiber;
+    Story story;
 };
 
 struct Edge {
@@ -24,38 +24,38 @@ struct Edge {
 vector<Vertex> vertices;
 vector<Edge> edges;
 
-ifstream ifs_fiber("fiber.txt");
+ifstream ifs_story("story.txt");
 
-void read_fiber(Fiber& fiber)
+void read_story(Story& story)
 {
-    ifs_fiber.ignore(numeric_limits<std::streamsize>::max(), ' ');
-    ifs_fiber >> fiber.fiber_no;
-    ifs_fiber.ignore(numeric_limits<std::streamsize>::max(), '\n');
+    ifs_story.ignore(numeric_limits<std::streamsize>::max(), ' ');
+    ifs_story >> story.story_no;
+    ifs_story.ignore(numeric_limits<std::streamsize>::max(), '\n');
 
-    ifs_fiber.ignore(numeric_limits<std::streamsize>::max(), ':');
+    ifs_story.ignore(numeric_limits<std::streamsize>::max(), ':');
     intmax_t op_count;
-    ifs_fiber >> op_count;
+    ifs_story >> op_count;
 
     for (intmax_t i = 0; i < op_count; ++i) {
         Op op;
-        ifs_fiber >> op.op_no;
-        fiber.ops.push_back(op);
+        ifs_story >> op.op_no;
+        story.ops.push_back(op);
     }
 
-    ifs_fiber.ignore(numeric_limits<std::streamsize>::max(), '\n');
+    ifs_story.ignore(numeric_limits<std::streamsize>::max(), '\n');
 }
 
-void output_fiber(const Fiber& fiber)
+void output_story(const Story& story)
 {
-    cout << fiber.fiber_no << ": ";
-    for (auto f : fiber.ops) {
+    cout << story.story_no << ": ";
+    for (auto f : story.ops) {
         cout << f.op_no << " "; 
     }
     cout << endl;
 
 }
 
-intmax_t calc_fiber_overlapping(const Fiber& a, const Fiber& b)
+intmax_t calc_story_overlapping(const Story& a, const Story& b)
 {
     // 先判断两个纤维是否重叠，如果不重叠，重叠度为0
     intmax_t a_first, a_last, b_first, b_last;
@@ -78,8 +78,8 @@ intmax_t calc_fiber_overlapping(const Fiber& a, const Fiber& b)
     sort(pos.begin(), pos.end());
     
     intmax_t distance = pos[2] - pos[1] + 1;
-    // output_fiber(a);
-    // output_fiber(b);
+    // output_story(a);
+    // output_story(b);
     // cout << "distance: " << distance << endl;
 
     return distance;
@@ -89,12 +89,12 @@ void link_vertex()
 {
     for (size_t i = 0; i < vertices.size(); ++i) {
         for (size_t j = i+1; j < vertices.size(); ++j) {
-            intmax_t fiber_overlapping = calc_fiber_overlapping(vertices[j].fiber, vertices[i].fiber);
-            if (fiber_overlapping > 0) {
+            intmax_t story_overlapping = calc_story_overlapping(vertices[j].story, vertices[i].story);
+            if (story_overlapping > 0) {
                 Edge e;
                 e.from = i;
                 e.to = j;
-                e.weight = fiber_overlapping;
+                e.weight = story_overlapping;
                 edges.push_back(e);
             }
         }
@@ -108,12 +108,12 @@ void output_net()
     cout << "vertices: " << vertices.size() << endl;
     cout << "edges: " << edges.size() << endl;
 
-    ofstream ofs_net("fiber.net");
+    ofstream ofs_net("story.net");
     ofs_net << "*Vertices " << vertices.size() << endl;
     size_t i;
     for (i = 0; i < vertices.size(); ++i) {
         const Vertex& v = vertices[i];
-        ofs_net << i+1 << " " << "\"" << v.fiber.fiber_no << "\"" << " 1.0" << endl;
+        ofs_net << i+1 << " " << "\"" << v.story.story_no << "\"" << " 1.0" << endl;
     }
 
     ofs_net << "*Arcs " << edges.size() << endl;
@@ -124,29 +124,29 @@ void output_net()
     }
 }
 
-void input_fiber_txt()
+void input_story_txt()
 {
-    ifs_fiber.ignore(numeric_limits<std::streamsize>::max(), ':');
-    intmax_t fiber_count;
-    ifs_fiber >> fiber_count;
-    cout << "fiber cout: " << fiber_count << endl;
-    for (intmax_t i = 0; i < fiber_count; ++i) {
-        Fiber fiber;
-        read_fiber(fiber);
-        // for (auto f : fiber.ops) {
+    ifs_story.ignore(numeric_limits<std::streamsize>::max(), ':');
+    intmax_t story_count;
+    ifs_story >> story_count;
+    cout << "story cout: " << story_count << endl;
+    for (intmax_t i = 0; i < story_count; ++i) {
+        Story story;
+        read_story(story);
+        // for (auto f : story.ops) {
         //     cout << f.op_no << " "; 
         // }
         // cout << endl;
 
         Vertex vertex;
-        vertex.fiber = fiber;
+        vertex.story = story;
         vertices.push_back(vertex);
     }
 }
 
 int main()
 {
-    input_fiber_txt();
+    input_story_txt();
     link_vertex();
     output_net();
 

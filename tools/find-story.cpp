@@ -30,7 +30,7 @@ int main()
     // };
     // cout << "timeline count:" << timeline.size() << endl;
 
-    ofstream ofs_fiber("fiber.txt");
+    ofstream ofs_story("story.txt");
 
     ifstream ifs_map("event.map");
     string line;
@@ -47,8 +47,8 @@ int main()
         iss >> tag;
         if (tag == "*Modules") {
             iss >> module_count;
-            cout << "fibers count: " << module_count << endl;
-            ofs_fiber << "fibers count: " << module_count << endl;
+            cout << "storys count: " << module_count << endl;
+            ofs_story << "storys count: " << module_count << endl;
         }
         else if (tag == "*Nodes") {
             iss >> node_count;
@@ -94,14 +94,14 @@ int main()
                             return op1.op_no < op2.op_no;
                         });
                     //cout << i << endl;
-                    cout << "fiber " << last_module_no << ": " << nodes_in_module.front().op_no << "-" << nodes_in_module.back().op_no << endl;
+                    cout << "story " << last_module_no << ": " << nodes_in_module.front().op_no << "-" << nodes_in_module.back().op_no << endl;
                     
-                    ofs_fiber << "fiber " << last_module_no << ":" << endl;
-                    ofs_fiber << "op count: " << nodes_in_module.size() << endl;
+                    ofs_story << "story " << last_module_no << ":" << endl;
+                    ofs_story << "op count: " << nodes_in_module.size() << endl;
                     for (auto op : nodes_in_module) {
-                        ofs_fiber << op.op_no << " ";
+                        ofs_story << op.op_no << " ";
                     }
-                    ofs_fiber << endl;
+                    ofs_story << endl;
 
                     // // 根据timeline找到nodes_in_module中最老的node
                     // for (int i = 0; i < timeline.size(); ++i) {

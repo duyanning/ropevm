@@ -250,8 +250,8 @@ event.txt 记录着事件（即操作）历史
 
 event2net.cpps根据event.txt生成event.net
 调用infomap根据event.net生成event.map
-find-fiber.cpps根据event.map得到fiber的起止位置（可能还包含其他信息），位于fiber.txt
-fiber2net.cpps根据fiber.txt生成fiber.net
-调用infomap根据fiber.net生成fiber.map
-find-phase.cpps根据fiber.map输出阶段划分到控制台
+find-story.cpps根据event.map得到story的起止位置（可能还包含其他信息），位于story.txt
+story2net.cpps根据story.txt生成story.net
+调用infomap根据story.net生成story.map
+find-phase.cpps根据story.map输出阶段划分到控制台
 （以上过程由phase.sh驱动）
