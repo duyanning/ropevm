@@ -31,9 +31,9 @@ int main()
     // };
     // cout << "timeline count:" << timeline.size() << endl;
 
-    ofstream ofs_fiber("fiber.txt");
+    ofstream ofs_phase("phase.txt");
 
-    ifstream ifs_map("event.map");
+    ifstream ifs_map("story.map");
     string line;
     bool sth_in_line;           // 因为某些特殊情况下，读出的东西又会被退回，这个标志为true，表示line中还有未处理（即退回）的东西
     int module_count;
@@ -49,7 +49,7 @@ int main()
         if (tag == "*Modules") {
             iss >> module_count;
             cout << "fibers count: " << module_count << endl;
-            ofs_fiber << "fibers count: " << module_count << endl;
+            ofs_phase << "fibers count: " << module_count << endl;
         }
         else if (tag == "*Nodes") {
             iss >> node_count;
@@ -97,12 +97,12 @@ int main()
                     //cout << i << endl;
                     cout << "fiber " << last_module_no << ": " << nodes_in_module.front().op_no << "-" << nodes_in_module.back().op_no << endl;
                     
-                    ofs_fiber << "fiber " << last_module_no << ":" << endl;
-                    ofs_fiber << "op count: " << nodes_in_module.size() << endl;
+                    ofs_phase << "fiber " << last_module_no << ":" << endl;
+                    ofs_phase << "op count: " << nodes_in_module.size() << endl;
                     for (auto op : nodes_in_module) {
-                        ofs_fiber << op.op_no << " ";
+                        ofs_phase << op.op_no << " ";
                     }
-                    ofs_fiber << endl;
+                    ofs_phase << endl;
 
                     // // 根据timeline找到nodes_in_module中最老的node
                     // for (int i = 0; i < timeline.size(); ++i) {
