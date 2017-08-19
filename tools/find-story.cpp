@@ -47,8 +47,8 @@ int main()
         iss >> tag;
         if (tag == "*Modules") {
             iss >> module_count;
-            cout << "storys count: " << module_count << endl;
-            ofs_story << "storys count: " << module_count << endl;
+            cout << "story count: " << module_count << endl;
+            ofs_story << "story count: " << module_count << endl;
         }
         else if (tag == "*Nodes") {
             iss >> node_count;
@@ -74,7 +74,7 @@ int main()
                 string to_object_addr;
                 iss >> to_object_addr;
                 to_object_addr.pop_back(); // "
-                //cout << module_no << "-" << op_no << endl;
+                //cout << op_no << endl;
                 
                 OpEntry op;
                 op.op_no = op_no;
@@ -85,6 +85,7 @@ int main()
                 // 如果新的module开始了，或者后边已经没有别的module了，就进行统计
                 if (module_no != last_module_no || i == node_count - 1) {
                     if (module_no != last_module_no) {
+                        //cout << "***" << endl;
                         nodes_in_module.pop_back();
                         i--;
                         sth_in_line = true;
