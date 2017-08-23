@@ -7,15 +7,6 @@ using namespace std;
 #include "Story.h"
 
 
-// struct OpEntry {
-//     intmax_t op_no;
-//     //string from_class_name;
-//     string from_object_addr;
-//     //string to_class_name;
-//     string to_object_addr;
-// };
-
-
 class EventMapWalker : public TwoLevelMapWalker<OpEntry> {
     ofstream ofs_story;
     void on_module_count(intmax_t module_count) override;
@@ -45,20 +36,7 @@ EventMapWalker::on_module_count(intmax_t module_count)
 void
 EventMapWalker::read_node(istringstream& iss, OpEntry& op)
 {
-    intmax_t op_no;
-    iss >> op_no;
-    string from_object_addr;
-    iss >> from_object_addr;
-    string arrow;
-    iss >> arrow;
-    string to_object_addr;
-    iss >> to_object_addr;
-    to_object_addr.pop_back(); // "
-    //cout << op_no << endl;
-    op.op_no = op_no;
-    op.from_object_addr = from_object_addr;
-    op.to_object_addr = to_object_addr;
-
+    iss >> op;
 }
 
 
@@ -80,12 +58,7 @@ EventMapWalker::process_module(vector<OpEntry>& nodes_in_module, int& module_no)
         story.ops.push_back(op.op_no);
     }
 //////////////////////////
-    // ofs_story << "story " << module_no << ":" << endl;
-    // ofs_story << "op count: " << nodes_in_module.size() << endl;
-    // for (auto op : nodes_in_module) {
-    //     ofs_story << op.op_no << " ";
-    // }
-    // ofs_story << endl;
+
     ofs_story << story;
 }
 

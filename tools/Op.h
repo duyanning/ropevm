@@ -13,29 +13,6 @@ struct Op {
 };
 
 
-struct OpEntry {
-    intmax_t op_no;
-    //string from_class_name;
-    string from_object_addr;
-    //string to_class_name;
-    string to_object_addr;
-};
-
-
-// inline
-// std::ostream&
-// operator<<(std::ostream& strm, const Op& op)
-// {
-//     strm << "story " << story.no << ":" << endl;
-//     strm << "op count: " << story.ops.size() << endl;
-//     for (auto op : story.ops) {
-//         strm << op << " ";
-//     }
-//     strm << endl;
-    
-//     return strm;
-// }
-
 inline
 std::istream&
 operator>>(std::istream& strm, Op& op)
@@ -59,6 +36,60 @@ operator>>(std::istream& strm, Op& op)
     op.op_no = op_no;
     op.frame_no = frame_no;
     op.caller_frame_no = caller_frame_no;
+
+    return strm;
+}
+
+
+//=====================================
+
+struct OpEntry {
+    intmax_t op_no;
+    //string from_class_name;
+    string from_object_addr;
+    //string to_class_name;
+    string to_object_addr;
+
+    OpEntry() {}
+    OpEntry(const Op& op);
+};
+
+inline
+OpEntry::OpEntry(const Op& op)
+{
+    op_no = op.op_no;
+    from_object_addr = op.from_object_addr;
+    to_object_addr = op.to_object_addr;
+}
+
+
+inline
+std::ostream&
+operator<<(std::ostream& strm, const OpEntry& op)
+{
+    strm << op.op_no << " " << op.from_object_addr << " -> " << op.to_object_addr;
+    
+    return strm;
+}
+
+
+inline
+std::istream&
+operator>>(std::istream& strm, OpEntry& op)
+{
+    intmax_t op_no;
+    strm >> op_no;
+    string from_object_addr;
+    strm >> from_object_addr;
+    string arrow;
+    strm >> arrow;
+    string to_object_addr;
+    strm >> to_object_addr;
+    to_object_addr.pop_back(); // "
+    //cout << op_no << endl;
+    op.op_no = op_no;
+    op.from_object_addr = from_object_addr;
+    op.to_object_addr = to_object_addr;
 
     return strm;
 }

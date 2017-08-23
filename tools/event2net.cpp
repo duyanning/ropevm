@@ -8,19 +8,6 @@ const double weight_from_to_backward = 10; //
 const double weight_reentry = 20; // 重入操作之间
 const double weight_dynamic_order = 1;    // 动态序列中的前后关系
 
-
-
-
-// struct Vertex {
-//     string from_class_name;
-//     string from_object_addr;
-//     string to_class_name;
-//     string to_object_addr;
-//     intmax_t op_no;
-//     intmax_t frame_no;          // 操作所在的栈桢
-//     intmax_t caller_frame_no;   // 操作所在栈桢的上级栈桢
-// };
-
 typedef Op Vertex;
 
 enum class EdgeType {
@@ -81,7 +68,8 @@ void output_net()
     size_t i;
     for (i = 0; i < vertices.size(); ++i) {
         const Vertex& v = vertices[i];
-        ofs_net << i+1 << " " << "\"" << v.op_no << " " << v.from_object_addr << " -> " << v.to_object_addr << "\"" << " 1.0" << endl;
+        // ofs_net << i+1 << " " << "\"" << v.op_no << " " << v.from_object_addr << " -> " << v.to_object_addr << "\"" << " 1.0" << endl;
+        ofs_net << i+1 << " " << "\"" << OpEntry(v) << "\"" << " 1.0" << endl;
     }
 
     ofs_net << "*Arcs " << edges.size() << endl;
