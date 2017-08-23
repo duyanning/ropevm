@@ -1,45 +1,45 @@
 #ifndef TWOLEVELMAPWALKER_H
 #define TWOLEVELMAPWALKER_H
 
-template <class ModuleEntry>
+template <class NodeType>
 class TwoLevelMapWalker {
     string m_map_file_name;
     virtual void on_module_count(intmax_t module_count);
     virtual void on_node_count(intmax_t node_count);
-    virtual void process(istringstream& iss, ModuleEntry& entry) = 0;
-    virtual void process_module(vector<ModuleEntry>& nodes_in_module, int& module_no) = 0;
+    virtual void read_node(istringstream& iss, NodeType& entry) = 0;
+    virtual void process_module(vector<NodeType>& nodes_in_module, int& module_no) = 0;
 public:
     TwoLevelMapWalker(const string& map_file_name);
     void go();
 };
 
 
-template <class ModuleEntry>
+template <class NodeType>
 void
-TwoLevelMapWalker<ModuleEntry>::on_module_count(intmax_t module_count)
+TwoLevelMapWalker<NodeType>::on_module_count(intmax_t module_count)
 {
     cout << "module count: " << module_count << endl;
 }
 
 
-template <class ModuleEntry>
+template <class NodeType>
 void
-TwoLevelMapWalker<ModuleEntry>::on_node_count(intmax_t node_count)
+TwoLevelMapWalker<NodeType>::on_node_count(intmax_t node_count)
 {
 }
 
 
-template <class ModuleEntry>
-TwoLevelMapWalker<ModuleEntry>::TwoLevelMapWalker(const string& map_file_name)
+template <class NodeType>
+TwoLevelMapWalker<NodeType>::TwoLevelMapWalker(const string& map_file_name)
 :
     m_map_file_name(map_file_name)
 {
 }
 
 
-template <class ModuleEntry>
+template <class NodeType>
 void
-TwoLevelMapWalker<ModuleEntry>::go()
+TwoLevelMapWalker<NodeType>::go()
 {
     ifstream ifs_map(m_map_file_name);
 
@@ -63,7 +63,7 @@ TwoLevelMapWalker<ModuleEntry>::go()
             iss >> node_count;
             on_node_count(node_count);
             int last_module_no = 1;
-            vector<ModuleEntry> nodes_in_module;
+            vector<NodeType> nodes_in_module;
             for (int i = 0; i < node_count; ++i) {
                 if (not sth_in_line)
                     getline(ifs_map, line);
@@ -74,8 +74,8 @@ TwoLevelMapWalker<ModuleEntry>::go()
                 iss >> node_no;
                 iss.ignore(2); // space and "
 
-                ModuleEntry e;
-                process(iss, e);
+                NodeType e;
+                read_node(iss, e);
                 nodes_in_module.push_back(e);
 
                 // 如果新的module开始了，或者后边已经没有别的module了，就进行统计

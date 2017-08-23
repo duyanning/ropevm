@@ -255,3 +255,26 @@ story2net.cpps根据story.txt生成story.net
 调用infomap根据story.net生成story.map
 find-phase.cpps根据story.map输出阶段划分到控制台
 （以上过程由phase.sh驱动）
+
+
+** 程序命名
+xxx2net.cpps 确定xxx.txt中各xxx节点之间的联系，并将其表达成infomap .net格式的网络
+infomap 不管.net文件的内容是什么，社区发现都只用同一个程序Infomap
+find-yyy.cpps 从代表社区发现结果的.map中获知都有哪些模块，每个模块包含哪些节点。
+
+就以上所述，yyy为模块所表达的概念，xxx为模块中的节点所表达的概念。
+
+yyy首次出现，是在find-yyy.cpps中。find-yyy.cpps会把所有的yyy输出到yyy.txt中。
+yyy2net.cpps 会读入yyy.txt的内容。
+yyy.txt的作用就是在脚本之间传递信息。它就是find-yyy.cpps发现的yyy的持久化。（不光是做持久化之用，yyy.txt还要适合人类阅读）
+
+能否让find-yyy.cpps不产生yyy.txt而直接本来是yyy2net生成的yyy.net呢？
+.net受格式限制，关于yyy的信息只能编码在节点的label中，比较受限。
+
+
+
+
+
+
+
+

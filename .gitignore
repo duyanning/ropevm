@@ -9,7 +9,9 @@ mini-classpath/Math.h
 BROWSE
 graph.net
 cscope.out
+cscope.files
 *.gv
 *.dot
 *.pdf
+
 
