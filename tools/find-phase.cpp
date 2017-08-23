@@ -3,27 +3,20 @@
 using namespace std;
 
 #include "TwoLevelMapWalker.h"
-
-
-struct StoryEntry {
-    intmax_t op_no;
-    //string from_class_name;
-    //string from_object_addr;
-    //string to_class_name;
-    //string to_object_addr;
-};
+#include "Story.h"
+#include "Phase.h"
 
 
 class StoryMapWalker : public TwoLevelMapWalker<StoryEntry> {
     void on_module_count(intmax_t module_count) override;
-    void read_node(istringstream& iss, StoryEntry& story) override;
-    void process_module(vector<StoryEntry>& nodes_in_module, int& module_no) override;
+    void read_node(istringstream& iss, NodeType& story) override;
+    void process_module(ModuleType& nodes_in_module, int& module_no) override;
 public:
     StoryMapWalker(const string& map_file_name);
 };
  
 
-StroyMapWalker::StroyMapWalker(const string& map_file_name)
+StoryMapWalker::StoryMapWalker(const string& map_file_name)
 :
     TwoLevelMapWalker(map_file_name)
 {
@@ -31,14 +24,14 @@ StroyMapWalker::StroyMapWalker(const string& map_file_name)
 
 
 void
-StroyMapWalker::on_module_count(intmax_t module_count)
+StoryMapWalker::on_module_count(intmax_t module_count)
 {
     cout << "phase count: " << module_count << endl;
 }
 
 
 void
-StroyMapWalker::read_node(istringstream& iss, StoryEntry& story)
+StoryMapWalker::read_node(istringstream& iss, NodeType& story)
 {
     intmax_t op_no;
     iss >> op_no;
@@ -60,18 +53,18 @@ StroyMapWalker::read_node(istringstream& iss, StoryEntry& story)
 
 
 void
-StroyMapWalker::process_module(vector<OpEntry>& nodes_in_module, int& module_no)
+StoryMapWalker::process_module(ModuleType& module, int& module_no)
 {
 
-    sort(nodes_in_module.begin(), nodes_in_module.end(), [] (const OpEntry& op1, const OpEntry& op2) {
+    sort(module.begin(), module.end(), [] (const OpEntry& op1, const OpEntry& op2) {
             return op1.op_no < op2.op_no;
         });
     //cout << i << endl;
-    cout << "story " << module_no << ": " << nodes_in_module.front().op_no << "-" << nodes_in_module.back().op_no << endl;
+    cout << "story " << module_no << ": " << module.front().op_no << "-" << module.back().op_no << endl;
                     
     // ofs_story << "story " << module_no << ":" << endl;
-    // ofs_story << "op count: " << nodes_in_module.size() << endl;
-    // for (auto op : nodes_in_module) {
+    // ofs_story << "op count: " << module.size() << endl;
+    // for (auto op : module) {
     //     ofs_story << op.op_no << " ";
     // }
     // ofs_story << endl;
@@ -80,7 +73,7 @@ StroyMapWalker::process_module(vector<OpEntry>& nodes_in_module, int& module_no)
 
 int main()
 {
-    StroyMapWalker mapWalker("story.map");
+    StoryMapWalker mapWalker("story.map");
     mapWalker.go();
 
     return 0;

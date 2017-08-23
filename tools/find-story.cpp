@@ -10,8 +10,8 @@ using namespace std;
 class EventMapWalker : public TwoLevelMapWalker<OpEntry> {
     ofstream ofs_story;
     void on_module_count(intmax_t module_count) override;
-    void read_node(istringstream& iss, OpEntry& op) override;
-    void process_module(vector<OpEntry>& nodes_in_module, int& module_no) override;
+    void read_node(istringstream& iss, NodeType& op) override;
+    void process_module(ModuleType& module, int& module_no) override;
 public:
     EventMapWalker(const string& map_file_name, const string& story_file_name);
 };
@@ -34,27 +34,27 @@ EventMapWalker::on_module_count(intmax_t module_count)
 
 
 void
-EventMapWalker::read_node(istringstream& iss, OpEntry& op)
+EventMapWalker::read_node(istringstream& iss, NodeType& op)
 {
     iss >> op;
 }
 
 
 void
-EventMapWalker::process_module(vector<OpEntry>& nodes_in_module, int& module_no)
+EventMapWalker::process_module(ModuleType& module, int& module_no)
 {
 
-    sort(nodes_in_module.begin(), nodes_in_module.end(), [] (const OpEntry& op1, const OpEntry& op2) {
+    sort(module.begin(), module.end(), [] (const OpEntry& op1, const OpEntry& op2) {
             return op1.op_no < op2.op_no;
         });
     //cout << i << endl;
-    cout << "story " << module_no << ": " << nodes_in_module.front().op_no << "-" << nodes_in_module.back().op_no << endl;
+    cout << "story " << module_no << ": " << module.front().op_no << "-" << module.back().op_no << endl;
                     
 ////////////////////////
     
     Story story;
     story.no = module_no;
-    for (auto op : nodes_in_module) {
+    for (auto op : module) {
         story.ops.push_back(op.op_no);
     }
 //////////////////////////
