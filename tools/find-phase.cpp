@@ -8,9 +8,9 @@ using namespace std;
 struct StoryEntry {
     intmax_t op_no;
     //string from_class_name;
-    string from_object_addr;
+    //string from_object_addr;
     //string to_class_name;
-    string to_object_addr;
+    //string to_object_addr;
 };
 
 

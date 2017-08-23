@@ -3,15 +3,17 @@
 using namespace std;
 
 #include "TwoLevelMapWalker.h"
+#include "Op.h"
+#include "Story.h"
 
 
-struct OpEntry {
-    intmax_t op_no;
-    //string from_class_name;
-    string from_object_addr;
-    //string to_class_name;
-    string to_object_addr;
-};
+// struct OpEntry {
+//     intmax_t op_no;
+//     //string from_class_name;
+//     string from_object_addr;
+//     //string to_class_name;
+//     string to_object_addr;
+// };
 
 
 class EventMapWalker : public TwoLevelMapWalker<OpEntry> {
@@ -70,12 +72,21 @@ EventMapWalker::process_module(vector<OpEntry>& nodes_in_module, int& module_no)
     //cout << i << endl;
     cout << "story " << module_no << ": " << nodes_in_module.front().op_no << "-" << nodes_in_module.back().op_no << endl;
                     
-    ofs_story << "story " << module_no << ":" << endl;
-    ofs_story << "op count: " << nodes_in_module.size() << endl;
+////////////////////////
+    
+    Story story;
+    story.no = module_no;
     for (auto op : nodes_in_module) {
-        ofs_story << op.op_no << " ";
+        story.ops.push_back(op.op_no);
     }
-    ofs_story << endl;
+//////////////////////////
+    // ofs_story << "story " << module_no << ":" << endl;
+    // ofs_story << "op count: " << nodes_in_module.size() << endl;
+    // for (auto op : nodes_in_module) {
+    //     ofs_story << op.op_no << " ";
+    // }
+    // ofs_story << endl;
+    ofs_story << story;
 }
 
 

@@ -1,4 +1,6 @@
 #include "std.h" // precompile std.h
+using namespace std;
+#include "Op.h"
 
 const double weight_same_target = 1; // 大于2.0就会导致源、目标对象对调的操作之间的权重设为10的情况下，分不到一组的情况
 const double weight_from_to_forward = 10; // 
@@ -7,17 +9,19 @@ const double weight_reentry = 20; // 重入操作之间
 const double weight_dynamic_order = 1;    // 动态序列中的前后关系
 
 
-using namespace std;
 
-struct Vertex {
-    string from_class_name;
-    string from_object_addr;
-    string to_class_name;
-    string to_object_addr;
-    intmax_t op_no;
-    intmax_t frame_no;          // 操作所在的栈桢
-    intmax_t caller_frame_no;   // 操作所在栈桢的上级栈桢
-};
+
+// struct Vertex {
+//     string from_class_name;
+//     string from_object_addr;
+//     string to_class_name;
+//     string to_object_addr;
+//     intmax_t op_no;
+//     intmax_t frame_no;          // 操作所在的栈桢
+//     intmax_t caller_frame_no;   // 操作所在栈桢的上级栈桢
+// };
+
+typedef Op Vertex;
 
 enum class EdgeType {
     SAME_TARGET, DYNAMIC_ORDER, FROM_TO_FORWARD, FROM_TO_BACKWARD
