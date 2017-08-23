@@ -55,14 +55,6 @@ void input_log()
 {
     ifstream ifs_event("event.txt");
     string line;
-    string source_class_name;
-    string source_object_addr;
-    string arrow;
-    string target_class_name;
-    string target_object_addr;
-    intmax_t op_no;
-    intmax_t frame_no;
-    intmax_t caller_frame_no;
 
     while (ifs_event) {
         getline(ifs_event, line);
@@ -70,19 +62,8 @@ void input_log()
         if (line == "")
             break;
         istringstream iss(line);
-        iss >> source_class_name >> source_object_addr >> arrow >> target_class_name >> target_object_addr >> op_no
-            >> frame_no >> caller_frame_no;
-        //cout << source_class_name << source_object_addr << arrow << target_class_name << target_object_addr << endl;
-
-
         Vertex v;
-        v.from_class_name = source_class_name;
-        v.from_object_addr = source_object_addr;
-        v.to_class_name = target_class_name;
-        v.to_object_addr = target_object_addr;
-        v.op_no = op_no;
-        v.frame_no = frame_no;
-        v.caller_frame_no = caller_frame_no;
+        iss >> v;
         register_vertex(v);
 
     }
