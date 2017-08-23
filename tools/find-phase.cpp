@@ -8,17 +8,19 @@ using namespace std;
 
 
 class StoryMapWalker : public TwoLevelMapWalker<StoryEntry> {
+    ofstream ofs_phase;
     void on_module_count(intmax_t module_count) override;
     void read_node(istringstream& iss, NodeType& story) override;
     void process_module(ModuleType& nodes_in_module, int& module_no) override;
 public:
-    StoryMapWalker(const string& map_file_name);
+    StoryMapWalker(const string& map_file_name, const string& phase_file_name);
 };
  
 
-StoryMapWalker::StoryMapWalker(const string& map_file_name)
+StoryMapWalker::StoryMapWalker(const string& map_file_name, const string& phase_file_name)
 :
-    TwoLevelMapWalker(map_file_name)
+    TwoLevelMapWalker(map_file_name),
+    ofs_phase(phase_file_name)
 {
 }
 
@@ -27,28 +29,14 @@ void
 StoryMapWalker::on_module_count(intmax_t module_count)
 {
     cout << "phase count: " << module_count << endl;
+    ofs_phase << "phase count: " << module_count << endl;
 }
 
 
 void
 StoryMapWalker::read_node(istringstream& iss, NodeType& story)
 {
-    intmax_t op_no;
-    iss >> op_no;
-    string from_object_addr;
-    iss >> from_object_addr;
-    string arrow;
-    iss >> arrow;
-    string to_object_addr;
-    iss >> to_object_addr;
-    to_object_addr.pop_back(); // "
-    //cout << op_no << endl;
-
-
-    op.op_no = op_no;
-    op.from_object_addr = from_object_addr;
-    op.to_object_addr = to_object_addr;
-
+    iss >> story;
 }
 
 
@@ -56,24 +44,32 @@ void
 StoryMapWalker::process_module(ModuleType& module, int& module_no)
 {
 
-    sort(module.begin(), module.end(), [] (const OpEntry& op1, const OpEntry& op2) {
-            return op1.op_no < op2.op_no;
+    sort(module.begin(), module.end(), [] (const StoryEntry& op1, const StoryEntry& op2) {
+            return op1.no < op2.no;
         });
-    //cout << i << endl;
-    cout << "story " << module_no << ": " << module.front().op_no << "-" << module.back().op_no << endl;
-                    
-    // ofs_story << "story " << module_no << ":" << endl;
-    // ofs_story << "op count: " << module.size() << endl;
-    // for (auto op : module) {
-    //     ofs_story << op.op_no << " ";
+
+    //cout << "phase " << module_no << ": " << endl;
+
+/////////////
+    Phase phase;
+    phase.no = module_no;
+    for (auto story : module) {
+        phase.stories.push_back(story.no);
+    }
+
+/////////////
+    // ofs_phase << "story count: " << module.size() << endl;
+    // for (auto story : module) {
+    //     ofs_phase << story.no << " ";
     // }
-    // ofs_story << endl;
+    // ofs_phase << endl;
+    ofs_phase << phase;
 }
 
 
 int main()
 {
-    StoryMapWalker mapWalker("story.map");
+    StoryMapWalker mapWalker("story.map", "phase.txt");
     mapWalker.go();
 
     return 0;

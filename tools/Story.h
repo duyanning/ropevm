@@ -28,4 +28,12 @@ operator<<(std::ostream& strm, const Story& story)
 }
 
 
+inline
+std::istream&
+operator>>(std::istream& strm, StoryEntry& story)
+{
+    strm >> story.no;
+    return strm;
+}
+
 #endif // STORY_H
