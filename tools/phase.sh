@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 
-# 从profiler产生的graph.txt中生成infomap需要的graph.net
+# 从profiler产生的event.txt中生成infomap需要的event.net
+# 同时也会输出供graphviz使用的event.gv文件
 event2net.cpps
 
+# 用dot从event.gv生成可视化的event.pdf
 dot -Tpdf event.gv -o event.pdf
 
 

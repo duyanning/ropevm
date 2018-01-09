@@ -38,22 +38,22 @@ class Hello
 		Obj b = new Obj("b");
 		Obj c = new Obj("c");
 		Obj d = new Obj("d");
-        RopeVMBackdoor.register_obj(Hello.class, "main");
+        RopeVMBackdoor.register_obj(Hello.class, "Hello");
         RopeVMBackdoor.register_obj(a, "a");
         //RopeVMBackdoor.register_obj();
         RopeVMBackdoor.register_obj(b, "b");
         RopeVMBackdoor.register_obj(c, "c");
         RopeVMBackdoor.register_obj(d, "d");
 
-        a.touch("main", b); 
-        c.touch("main", d);
-        b.touch("main", a); 
-        d.touch("main", c);
+        a.touch("Hello", b); 
+        c.touch("Hello", d);
+        b.touch("Hello", a); 
+        d.touch("Hello", c);
 
-        a.touch("main", c); 
-        b.touch("main", d);
-        c.touch("main", a); 
-        d.touch("main", b);
+        a.touch("Hello", c); 
+        b.touch("Hello", d);
+        c.touch("Hello", a); 
+        d.touch("Hello", b);
         
     }
 }

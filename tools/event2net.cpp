@@ -141,7 +141,7 @@ void link_ops_from_to_forward()
                 e.weight = weight_from_to_forward * ac;
                 //cout << "--------------" << i+1 << " " << j+1 << endl;
 
-                // 检测重入
+                // 检测重入(有问题，还需进一步考虑：回调重入，还是返回重入)
                 if (vertices[i].caller_frame_no == vertices[j].frame_no) {
                     e.weight = weight_reentry;
                 }
