@@ -5,7 +5,7 @@
 event2net.cpps
 
 # 用dot从event.gv生成可视化的event.pdf
-dot -Tpdf event.gv -o event.pdf
+# dot -Tpdf event.gv -o event.pdf # 对于大程序太慢
 
 
 # 为infomap创建输出文件夹infomap-output
@@ -35,7 +35,7 @@ if [ -s ref_name.txt ] ; then
 fi
 
 # 复制到vmware的共享文件夹，方便windows host上处理
-cp modified_event.net /mnt/hgfs/vmware-dir
-cp event.pdf /mnt/hgfs/vmware-dir
-cp event.dot /mnt/hgfs/vmware-dir
-cp event.gv /mnt/hgfs/vmware-dir
+# cp modified_event.net /mnt/hgfs/vmware-dir
+# cp event.pdf /mnt/hgfs/vmware-dir
+# cp event.dot /mnt/hgfs/vmware-dir
+# cp event.gv /mnt/hgfs/vmware-dir

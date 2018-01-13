@@ -19,5 +19,6 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <regex>
+#include <cassert>
 
 #endif // STD_H
