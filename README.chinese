@@ -173,6 +173,7 @@ tools/				一些脚本
     show			查看class文件的字节码
     usejavac		用javac编译
     genlog			运行ropejavac，产生日志
+phase/			探索阶段划分用的小例子
 
 * 开发调试
 
@@ -250,10 +251,10 @@ event.txt 记录着事件（即操作）历史
 
 event2net.cpps根据event.txt生成event.net
 调用infomap根据event.net生成event.map
-find-story.cpps根据event.map得到story的起止位置（可能还包含其他信息），位于story.txt
+find-story.cpps根据event.map得到story的起止位置（可能还包含其他信息），放在story.txt中。
 story2net.cpps根据story.txt生成story.net
 调用infomap根据story.net生成story.map
-find-phase.cpps根据story.map输出阶段划分到控制台
+find-phase.cpps根据story.map输出阶段划分到控制台(以及phase.txt)
 （以上过程由phase.sh驱动）
 
 
@@ -270,11 +271,4 @@ yyy.txt的作用就是在脚本之间传递信息。它就是find-yyy.cpps发现
 
 能否让find-yyy.cpps不产生yyy.txt而直接本来是yyy2net生成的yyy.net呢？
 .net受格式限制，关于yyy的信息只能编码在节点的label中，比较受限。
-
-
-
-
-
-
-
 

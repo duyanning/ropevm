@@ -50,19 +50,12 @@ StoryMapWalker::process_module(ModuleType& module, int& module_no)
 
     //cout << "phase " << module_no << ": " << endl;
 
-/////////////
     Phase phase;
     phase.no = module_no;
     for (auto story : module) {
         phase.stories.push_back(story.no);
     }
 
-/////////////
-    // ofs_phase << "story count: " << module.size() << endl;
-    // for (auto story : module) {
-    //     ofs_phase << story.no << " ";
-    // }
-    // ofs_phase << endl;
     ofs_phase << phase;
 }
 
