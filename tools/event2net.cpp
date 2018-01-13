@@ -11,7 +11,12 @@ const double weight_dynamic_order = 1;    // 动态序列中的前后关系
 typedef Op Vertex;
 
 enum class EdgeType {
-    SAME_TARGET, DYNAMIC_ORDER, FROM_TO_FORWARD, FROM_TO_BACKWARD
+    //SAME_SOURCE,                // 没啥用。放在这里是为了完整性
+    SAME_TARGET,                // output dependence
+    FROM_TO_FORWARD,            // true data dependence
+    FROM_TO_BACKWARD,           // antidependence
+
+    DYNAMIC_ORDER               // 有用吗？有用吗？
 };
 
 struct Edge {
@@ -142,9 +147,10 @@ void link_ops_from_to_forward()
                 //cout << "--------------" << i+1 << " " << j+1 << endl;
 
                 // 检测重入(有问题，还需进一步考虑：回调重入，还是返回重入)
-                if (vertices[i].caller_frame_no == vertices[j].frame_no) {
-                    e.weight = weight_reentry;
-                }
+                // if (vertices[i].caller_frame_no == vertices[j].frame_no) {
+                //     assert(false); // 目前的日志，根本就到不了这里
+                //     e.weight = weight_reentry;
+                // }
 
                 e.from = i;
                 e.to = j;
@@ -216,7 +222,7 @@ void build_net()
     link_ops_having_same_target();
     link_ops_from_to_forward();
     link_ops_from_to_backward();
-    link_ops_according_to_dynamic_order();
+    //link_ops_according_to_dynamic_order();
 }
 
 
