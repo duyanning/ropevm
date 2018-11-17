@@ -1,6 +1,10 @@
 #ifndef TWOLEVELMAPWALKER_H
 #define TWOLEVELMAPWALKER_H
 
+/*
+这个类用遍历infomap产生的二级.map文件。
+*/
+
 template <class NT>
 class TwoLevelMapWalker {
 public:

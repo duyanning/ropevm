@@ -5,6 +5,14 @@
 struct Story {
     intmax_t no;                // story的编号
     vector<intmax_t> ops;       // story中包含的操作
+private:
+    friend class boost::serialization::access;
+    template<class Archive>
+    void serialize(Archive & ar, const unsigned int version)
+    {
+        ar & no;
+        ar & ops;
+    }    
 };
 
 // 以infomap节点标签的形式存在于.net或.map文件中

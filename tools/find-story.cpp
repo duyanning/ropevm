@@ -6,9 +6,13 @@ using namespace std;
 #include "Op.h"
 #include "Story.h"
 
+// linklib boost_system
+// linklib boost_serialization
 
 class EventMapWalker : public TwoLevelMapWalker<OpEntry> {
     ofstream ofs_story;
+    ofstream ofs_story2;        // 用于boost::serialization
+    boost::archive::text_oarchive oa;
     void on_module_count(intmax_t module_count) override;
     void read_node(istringstream& iss, NodeType& op) override;
     void process_module(ModuleType& module, int& module_no) override;
@@ -20,7 +24,9 @@ public:
 EventMapWalker::EventMapWalker(const string& map_file_name, const string& story_file_name)
 :
     TwoLevelMapWalker(map_file_name),
-    ofs_story(story_file_name)
+    ofs_story(story_file_name),
+    ofs_story2("story2.txt"),
+    oa(ofs_story2)
 {
 }
 
@@ -30,6 +36,7 @@ EventMapWalker::on_module_count(intmax_t module_count)
 {
     cout << "story count: " << module_count << endl;
     ofs_story << "story count: " << module_count << endl;
+    oa << module_count;
 }
 
 
@@ -60,6 +67,7 @@ EventMapWalker::process_module(ModuleType& module, int& module_no)
 //////////////////////////
 
     ofs_story << story;
+    oa << story;
 }
 
 

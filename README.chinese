@@ -96,7 +96,11 @@ sudo unzip -d classes classes.zip
 
 * 安装epm
 RopeVM使用epm进行工程管理
+https://github.com/duyanning/epm
 
+* 安装cpps
+一些脚本是C++写的，安装了cpps才能执行。
+https://github.com/duyanning/cpps
 
 * 安装RopeVM
 ** 下载
@@ -269,6 +273,25 @@ yyy首次出现，是在find-yyy.cpps中。find-yyy.cpps会把所有的yyy输出
 yyy2net.cpps 会读入yyy.txt的内容。
 yyy.txt的作用就是在脚本之间传递信息。它就是find-yyy.cpps发现的yyy的持久化。（不光是做持久化之用，yyy.txt还要适合人类阅读）
 
-能否让find-yyy.cpps不产生yyy.txt而直接本来是yyy2net生成的yyy.net呢？
-.net受格式限制，关于yyy的信息只能编码在节点的label中，比较受限。
+能否让find-yyy.cpps不产生yyy.txt而直接生成本来是yyy2net生成的yyy.net呢？
+别！因为.net受格式限制，关于yyy的信息只能编码在节点的label中，比较受限。而且最初的event.net不是什么find-event.cpps的结果，而是event2net.cpps从日志信息event.txt生成的。
+
+** todo
+现在做到什么程度了？
+阶段已经识别出来了，每个阶段包括的故事编号也知道。
+每个故事包含哪些操作编号也知道。
+现在想把这些编号转换为更具体的信息显示给程序员看。
+要显示成这样：
+每个阶段从程序中哪一行开始，到哪一行结束。
+
+为了实现这一功能，需要拿着故事号能很快查出该故事包含的操作号。
+>>>这些信息从story.txt中能得到。但story.txt目前是给人看的格式。程序读写都不是很方便。而且不容易扩充。
+
+
+yyy.txt适合人看，并不适合代码从中提取信息。不光解码不容易，编码更多信息也不容易。我希望直接在各种工具之间传递便于程序访问的数据结构。可以借助boost的serialization。
+
+现在做什么？
+在生成story.txt的同时，生成一个story2.txt，该文件用boost的serialization生成。
+同理，在生成phase.txt的同时，生成一个phase2.txt。
+然后再做一个叫map-phase-to-program的程序，读取phase2.txt、story2.txt，输出各个阶段在程序中的起始位置。
 

@@ -34,7 +34,7 @@ if [ -s ref_name.txt ] ; then
     replace.sh event.map ref_name.txt ;
 fi
 
-# 复制到vmware的共享文件夹，方便windows host上处理
+# 复制到vmware的共享文件夹，方便windows host上处理(不需要了，用wmware的共享文件夹，还不如装个samba)
 # cp modified_event.net /mnt/hgfs/vmware-dir
 # cp event.pdf /mnt/hgfs/vmware-dir
 # cp event.dot /mnt/hgfs/vmware-dir

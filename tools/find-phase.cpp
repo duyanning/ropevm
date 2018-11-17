@@ -6,9 +6,13 @@ using namespace std;
 #include "Story.h"
 #include "Phase.h"
 
+// linklib boost_system
+// linklib boost_serialization
 
 class StoryMapWalker : public TwoLevelMapWalker<StoryEntry> {
     ofstream ofs_phase;
+    ofstream ofs_phase2;        // 用于boost::serialization
+    boost::archive::text_oarchive oa;
     void on_module_count(intmax_t module_count) override;
     void read_node(istringstream& iss, NodeType& story) override;
     void process_module(ModuleType& nodes_in_module, int& module_no) override;
@@ -20,7 +24,9 @@ public:
 StoryMapWalker::StoryMapWalker(const string& map_file_name, const string& phase_file_name)
 :
     TwoLevelMapWalker(map_file_name),
-    ofs_phase(phase_file_name)
+    ofs_phase(phase_file_name),
+    ofs_phase2("phase2.txt"),
+    oa(ofs_phase2)
 {
 }
 
@@ -30,6 +36,7 @@ StoryMapWalker::on_module_count(intmax_t module_count)
 {
     cout << "phase count: " << module_count << endl;
     ofs_phase << "phase count: " << module_count << endl;
+    oa << module_count;
 }
 
 
@@ -57,6 +64,7 @@ StoryMapWalker::process_module(ModuleType& module, int& module_no)
     }
 
     ofs_phase << phase;
+    oa << phase;
 }
 
 

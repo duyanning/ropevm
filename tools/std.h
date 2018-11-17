@@ -21,4 +21,12 @@
 #include <regex>
 #include <cassert>
 
+#include <boost/filesystem.hpp>
+#include <boost/program_options.hpp>
+#include <boost/algorithm/string/case_conv.hpp>
+#include <boost/archive/text_oarchive.hpp>
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/serialization/vector.hpp>
+#include <boost/serialization/unordered_map.hpp>
+
 #endif // STD_H
