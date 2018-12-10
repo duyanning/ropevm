@@ -1,3 +1,5 @@
+// 将故事图(story.txt)转换为infomap可以处理的.net格式(story.net)
+
 #include "std.h" // precompile std.h
 
 using namespace std;

@@ -1,3 +1,6 @@
+// 输出story.map中的社区信息(即阶段)
+// 此前，infomap会对故事网络(即从story.txt而来的story.net)进行社区发现，得到阶段(story.map)
+
 #include "std.h" // precompile std.h
 
 using namespace std;

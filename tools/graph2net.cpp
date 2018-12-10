@@ -1,3 +1,4 @@
+// 将对象协作图(graph.txt)转换为infomap可以处理的.net格式(graph.net)
 #include "std.h" // precompile std.h
 
 using namespace std;

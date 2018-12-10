@@ -1,6 +1,10 @@
+// 将事件历史(event.txt)转换为infomap可以处理的.net格式(event.net)
+
 #include "std.h" // precompile std.h
 using namespace std;
 #include "Op.h"
+
+// linklib boost_system
 
 const double weight_same_target = 1; // 大于2.0就会导致源、目标对象对调的操作之间的权重设为10的情况下，分不到一组的情况
 const double weight_from_to_forward = 10; // 

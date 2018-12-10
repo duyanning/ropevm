@@ -43,6 +43,7 @@ operator>>(std::istream& strm, Op& op)
 
 //=====================================
 
+// .map文件里节点名里编码的信息
 struct OpEntry {
     intmax_t op_no;
     //string from_class_name;
@@ -88,6 +89,7 @@ operator>>(std::istream& strm, OpEntry& op)
     to_object_addr.pop_back(); // "
     //cout << op_no << endl;
     op.op_no = op_no;
+    //cout << "aaa: " << op_no << endl;
     op.from_object_addr = from_object_addr;
     op.to_object_addr = to_object_addr;
 

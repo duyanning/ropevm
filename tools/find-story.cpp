@@ -1,3 +1,5 @@
+// 输出event.map中的社区信息(即故事)
+// 此前，infomap会对事件网络(即从event.txt而来的event.net)进行社区发现，得到故事(event.map)
 #include "std.h" // precompile std.h
 
 using namespace std;

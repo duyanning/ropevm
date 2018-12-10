@@ -295,3 +295,4 @@ yyy.txt适合人看，并不适合代码从中提取信息。不光解码不容�
 同理，在生成phase.txt的同时，生成一个phase2.txt。
 然后再做一个叫map-phase-to-program的程序，读取phase2.txt、story2.txt，输出各个阶段在程序中的起始位置。
 
+
