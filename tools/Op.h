@@ -10,8 +10,14 @@ struct Op {
     intmax_t op_no;
     intmax_t frame_no;          // 操作所在的栈桢
     intmax_t caller_frame_no;   // 操作所在栈桢的上级栈桢
+
+    string from_mb_name;
+    string to_mb_name;
+    int line_no; // 在源代码中的行数，源代码即from_mb_name所在的源文件
 };
 
+typedef vector<Op> EventHistory;
+void load_event_history(EventHistory& h);
 
 inline
 std::istream&
@@ -25,9 +31,13 @@ operator>>(std::istream& strm, Op& op)
     intmax_t op_no;
     intmax_t frame_no;
     intmax_t caller_frame_no;
-
+    string from_mb_name;
+    string to_mb_name;
+    int line_no;
+    
     strm >> source_class_name >> source_object_addr >> arrow >> target_class_name >> target_object_addr >> op_no
-         >> frame_no >> caller_frame_no;
+         >> frame_no >> caller_frame_no
+         >> from_mb_name >> to_mb_name >> line_no;
 
     op.from_class_name = source_class_name;
     op.from_object_addr = source_object_addr;
@@ -36,6 +46,11 @@ operator>>(std::istream& strm, Op& op)
     op.op_no = op_no;
     op.frame_no = frame_no;
     op.caller_frame_no = caller_frame_no;
+    op.from_mb_name = from_mb_name;
+    op.to_mb_name = to_mb_name;
+    op.line_no = line_no;
+
+    // 
 
     return strm;
 }

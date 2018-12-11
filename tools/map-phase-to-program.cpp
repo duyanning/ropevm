@@ -2,6 +2,7 @@
 
 using namespace std;
 
+#include "Op.h"                 // using Event.cpp
 #include "Story.h"
 #include "Phase.h"
 
@@ -9,6 +10,24 @@ using namespace std;
 // linklib boost_serialization
 
 using namespace std;
+
+EventHistory event_history;
+
+string map_event_to_line(intmax_t event_no)
+{
+    ostringstream oss;
+
+    auto it = find_if(event_history.begin(), event_history.end(),
+        [event_no](const Op& e) { return e.op_no == event_no; });
+
+    if (it != event_history.end()) {
+        oss << "in " << it->from_class_name <<" line " << it->line_no << " " << it->to_class_name << "." << it->to_mb_name;
+    }
+
+    return oss.str();
+    
+}
+
 
 intmax_t begin_op_of_story(const Story& story)
 {
@@ -23,6 +42,9 @@ intmax_t end_op_of_story(const Story& story)
 
 int main()
 {
+
+    load_event_history(event_history);
+    
     ifstream ifs_phase("phase2.txt");
     boost::archive::text_iarchive ia_phase(ifs_phase);
 
@@ -88,6 +110,8 @@ int main()
         }
 
         cout << "[" << begin << ", " << end << "]" << endl;
+        cout << map_event_to_line(begin) << endl;
+        cout << map_event_to_line(end) << endl;
     }
 
     // 至此，每个阶段的起止操作的编号已经知道了。
