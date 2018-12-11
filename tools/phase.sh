@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# 从profiler产生的event.txt中生成infomap需要的event.net
+# 将事件历史(event.txt)转换为infomap可以处理的.net格式(event.net)
 # 同时也会输出供graphviz使用的event.gv文件
 event2net.cpps
 
@@ -20,12 +20,23 @@ infomap event.net infomap-output/ -d -2 -N 10 --two-level --map
 # 移到当前目录下
 mv infomap-output/event.map .
 
+# 输出event.map中的社区信息(即故事)至story.txt
 find-story.cpps
 
+# 将故事图(story.txt)转换为infomap可以处理的.net格式(story.net)
 story2net.cpps
+
 # 用infomap在story.net中发现阶段，结果保存在infomap-output/story.map中
 infomap story.net infomap-output/ -d -2 -N 10 --two-level --map
+
+# 移到当前目录下
 mv infomap-output/story.map .
+
+# 输出story.map中的社区信息(即阶段)至phase.txt
+find-phase.cpps
+
+# 将phase.txt中的阶段起止位置转换为源代码中的行号
+map-phase-to-program.cpps
 
 
 # 为了方便调试，将对象地址替换为对象的名字
