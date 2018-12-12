@@ -1,4 +1,5 @@
 // 将事件历史(event.txt)转换为infomap可以处理的.net格式(event.net)
+// 这不是一个简单的格式转换，而是得确定节点间边的权重(关键所在)。
 
 #include "std.h" // precompile std.h
 using namespace std;

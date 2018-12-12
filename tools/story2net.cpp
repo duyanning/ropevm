@@ -2,6 +2,10 @@
 
 #include "std.h" // precompile std.h
 
+// linklib boost_system
+// linklib boost_serialization
+
+
 using namespace std;
 
 struct Op {
