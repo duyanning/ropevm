@@ -15,7 +15,8 @@ fi
 
 # 用infomap在event.net中发现社区，结果保存在infomap-output/event.map中
 # infomap提供的可执行文件是Infomap（首字母大写），我为了便于输入，搞了个符号链接infomap。可以放在tools下，也可以放在~/bin下。
-infomap event.net infomap-output/ -d -2 -N 10 --two-level --map
+# 注意：-z参数是为了告诉infomap，节点的编号是从0开始的
+infomap event.net infomap-output/ -d -2 -N 10 --two-level --map -z
 # ./Infomap -d -2 --bftree --without-iostream modified_event.net .
 
 # 移到当前目录下
@@ -28,6 +29,7 @@ find-story.cpps
 story2net.cpps
 
 # 用infomap在story.net中发现阶段，结果保存在infomap-output/story.map中
+# 注意：这个.net中的节点的编号是从1开始的，所以不用-z参数
 infomap story.net infomap-output/ -d -2 -N 10 --two-level --map
 
 # 移到当前目录下

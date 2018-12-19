@@ -69,7 +69,8 @@ void input_log()
 // 输出.net文件
 void output_net()
 {
-    // 注意调整节点编号，使之从1开始
+    // (此行注释作废)注意调整节点编号，使之从1开始
+    // 注意：节点编号从0开始，调用infomap的时候要加-z参数
     cout << "vertices: " << vertices.size() << endl;
     cout << "edges: " << edges.size() << endl;
 
@@ -79,14 +80,14 @@ void output_net()
     for (i = 0; i < vertices.size(); ++i) {
         const Vertex& v = vertices[i];
         // ofs_net << i+1 << " " << "\"" << v.op_no << " " << v.from_object_addr << " -> " << v.to_object_addr << "\"" << " 1.0" << endl;
-        ofs_net << i+1 << " " << "\"" << OpEntry(v) << "\"" << " 1.0" << endl;
+        ofs_net << i << " " << "\"" << OpEntry(v) << "\"" << " 1.0" << endl;
     }
 
     ofs_net << "*Arcs " << edges.size() << endl;
     for (i = 0; i < edges.size(); ++i) {
         const Edge& e = edges[i];
 
-        ofs_net << e.from+1 << " " << e.to+1 << " " << e.weight << endl;
+        ofs_net << e.from << " " << e.to << " " << e.weight << endl;
     }
 }
 
@@ -234,14 +235,14 @@ void build_net()
 // 输出graphviz的.dot文件
 void output_dot()
 {
-    // // 注意调整节点编号，使之从1开始
+    // (此行注释作废)注意调整节点编号，使之从1开始
     ofstream ofs_dot("event.gv");
     ofs_dot << "digraph G {" << endl;
     for (size_t i = 0; i < edges.size(); ++i) {
         const Edge& e = edges[i];
         // const Vertex& from = vertices[e.from];
         // const Vertex& to = vertices[e.to];
-        ofs_dot << e.from+1 << " -> " << e.to+1;
+        ofs_dot << e.from << " -> " << e.to;
         // 边的颜色
         ofs_dot << " [color=";
         switch (e.type) {
