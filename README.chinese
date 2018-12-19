@@ -153,6 +153,8 @@ log控制日志开关
 graph控制是否输出对象协作图
 event控制是否输出事件历史
 
+还应该搞一个变量来控制phase.sh是否生成可视化的pdf文件。不然对于大一点的程序，生成pdf太慢了。
+
 环境变量
 export model=1
 export log=1

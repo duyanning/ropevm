@@ -166,4 +166,11 @@ Fixer 0xaf34acd8 => Page 0xaf34acf8 15 9108 7260 tune layout 101
 在继续之前需要解决一个问题：即节点的编号问题，节点即事件，在历史中是从0开始编号的，但在.net文件中却是从1开始编号的。
 这种不一致给分析带来了不必要的困难。看能不能统一一下。
 
+先看看infomap支不支持从0开始，试了一下，infomap说
+Parsing directed network from file 'event.net'... Couldn't parse line 2. Should begin with node number 1.
+Be sure to use zero-based node numbering if the node numbers start from zero.
+第一行说必须从1开始，第二行好像又有办法。
+
+infomap -h看到-z参数可以支持从0开始
+
  */
