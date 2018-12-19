@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
-# 将事件历史(event.txt)转换为infomap可以处理的.net格式(event.net)
+# 将事件历史(event.txt)转换为infomap可以处理的.net格式(event.net)的复杂网络。
 # 同时也会输出供graphviz使用的event.gv文件
 event2net.cpps
 
 # 用dot从event.gv生成可视化的event.pdf
-# dot -Tpdf event.gv -o event.pdf # 对于大程序太慢
+dot -Tpdf event.gv -o event.pdf # 对于大程序太慢
 
 
 # 为infomap创建输出文件夹infomap-output
@@ -14,6 +14,7 @@ if [ ! -d infomap-output ] ; then
 fi
 
 # 用infomap在event.net中发现社区，结果保存在infomap-output/event.map中
+# infomap提供的可执行文件是Infomap（首字母大写），我为了便于输入，搞了个符号链接infomap。可以放在tools下，也可以放在~/bin下。
 infomap event.net infomap-output/ -d -2 -N 10 --two-level --map
 # ./Infomap -d -2 --bftree --without-iostream modified_event.net .
 
@@ -39,6 +40,7 @@ find-phase.cpps
 map-phase-to-program.cpps
 
 
+# 本来到此为止
 # 为了方便调试，将对象地址替换为对象的名字
 if [ -s ref_name.txt ] ; then
     replace.sh event.net ref_name.txt ;
