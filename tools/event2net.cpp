@@ -69,7 +69,6 @@ void input_log()
 // 输出.net文件
 void output_net()
 {
-    // (此行注释作废)注意调整节点编号，使之从1开始
     // 注意：节点编号从0开始，调用infomap的时候要加-z参数
     cout << "vertices: " << vertices.size() << endl;
     cout << "edges: " << edges.size() << endl;
@@ -235,7 +234,7 @@ void build_net()
 // 输出graphviz的.dot文件
 void output_dot()
 {
-    // (此行注释作废)注意调整节点编号，使之从1开始
+    // 注意节点编号从0开始
     ofstream ofs_dot("event.gv");
     ofs_dot << "digraph G {" << endl;
     for (size_t i = 0; i < edges.size(); ++i) {
