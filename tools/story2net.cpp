@@ -63,7 +63,7 @@ void output_story(const Story& story)
 
 intmax_t calc_story_overlapping(const Story& a, const Story& b)
 {
-    // 先判断两个纤维是否重叠，如果不重叠，重叠度为0
+    // 先判断两个故事是否重叠，如果不重叠，重叠度为0
     intmax_t a_first, a_last, b_first, b_last;
     a_first = a.ops.front().op_no;
     a_last = a.ops.back().op_no;
@@ -75,7 +75,7 @@ intmax_t calc_story_overlapping(const Story& a, const Story& b)
     if (b_last < a_first)
         return 0;
 
-    // 如果重叠，获得两个纤维的起止位置，共4个点。然后对这个4个点排序，取中间两个之间的距离，作为重叠度
+    // 如果重叠，获得两个故事的起止位置，共4个点。然后对这个4个点排序，取中间两个之间的距离，作为重叠度
     vector<intmax_t> pos;
     pos.push_back(a_first);
     pos.push_back(a_last);
@@ -130,6 +130,43 @@ void output_net()
     }
 }
 
+// 输出graphviz的.dot文件
+void output_dot()
+{
+    // 注意节点编号从1开始
+    ofstream ofs_dot("story.gv");
+    ofs_dot << "graph G {" << endl;
+    for (size_t i = 0; i < edges.size(); ++i) {
+        const Edge& e = edges[i];
+        // const Vertex& from = vertices[e.from];
+        // const Vertex& to = vertices[e.to];
+        ofs_dot << e.from+1 << " -- " << e.to+1;
+        ofs_dot << " [";
+        // // 边的颜色
+        // ofs_dot << "color=";
+        // switch (e.type) {
+        // case EdgeType::SAME_TARGET:
+        //     ofs_dot << "green";
+        //     break;
+        // case EdgeType::DYNAMIC_ORDER:
+        //     ofs_dot << "grey";
+        //     break;
+        // case EdgeType::FROM_TO_FORWARD:
+        //     ofs_dot << "red";
+        //     break;
+        // case EdgeType::FROM_TO_BACKWARD:
+        //     ofs_dot << "blue";
+        //     break;
+        // }
+        // 边的xxx？
+        ofs_dot << "weight=" << e.weight;
+        // 边的粗细
+        ofs_dot << ", penwidth=" << e.weight;
+        ofs_dot << "];" << endl;
+    }
+    ofs_dot << "}" << endl;
+}
+
 void input_story_txt()
 {
     ifs_story.ignore(numeric_limits<std::streamsize>::max(), ':');
@@ -155,6 +192,7 @@ int main()
     input_story_txt();
     link_vertex();
     output_net();
+    output_dot();
 
     return 0;
 }

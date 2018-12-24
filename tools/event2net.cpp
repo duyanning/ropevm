@@ -106,8 +106,8 @@ void link_ops_having_same_target()
 
             // 根据操作之间的距离确定权重衰减衰系数(attenuation coefficient) 
             double ac = 1;
-            intmax_t op_distance = calc_op_distance(vertices[j], vertices[i]);
-            ac /= op_distance;
+            //intmax_t op_distance = calc_op_distance(vertices[j], vertices[i]);
+            //ac /= op_distance;
             //cout << i << " " << j << " distance=" << op_distance << " ac=" << ac << endl;
 
             // 如果目标对象相同，那么就在两个操作之间建立一条连接（对同一个对象的两个操作，应由同一线程来执行）
@@ -225,8 +225,8 @@ void link_ops_according_to_dynamic_order()
 void build_net()
 {
     link_ops_having_same_target();
-    link_ops_from_to_forward();
-    link_ops_from_to_backward();
+    //link_ops_from_to_forward();
+    //link_ops_from_to_backward();
     //link_ops_according_to_dynamic_order();
 }
 
@@ -236,12 +236,12 @@ void output_dot()
 {
     // 注意节点编号从0开始
     ofstream ofs_dot("event.gv");
-    ofs_dot << "digraph G {" << endl;
+    ofs_dot << "graph G {" << endl;
     for (size_t i = 0; i < edges.size(); ++i) {
         const Edge& e = edges[i];
         // const Vertex& from = vertices[e.from];
         // const Vertex& to = vertices[e.to];
-        ofs_dot << e.from << " -> " << e.to;
+        ofs_dot << e.from << " -- " << e.to;
         // 边的颜色
         ofs_dot << " [color=";
         switch (e.type) {

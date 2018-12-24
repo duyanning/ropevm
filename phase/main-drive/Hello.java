@@ -40,7 +40,6 @@ class Hello
 		Obj d = new Obj("d");
         RopeVMBackdoor.register_obj(Hello.class, "Hello");
         RopeVMBackdoor.register_obj(a, "a");
-        //RopeVMBackdoor.register_obj();
         RopeVMBackdoor.register_obj(b, "b");
         RopeVMBackdoor.register_obj(c, "c");
         RopeVMBackdoor.register_obj(d, "d");

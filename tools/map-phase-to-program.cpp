@@ -23,6 +23,9 @@ string map_event_to_line(intmax_t event_no)
     if (it != event_history.end()) {
         oss << "in " << it->from_class_name <<" line " << it->line_no << " " << it->to_class_name << "." << it->to_mb_name;
     }
+    else {
+        throw "oops";
+    }
 
     return oss.str();
     
@@ -104,7 +107,7 @@ int main()
             if (b < begin)
                 begin = b;
 
-            if (e < end)
+            if (e > end)
                 end = e;
             
         }

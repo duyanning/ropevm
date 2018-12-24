@@ -297,6 +297,11 @@ yyy.txt的作用就是在脚本之间传递信息。它就是find-yyy.cpps发现
 所有的社区发现，都用infomap来做。
 准备infomap需要的xxx.net格式文件： xxx2net.cpps从xxx.txt生成xxx.net
 从infomap产生的xxx.map文件中提取信息：findYyy.cpps生成yyy.txt
+* 阶段是phase还是stage呢？
+两个词义很接近
+不过我在《现代英汉综合大辞典》中发现一个例句：
+a phase of history
+考虑到我也用了history的概念，所以用phase。
 
 ** todo
 现在做到什么程度了？
