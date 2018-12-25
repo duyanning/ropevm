@@ -7,7 +7,7 @@ using namespace std;
 
 // linklib boost_system
 
-const double weight_same_target = 1; // 大于2.0就会导致源、目标对象对调的操作之间的权重设为10的情况下，分不到一组的情况
+const double weight_same_target = 5; // 大于2.0就会导致源、目标对象对调的操作之间的权重设为10的情况下，分不到一组的情况
 const double weight_from_to_forward = 10; // 
 const double weight_from_to_backward = 10; // 
 const double weight_reentry = 20; // 重入操作之间
@@ -227,7 +227,7 @@ void build_net()
     link_ops_having_same_target();
     //link_ops_from_to_forward();
     //link_ops_from_to_backward();
-    //link_ops_according_to_dynamic_order();
+    link_ops_according_to_dynamic_order();
 }
 
 
@@ -236,12 +236,14 @@ void output_dot()
 {
     // 注意节点编号从0开始
     ofstream ofs_dot("event.gv");
-    ofs_dot << "graph G {" << endl;
+    ofs_dot << "graph G {" << endl; // 无向图
+    //ofs_dot << "digraph G {" << endl; // 有向图
     for (size_t i = 0; i < edges.size(); ++i) {
         const Edge& e = edges[i];
         // const Vertex& from = vertices[e.from];
         // const Vertex& to = vertices[e.to];
-        ofs_dot << e.from << " -- " << e.to;
+        ofs_dot << e.from << " -- " << e.to; // 无向图
+        //ofs_dot << e.from << " -> " << e.to; // 有向图
         // 边的颜色
         ofs_dot << " [color=";
         switch (e.type) {

@@ -16,7 +16,7 @@ fi
 # 用infomap在event.net中发现社区，结果保存在infomap-output/event.map中
 # infomap提供的可执行文件是Infomap（首字母大写），我为了便于输入，搞了个符号链接infomap。可以放在tools下，也可以放在~/bin下。
 # 注意：-z参数是为了告诉infomap，节点的编号是从0开始的
-infomap event.net infomap-output/ -d -2 -N 10 --map -z
+infomap event.net infomap-output/ -u -2 -N 10 --map -z
 # ./Infomap -d -2 --bftree --without-iostream modified_event.net .
 
 # 移到当前目录下
